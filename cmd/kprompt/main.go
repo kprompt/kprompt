@@ -22,6 +22,7 @@ var (
 	model     string
 	kubeCtx   string
 	namespace string
+	outputFmt string
 )
 
 func main() {
@@ -44,6 +45,7 @@ func main() {
 			cfg := config.Merge(file, provider, model, kubeCtx, namespace, approve, prompt)
 			cfg.Wait = waitFlag
 			cfg.Timeout = timeout
+			cfg.Output = outputFmt
 			cfg.NamespaceFromCLI = cmd.Flags().Changed("namespace")
 			cfg.ContextFromCLI = cmd.Flags().Changed("context")
 			return pipeline.Run(cmd.Context(), cfg, cmd.OutOrStdout())
@@ -57,6 +59,7 @@ func main() {
 	root.PersistentFlags().StringVar(&model, "model", "", "LLM model id")
 	root.PersistentFlags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
 	root.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "default namespace")
+	root.PersistentFlags().StringVarP(&outputFmt, "output", "o", "text", "output format: text|json")
 
 	root.AddCommand(&cobra.Command{
 		Use:   "version",

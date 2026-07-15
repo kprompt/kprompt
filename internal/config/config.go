@@ -36,11 +36,17 @@ type Resolved struct {
 	Approve   bool
 	Wait      bool
 	Timeout   time.Duration // used with Wait; 0 means default (5m)
+	Output    string        // "", "text", or "json"
 	Prompt    string
 
 	// Set when the corresponding CLI flag was explicitly passed.
 	NamespaceFromCLI bool
 	ContextFromCLI   bool
+}
+
+// JSONOutput reports whether machine-readable JSON should be emitted.
+func (r Resolved) JSONOutput() bool {
+	return strings.EqualFold(strings.TrimSpace(r.Output), "json")
 }
 
 // LoadFile reads ~/.kprompt/config.yaml if present.

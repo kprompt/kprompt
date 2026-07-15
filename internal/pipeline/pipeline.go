@@ -15,6 +15,7 @@ import (
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/llm"
+	"github.com/kprompt/kprompt/internal/output"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
@@ -42,8 +43,26 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if cfg.Prompt == "" {
 		return fmt.Errorf("prompt is required")
 	}
+	jsonMode := cfg.JSONOutput()
+	human := out
+	if jsonMode {
+		human = os.Stderr
+	}
 
 	if denied := safety.CheckPrompt(cfg.Prompt); denied.Denied {
+		if jsonMode {
+			return output.Encode(out, output.PlanResult{
+				APIVersion:    output.APIVersion,
+				Kind:          output.KindPlanResult,
+				SchemaVersion: output.SchemaVersion,
+				Prompt:        cfg.Prompt,
+				Risk: output.RiskPayload{
+					Level:   string(safety.RiskDenied),
+					Denied:  true,
+					Message: denied.Message,
+				},
+			})
+		}
 		ui.PrintDenied(out, denied.Message)
 		return nil
 	}
@@ -79,6 +98,9 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	risk := safety.EvaluatePlan(plan)
 	if risk.Denied {
+		if jsonMode {
+			return output.Encode(out, output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false))
+		}
 		ui.PrintDenied(out, risk.Message)
 		return nil
 	}
@@ -101,12 +123,19 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		planner.EnrichDiffs(ctx, client, &plan)
 	}
 
-	ui.PrintPlan(out, plan, risk)
+	doc := output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false)
+	if !jsonMode {
+		ui.PrintPlan(out, plan, risk)
+	}
 
 	applied := false
 	defer func() {
 		_ = history.Append(history.FromPlan(cfg.Prompt, cfg.Context, plan, risk, applied))
 		_ = history.Truncate()
+		if jsonMode {
+			doc.Applied = applied
+			_ = output.Encode(out, doc)
+		}
 	}()
 
 	// Read-only paths run immediately (no --approve).
@@ -121,6 +150,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("explain: %w", err))
 			}
+			doc = doc.WithExplainResult(rep)
+			if jsonMode {
+				applied = true
+				return nil
+			}
 			ui.PrintExplain(out, rep)
 
 			suggestions, err := suggest.FromExplain(ctx, client, rep)
@@ -134,7 +168,6 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				applied = true
 				return nil
 			}
-			// Offer the primary patch plan (e.g. OOM → raise memory); still requires approval.
 			patch := *actionable[0].Plan
 			patchRisk := safety.EvaluatePlan(patch)
 			if patchRisk.Denied {
@@ -168,7 +201,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("logs: %w", err))
 			}
-			ui.PrintLogs(out, res)
+			doc = doc.WithLogsResult(res)
+			if !jsonMode {
+				ui.PrintLogs(out, res)
+			}
 			applied = true
 			return nil
 		case intent.KindDescribe:
@@ -180,7 +216,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("describe: %w", err))
 			}
-			ui.PrintDescribe(out, rep)
+			doc = doc.WithDescribeResult(rep)
+			if !jsonMode {
+				ui.PrintDescribe(out, rep)
+			}
 			applied = true
 			return nil
 		case intent.KindGet:
@@ -192,13 +231,16 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("query: %w", err))
 			}
-			ui.PrintQueryResult(out, res)
+			doc = doc.WithQueryResult(res)
+			if !jsonMode {
+				ui.PrintQueryResult(out, res)
+			}
 			applied = true
 			return nil
 		}
 	}
 
-	approved, err := resolveApproval(cfg.Approve, out, deps)
+	approved, err := resolveApproval(cfg.Approve, human, deps)
 	if err != nil {
 		return err
 	}
@@ -210,7 +252,9 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if err := runner.Apply(ctx, plan); err != nil {
 		return cluster.Friendlier(fmt.Errorf("apply: %w", err))
 	}
-	ui.PrintApplied(out, plan)
+	if !jsonMode {
+		ui.PrintApplied(out, plan)
+	}
 	applied = true
 
 	if cfg.Wait {
@@ -219,7 +263,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		if timeout <= 0 {
 			timeout = cluster.DefaultWaitTimeout
 		}
-		waiter := &cluster.Waiter{Client: client, Out: out}
+		waiter := &cluster.Waiter{Client: client, Out: human}
 		for _, t := range targets {
 			if err := waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout); err != nil {
 				return cluster.Friendlier(err)

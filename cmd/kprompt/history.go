@@ -59,6 +59,7 @@ func newHistoryCmd() *cobra.Command {
 			cfg := config.Merge(file, provider, model, kubeCtx, namespace, approve, entry.Prompt)
 			cfg.Wait = waitFlag
 			cfg.Timeout = timeout
+			cfg.Output = outputFmt
 			root := cmd.Root()
 			cfg.NamespaceFromCLI = root.PersistentFlags().Changed("namespace")
 			cfg.ContextFromCLI = root.PersistentFlags().Changed("context")

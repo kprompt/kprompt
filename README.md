@@ -101,6 +101,10 @@ kprompt history rerun 3 --approve
 
 History stores prompt, kind, summary, and action refs — never manifests or API keys.
 
+## CI
+
+Use `--output json` for a versioned PlanResult (see [docs/ci.md](./docs/ci.md)).
+
 Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt-website.vercel.app/#usage) when helpful.
 
 ## Flags
@@ -110,6 +114,7 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 | `--approve` | Apply without interactive confirmation |
 | `--wait` | After apply, wait for Deployment rollout |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
+| `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
 | `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `mistral`, `deepseek`, `openrouter`, `together`, `ollama`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |

@@ -3,6 +3,7 @@ package pipeline
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"os"
@@ -129,6 +130,36 @@ func TestMutationApproveFlagSkipsPrompt(t *testing.T) {
 	dep, _ := client.AppsV1().Deployments("default").Get(context.Background(), "api", metav1.GetOptions{})
 	if *dep.Spec.Replicas != 4 {
 		t.Fatalf("replicas=%v", *dep.Spec.Replicas)
+	}
+}
+
+func TestJSONOutputScalePlan(t *testing.T) {
+	client := fake.NewSimpleClientset(deployment("api", "default", 1))
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Approve:   false,
+		Namespace: "default",
+		Output:    "json",
+		Prompt:    "scale api to 3",
+	}, &out, Deps{
+		Provider:   llm.ScaleStub("api", "default", 3),
+		Client:     client,
+		IsTerminal: boolPtr(false),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !json.Valid(out.Bytes()) {
+		t.Fatalf("invalid json: %s", out.String())
+	}
+	if !bytes.Contains(out.Bytes(), []byte(`"schemaVersion":"1"`)) {
+		t.Fatalf("missing schemaVersion: %s", out.String())
+	}
+	if !bytes.Contains(out.Bytes(), []byte(`"intent":"scale"`)) {
+		t.Fatalf("missing intent: %s", out.String())
+	}
+	if bytes.Contains(out.Bytes(), []byte("Intent:")) {
+		t.Fatal("human plan leaked to stdout in json mode")
 	}
 }
 
