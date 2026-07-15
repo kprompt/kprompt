@@ -23,10 +23,12 @@ var (
 
 func main() {
 	root := &cobra.Command{
-		Use:   "kprompt [prompt]",
-		Short: "Talk to your Kubernetes cluster with natural language",
-		Long:  "kprompt plans cluster actions from a prompt, applies safety policy, and mutates only after interactive confirm or --approve.",
-		Args:  cobra.ArbitraryArgs,
+		Use:           "kprompt [prompt]",
+		Short:         "Talk to your Kubernetes cluster with natural language",
+		Long:          "kprompt plans cluster actions from a prompt, applies safety policy, and mutates only after interactive confirm or --approve.",
+		Args:          cobra.ArbitraryArgs,
+		SilenceUsage:  true,
+		SilenceErrors: true,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prompt := strings.TrimSpace(strings.Join(args, " "))
 			if prompt == "" {

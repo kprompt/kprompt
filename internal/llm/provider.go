@@ -30,12 +30,12 @@ func New(name, apiKey, baseURL, model string) (Provider, error) {
 	switch name {
 	case "openai", "openai-compatible", "":
 		if apiKey == "" {
-			return nil, fmt.Errorf("missing API key for openai (set %s)", "KPROMPT_OPENAI_API_KEY")
+			return nil, fmt.Errorf("missing API key for openai — set KPROMPT_OPENAI_API_KEY (or OPENAI_API_KEY). Example:\n  export KPROMPT_OPENAI_API_KEY=sk-...\nUsage guide: https://kprompt-website.vercel.app/#usage")
 		}
 		return NewOpenAI(apiKey, baseURL, model), nil
 	case "anthropic":
 		if apiKey == "" {
-			return nil, fmt.Errorf("missing API key for anthropic (set %s)", "KPROMPT_ANTHROPIC_API_KEY")
+			return nil, fmt.Errorf("missing API key for anthropic — set KPROMPT_ANTHROPIC_API_KEY (or ANTHROPIC_API_KEY). Example:\n  export KPROMPT_ANTHROPIC_API_KEY=sk-ant-...\nUsage guide: https://kprompt-website.vercel.app/#usage")
 		}
 		return NewAnthropic(apiKey, model), nil
 	default:
