@@ -76,22 +76,32 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		client = clients.Clientset
 	}
 
-	// Read-only get/list runs immediately (no --approve).
+	// Read-only paths run immediately (no --approve).
 	if isReadOnly(plan) {
-		if plan.Intent.Kind == intent.KindExplain {
-			fmt.Fprintln(out, "Explain-lite is not implemented yet (T-004).")
+		switch plan.Intent.Kind {
+		case intent.KindExplain:
+			req, err := explainFromPlan(plan)
+			if err != nil {
+				return err
+			}
+			rep, err := (&cluster.Explainer{Client: client}).Explain(ctx, req)
+			if err != nil {
+				return fmt.Errorf("explain: %w", err)
+			}
+			ui.PrintExplain(out, rep)
+			return nil
+		case intent.KindGet:
+			q, err := queryFromPlan(plan)
+			if err != nil {
+				return err
+			}
+			res, err := (&cluster.Reader{Client: client}).List(ctx, q)
+			if err != nil {
+				return fmt.Errorf("query: %w", err)
+			}
+			ui.PrintQueryResult(out, res)
 			return nil
 		}
-		q, err := queryFromPlan(plan)
-		if err != nil {
-			return err
-		}
-		res, err := (&cluster.Reader{Client: client}).List(ctx, q)
-		if err != nil {
-			return fmt.Errorf("query: %w", err)
-		}
-		ui.PrintQueryResult(out, res)
-		return nil
 	}
 
 	if !cfg.Approve {
@@ -139,4 +149,19 @@ func queryFromPlan(plan planner.ExecutionPlan) (cluster.Query, error) {
 		q.MinMemory = qty
 	}
 	return q, nil
+}
+
+func explainFromPlan(plan planner.ExecutionPlan) (cluster.ExplainRequest, error) {
+	if len(plan.Actions) == 0 {
+		return cluster.ExplainRequest{}, fmt.Errorf("explain plan has no actions")
+	}
+	a := plan.Actions[0]
+	if a.Object.Name == "" {
+		return cluster.ExplainRequest{}, fmt.Errorf("explain requires a named target")
+	}
+	return cluster.ExplainRequest{
+		Name:      a.Object.Name,
+		Namespace: a.Object.Namespace,
+		Kind:      a.Object.Kind,
+	}, nil
 }

@@ -67,3 +67,22 @@ func PrintQueryResult(w io.Writer, res cluster.Result) {
 	}
 	_ = tw.Flush()
 }
+
+// PrintExplain prints an explain-lite report.
+func PrintExplain(w io.Writer, rep cluster.ExplainReport) {
+	fmt.Fprintf(w, "Target:  %s/%s -n %s\n", rep.Kind, rep.Target, rep.Namespace)
+	fmt.Fprintf(w, "Status:  %s\n", rep.Status)
+	fmt.Fprintf(w, "Summary: %s\n", rep.Summary)
+	if len(rep.Findings) > 0 {
+		fmt.Fprintln(w, "Findings:")
+		for _, f := range rep.Findings {
+			fmt.Fprintf(w, "  - [%s] %s: %s\n", f.Severity, f.Code, f.Message)
+		}
+	}
+	if len(rep.Events) > 0 {
+		fmt.Fprintln(w, "Recent events:")
+		for _, ev := range rep.Events {
+			fmt.Fprintf(w, "  - %s\n", ev)
+		}
+	}
+}

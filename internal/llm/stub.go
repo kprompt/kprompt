@@ -84,3 +84,20 @@ func GetStub(resourceKind, name, namespace, minMemory string) *Stub {
 	})
 	return &Stub{Structured: payload}
 }
+
+// ExplainStub returns a Stub that classifies an explain intent.
+func ExplainStub(name, namespace, resourceKind string) *Stub {
+	if resourceKind == "" {
+		resourceKind = "Deployment"
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"kind": "explain",
+		"target": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+			"kind":      resourceKind,
+		},
+		"confidence": 1.0,
+	})
+	return &Stub{Structured: payload}
+}

@@ -10,11 +10,12 @@ kprompt "deploy redis" --approve
 kprompt "deploy nginx" --approve
 kprompt "list deployments"
 kprompt "show pods" -n default
+kprompt "explain why payment-api is crashing"
 ```
 
 ## Status
 
-**v0 skeleton** — plan → safety → approve → apply pipeline is in place. Mutation paths: **deploy** (Deployment ± Service) and **scale**. Multi-LLM providers: OpenAI-compatible + Anthropic. Kind E2E covers deploy + scale (`go test -tags=e2e ./test/e2e/`).
+**v0 / early v1** — plan → safety → apply for **deploy** + **scale**; read-only **get/list** + **explain-lite**. Multi-LLM: OpenAI-compatible + Anthropic. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 
 ## Install (dev)
 

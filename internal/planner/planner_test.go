@@ -86,3 +86,20 @@ func TestBuildGetPods(t *testing.T) {
 		t.Fatalf("kind=%s", plan.Actions[0].Object.Kind)
 	}
 }
+
+func TestBuildExplainRequiresName(t *testing.T) {
+	_, err := Build(intent.Intent{Kind: intent.KindExplain, Target: intent.Target{}})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	plan, err := Build(intent.Intent{
+		Kind:   intent.KindExplain,
+		Target: intent.Target{Name: "payment-api", Namespace: "prod", Kind: "Deployment"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.RequiresApproval {
+		t.Fatal("explain is read-only")
+	}
+}

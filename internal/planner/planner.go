@@ -28,18 +28,7 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 	case intent.KindGet:
 		return buildGet(in, ns)
 	case intent.KindExplain:
-		return ExecutionPlan{
-			Intent:  in,
-			Summary: fmt.Sprintf("explain %s (not implemented yet — see T-004)", in.Target.Name),
-			Actions: []Action{{
-				Op: OpGet,
-				Object: ObjectRef{
-					Kind:      first(in.Target.Kind, "Pod"),
-					Name:      in.Target.Name,
-					Namespace: ns,
-				},
-			}},
-		}, nil
+		return buildExplain(in, ns)
 	case intent.KindDeny:
 		return ExecutionPlan{Intent: in, Summary: "Denied intent", RequiresApproval: false}, nil
 	default:
@@ -65,6 +54,33 @@ func buildGet(in intent.Intent, ns string) (ExecutionPlan, error) {
 	if mem, ok := in.MinMemory(); ok {
 		summary += fmt.Sprintf(" minMemory=%s", mem)
 	}
+	return ExecutionPlan{
+		Intent: in,
+		Actions: []Action{{
+			Op: OpGet,
+			Object: ObjectRef{
+				Kind:      kind,
+				Name:      name,
+				Namespace: ns,
+			},
+			Diff: summary,
+		}},
+		Summary:          summary,
+		RequiresApproval: false,
+	}, nil
+}
+
+func buildExplain(in intent.Intent, ns string) (ExecutionPlan, error) {
+	name := strings.TrimSpace(in.Target.Name)
+	if name == "" {
+		return ExecutionPlan{}, fmt.Errorf("explain intent missing target.name")
+	}
+	kind := first(in.Target.Kind, "Deployment")
+	kind = cluster.NormalizeKind(kind)
+	if kind != "Pod" && kind != "Deployment" {
+		kind = "Deployment"
+	}
+	summary := fmt.Sprintf("Explain %s/%s in %s (status + events)", kind, name, ns)
 	return ExecutionPlan{
 		Intent: in,
 		Actions: []Action{{

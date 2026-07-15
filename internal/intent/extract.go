@@ -14,6 +14,7 @@ Rules:
 - For scale: set target.name, target.kind (usually Deployment), target.namespace if mentioned, params.replicas as a number
 - For deploy: set target.name (workload name), params.image when known (e.g. redis:7-alpine, nginx:1.27-alpine); for well-known apps like "redis" or "nginx" name alone is enough; optional params.replicas (default 1), params.port and/or params.createService=true for a ClusterIP Service
 - For get/list/show: kind=get; set target.kind to Pod, Deployment, or Service; target.namespace if mentioned; target.name only for a single object; optional params.labelSelector; optional params.minMemory (e.g. "2Gi") when the user asks for pods using more than X memory (filter by memory requests)
+- For explain/why crashing/failing: kind=explain; set target.name to the workload; target.kind Deployment or Pod; target.namespace if mentioned
 - For clearly destructive wipe/delete-cluster requests: kind=deny
 - Prefer Deployment as target.kind for named apps when unspecified
 - Only emit JSON matching the schema`
