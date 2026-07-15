@@ -85,3 +85,28 @@ func PrintExplain(w io.Writer, rep cluster.ExplainReport) {
 		}
 	}
 }
+
+// PrintLogs prints a pod log tail.
+func PrintLogs(w io.Writer, res cluster.LogsResult) {
+	header := fmt.Sprintf("Logs: Pod/%s -n %s", res.Pod, res.Namespace)
+	if res.Container != "" {
+		header += " container=" + res.Container
+	}
+	header += fmt.Sprintf(" (last %d lines)", res.Tail)
+	fmt.Fprintln(w, header)
+	body := strings.TrimRight(res.Body, "\n")
+	if body == "" {
+		fmt.Fprintln(w, "(no log output)")
+		return
+	}
+	fmt.Fprintln(w, body)
+}
+
+// PrintDescribe prints a compact describe report.
+func PrintDescribe(w io.Writer, rep cluster.DescribeReport) {
+	fmt.Fprintf(w, "%s/%s -n %s\n", rep.Kind, rep.Name, rep.Namespace)
+	fmt.Fprintf(w, "Status:  %s\n", rep.Status)
+	for _, line := range rep.Lines {
+		fmt.Fprintln(w, line)
+	}
+}

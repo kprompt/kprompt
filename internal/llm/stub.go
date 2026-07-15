@@ -121,3 +121,45 @@ func RollbackStub(name, namespace string, revision int64) *Stub {
 	})
 	return &Stub{Structured: payload}
 }
+
+// LogsStub returns a Stub that classifies a logs intent.
+func LogsStub(name, namespace, resourceKind string, tail int64, container string) *Stub {
+	if resourceKind == "" {
+		resourceKind = "Deployment"
+	}
+	params := map[string]any{}
+	if tail > 0 {
+		params["tail"] = tail
+	}
+	if container != "" {
+		params["container"] = container
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"kind": "logs",
+		"target": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+			"kind":      resourceKind,
+		},
+		"params":     params,
+		"confidence": 1.0,
+	})
+	return &Stub{Structured: payload}
+}
+
+// DescribeStub returns a Stub that classifies a describe intent.
+func DescribeStub(name, namespace, resourceKind string) *Stub {
+	if resourceKind == "" {
+		resourceKind = "Deployment"
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"kind": "describe",
+		"target": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+			"kind":      resourceKind,
+		},
+		"confidence": 1.0,
+	})
+	return &Stub{Structured: payload}
+}

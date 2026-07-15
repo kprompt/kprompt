@@ -1,6 +1,7 @@
 package planner
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/kprompt/kprompt/internal/intent"
@@ -139,5 +140,33 @@ func TestBuildRollbackRequiresName(t *testing.T) {
 	_, err := Build(intent.Intent{Kind: intent.KindRollback, Target: intent.Target{}})
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestBuildLogsAndDescribe(t *testing.T) {
+	logs, err := Build(intent.Intent{
+		Kind:   intent.KindLogs,
+		Target: intent.Target{Name: "api", Namespace: "prod", Kind: "Deployment"},
+		Params: map[string]any{"tail": float64(50), "container": "app"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if logs.RequiresApproval {
+		t.Fatal("logs is read-only")
+	}
+	if !strings.Contains(logs.Summary, "50") {
+		t.Fatalf("summary=%s", logs.Summary)
+	}
+
+	desc, err := Build(intent.Intent{
+		Kind:   intent.KindDescribe,
+		Target: intent.Target{Name: "api", Namespace: "prod"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if desc.RequiresApproval {
+		t.Fatal("describe is read-only")
 	}
 }

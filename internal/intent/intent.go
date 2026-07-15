@@ -11,6 +11,8 @@ const (
 	KindRollback Kind = "rollback"
 	KindGet      Kind = "get"
 	KindExplain  Kind = "explain"
+	KindLogs     Kind = "logs"
+	KindDescribe Kind = "describe"
 	KindDeny     Kind = "deny"
 	KindUnknown  Kind = "unknown"
 )
@@ -39,7 +41,7 @@ const SchemaJSON = `{
   "properties": {
     "kind": {
       "type": "string",
-      "enum": ["deploy", "scale", "rollback", "get", "explain", "deny", "unknown"]
+      "enum": ["deploy", "scale", "rollback", "get", "explain", "logs", "describe", "deny", "unknown"]
     },
     "target": {
       "type": "object",

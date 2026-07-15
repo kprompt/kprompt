@@ -102,3 +102,32 @@ func (i Intent) Revision() (int64, bool) {
 		return 0, false
 	}
 }
+
+// TailLines returns params.tail when set (log line count).
+func (i Intent) TailLines() (int64, bool) {
+	v, ok := i.Params["tail"]
+	if !ok {
+		return 0, false
+	}
+	switch n := v.(type) {
+	case float64:
+		return int64(n), true
+	case int:
+		return int64(n), true
+	case int64:
+		return n, true
+	case json.Number:
+		i64, err := n.Int64()
+		if err != nil {
+			return 0, false
+		}
+		return i64, true
+	default:
+		return 0, false
+	}
+}
+
+// Container returns params.container when set.
+func (i Intent) Container() (string, bool) {
+	return i.StringParam("container")
+}

@@ -96,6 +96,28 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			}
 			ui.PrintExplain(out, rep)
 			return nil
+		case intent.KindLogs:
+			req, err := logsFromPlan(plan)
+			if err != nil {
+				return err
+			}
+			res, err := (&cluster.LogReader{Client: client}).Logs(ctx, req)
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("logs: %w", err))
+			}
+			ui.PrintLogs(out, res)
+			return nil
+		case intent.KindDescribe:
+			req, err := describeFromPlan(plan)
+			if err != nil {
+				return err
+			}
+			rep, err := (&cluster.Describer{Client: client}).Describe(ctx, req)
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("describe: %w", err))
+			}
+			ui.PrintDescribe(out, rep)
+			return nil
 		case intent.KindGet:
 			q, err := queryFromPlan(plan)
 			if err != nil {
@@ -163,7 +185,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe:
 		return true
 	default:
 		return false
@@ -202,6 +224,44 @@ func explainFromPlan(plan planner.ExecutionPlan) (cluster.ExplainRequest, error)
 		return cluster.ExplainRequest{}, fmt.Errorf("explain requires a named target")
 	}
 	return cluster.ExplainRequest{
+		Name:      a.Object.Name,
+		Namespace: a.Object.Namespace,
+		Kind:      a.Object.Kind,
+	}, nil
+}
+
+func logsFromPlan(plan planner.ExecutionPlan) (cluster.LogsRequest, error) {
+	if len(plan.Actions) == 0 {
+		return cluster.LogsRequest{}, fmt.Errorf("logs plan has no actions")
+	}
+	a := plan.Actions[0]
+	if a.Object.Name == "" {
+		return cluster.LogsRequest{}, fmt.Errorf("logs requires a named target")
+	}
+	req := cluster.LogsRequest{
+		Name:      a.Object.Name,
+		Namespace: a.Object.Namespace,
+		Kind:      a.Object.Kind,
+		Tail:      100,
+	}
+	if t, ok := plan.Intent.TailLines(); ok && t > 0 {
+		req.Tail = t
+	}
+	if c, ok := plan.Intent.Container(); ok {
+		req.Container = c
+	}
+	return req, nil
+}
+
+func describeFromPlan(plan planner.ExecutionPlan) (cluster.DescribeRequest, error) {
+	if len(plan.Actions) == 0 {
+		return cluster.DescribeRequest{}, fmt.Errorf("describe plan has no actions")
+	}
+	a := plan.Actions[0]
+	if a.Object.Name == "" {
+		return cluster.DescribeRequest{}, fmt.Errorf("describe requires a named target")
+	}
+	return cluster.DescribeRequest{
 		Name:      a.Object.Name,
 		Namespace: a.Object.Namespace,
 		Kind:      a.Object.Kind,

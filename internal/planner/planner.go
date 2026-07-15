@@ -31,6 +31,10 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 		return buildGet(in, ns)
 	case intent.KindExplain:
 		return buildExplain(in, ns)
+	case intent.KindLogs:
+		return buildLogs(in, ns)
+	case intent.KindDescribe:
+		return buildDescribe(in, ns)
 	case intent.KindDeny:
 		return ExecutionPlan{Intent: in, Summary: "Denied intent", RequiresApproval: false}, nil
 	default:
@@ -83,6 +87,73 @@ func buildExplain(in intent.Intent, ns string) (ExecutionPlan, error) {
 		kind = "Deployment"
 	}
 	summary := fmt.Sprintf("Explain %s/%s in %s (status + events)", kind, name, ns)
+	return ExecutionPlan{
+		Intent: in,
+		Actions: []Action{{
+			Op: OpGet,
+			Object: ObjectRef{
+				Kind:      kind,
+				Name:      name,
+				Namespace: ns,
+			},
+			Diff: summary,
+		}},
+		Summary:          summary,
+		RequiresApproval: false,
+	}, nil
+}
+
+func buildLogs(in intent.Intent, ns string) (ExecutionPlan, error) {
+	name := strings.TrimSpace(in.Target.Name)
+	if name == "" {
+		return ExecutionPlan{}, fmt.Errorf("logs intent missing target.name")
+	}
+	kind := first(in.Target.Kind, "Deployment")
+	kind = cluster.NormalizeKind(kind)
+	if kind != "Pod" && kind != "Deployment" {
+		kind = "Deployment"
+	}
+	tail := int64(100)
+	if t, ok := in.TailLines(); ok {
+		if t < 1 {
+			return ExecutionPlan{}, fmt.Errorf("params.tail must be >= 1")
+		}
+		if t > 5000 {
+			t = 5000
+		}
+		tail = t
+	}
+	summary := fmt.Sprintf("Logs for %s/%s in %s (last %d lines)", kind, name, ns, tail)
+	if c, ok := in.Container(); ok {
+		summary += fmt.Sprintf(" container=%s", c)
+	}
+	return ExecutionPlan{
+		Intent: in,
+		Actions: []Action{{
+			Op: OpGet,
+			Object: ObjectRef{
+				Kind:      kind,
+				Name:      name,
+				Namespace: ns,
+			},
+			Diff: summary,
+		}},
+		Summary:          summary,
+		RequiresApproval: false,
+	}, nil
+}
+
+func buildDescribe(in intent.Intent, ns string) (ExecutionPlan, error) {
+	name := strings.TrimSpace(in.Target.Name)
+	if name == "" {
+		return ExecutionPlan{}, fmt.Errorf("describe intent missing target.name")
+	}
+	kind := first(in.Target.Kind, "Deployment")
+	kind = cluster.NormalizeKind(kind)
+	if kind != "Pod" && kind != "Deployment" {
+		kind = "Deployment"
+	}
+	summary := fmt.Sprintf("Describe %s/%s in %s (compact)", kind, name, ns)
 	return ExecutionPlan{
 		Intent: in,
 		Actions: []Action{{
