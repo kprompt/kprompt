@@ -11,7 +11,9 @@ kprompt "deploy redis" --approve
 
 ## Status
 
-**v0 skeleton** — plan → safety → approve → apply pipeline is in place. First mutation path: **scale a Deployment**. Multi-LLM providers: OpenAI-compatible + Anthropic.
+**v0 skeleton** — plan → safety → approve → apply pipeline is in place. First mutation path: **scale a Deployment**. Multi-LLM providers: OpenAI-compatible + Anthropic. Kind E2E cover scale (`go test -tags=e2e ./test/e2e/`).
+
+Deploy path is tracked in architecture [#1](https://github.com/kprompt/kprompt-architecture/issues/1) (private).
 
 ## Install (dev)
 
