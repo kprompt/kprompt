@@ -37,6 +37,10 @@ type Resolved struct {
 	Wait      bool
 	Timeout   time.Duration // used with Wait; 0 means default (5m)
 	Prompt    string
+
+	// Set when the corresponding CLI flag was explicitly passed.
+	NamespaceFromCLI bool
+	ContextFromCLI   bool
 }
 
 // LoadFile reads ~/.kprompt/config.yaml if present.

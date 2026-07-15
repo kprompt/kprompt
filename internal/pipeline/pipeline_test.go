@@ -125,6 +125,27 @@ func TestMutationApproveFlagSkipsPrompt(t *testing.T) {
 	}
 }
 
+func TestScopeHeuristicSetsNamespaceFromPrompt(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Namespace: "default",
+		Prompt:    `list deployments in staging`,
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(`{"kind":"get","target":{"kind":"Deployment"},"confidence":1}`)},
+		Client:   client,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("-n staging")) && !bytes.Contains(out.Bytes(), []byte("in staging")) {
+		// Plan summary should mention staging namespace
+		if !bytes.Contains(out.Bytes(), []byte("staging")) {
+			t.Fatalf("expected staging in plan output:\n%s", out.String())
+		}
+	}
+}
+
 func TestExplainOOMSuggestsPatchWithApprove(t *testing.T) {
 	limit := resource.MustParse("64Mi")
 	labels := map[string]string{"app": "api"}

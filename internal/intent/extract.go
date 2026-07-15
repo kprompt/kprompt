@@ -20,11 +20,14 @@ Rules:
 - For describe / status of / show details (not crash-focused): kind=describe; set target.name; target.kind Pod or Deployment
 - For delete / remove a single named resource: kind=delete; MUST set target.name and target.kind (Deployment, Service, or Pod); target.namespace if mentioned. Never delete without a concrete name. Namespace deletes and wipe/all/cluster deletes use kind=deny
 - For clearly destructive wipe/delete-cluster / delete-all / delete namespace requests: kind=deny
+- Namespace from phrases: "in staging", "in the prod namespace", "in production" → set target.namespace (aliases: stage→staging, prod→prod, production→production, dev→dev)
+- Kube context from phrases: "on kind-kprompt-e2e context", "using context docker-desktop", "with the prod-cluster context" → set top-level context (kubeconfig context name)
 - Prefer Deployment as target.kind for named apps when unspecified
 - Only emit JSON matching the schema`
 
 // Extract uses an LLM provider to produce a structured Intent.
-func Extract(ctx context.Context, provider llm.Provider, prompt, defaultNamespace string) (Intent, error) {
+// Call ApplyScope afterward to merge CLI overrides, phrase heuristics, and defaults.
+func Extract(ctx context.Context, provider llm.Provider, prompt string) (Intent, error) {
 	schema := json.RawMessage(SchemaJSON)
 	raw, err := provider.CompleteStructured(ctx, llm.CompletionRequest{
 		System: systemPrompt,
@@ -38,8 +41,5 @@ func Extract(ctx context.Context, provider llm.Provider, prompt, defaultNamespac
 		return Intent{}, fmt.Errorf("intent parse: %w", err)
 	}
 	in.Raw = prompt
-	if in.Target.Namespace == "" && defaultNamespace != "" {
-		in.Target.Namespace = defaultNamespace
-	}
 	return in, nil
 }

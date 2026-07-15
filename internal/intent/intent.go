@@ -21,11 +21,12 @@ const (
 
 // Intent is the structured result of NL understanding.
 type Intent struct {
-	Kind       Kind               `json:"kind"`
-	Target     Target             `json:"target"`
-	Params     map[string]any     `json:"params,omitempty"`
-	Confidence float64            `json:"confidence,omitempty"`
-	Raw        string             `json:"-"`
+	Kind       Kind           `json:"kind"`
+	Target     Target         `json:"target"`
+	Context    string         `json:"context,omitempty"` // kubeconfig context from prompt
+	Params     map[string]any `json:"params,omitempty"`
+	Confidence float64        `json:"confidence,omitempty"`
+	Raw        string         `json:"-"`
 }
 
 // Target identifies a Kubernetes object or query scope.
@@ -54,6 +55,7 @@ const SchemaJSON = `{
         "kind": { "type": "string" }
       }
     },
+    "context": { "type": "string" },
     "params": {
       "type": "object",
       "additionalProperties": true

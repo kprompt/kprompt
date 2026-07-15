@@ -44,6 +44,8 @@ func main() {
 			cfg := config.Merge(file, provider, model, kubeCtx, namespace, approve, prompt)
 			cfg.Wait = waitFlag
 			cfg.Timeout = timeout
+			cfg.NamespaceFromCLI = cmd.Flags().Changed("namespace")
+			cfg.ContextFromCLI = cmd.Flags().Changed("context")
 			return pipeline.Run(cmd.Context(), cfg, cmd.OutOrStdout())
 		},
 	}

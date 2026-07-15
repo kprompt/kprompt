@@ -6,6 +6,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
+	clientcmdapi "k8s.io/client-go/tools/clientcmd/api"
 )
 
 // Clients wraps a typed Kubernetes clientset with the active context name.
@@ -28,8 +29,8 @@ func Connect(contextName string) (*Clients, error) {
 		return nil, Friendlier(fmt.Errorf("load kubeconfig: %w", err))
 	}
 	if contextName != "" {
-		if _, ok := raw.Contexts[contextName]; !ok {
-			return nil, Friendlier(fmt.Errorf(`context %q does not exist`, contextName))
+		if err := ensureContextInConfig(raw, contextName); err != nil {
+			return nil, err
 		}
 	}
 	restCfg, err := clientCfg.ClientConfig()
@@ -45,4 +46,25 @@ func Connect(contextName string) (*Clients, error) {
 		ctx = contextName
 	}
 	return &Clients{Clientset: cs, Context: ctx, Config: restCfg}, nil
+}
+
+// EnsureContext verifies a kubeconfig context exists (before apply / connect).
+func EnsureContext(contextName string) error {
+	if contextName == "" {
+		return nil
+	}
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	clientCfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+	raw, err := clientCfg.RawConfig()
+	if err != nil {
+		return Friendlier(fmt.Errorf("load kubeconfig: %w", err))
+	}
+	return ensureContextInConfig(raw, contextName)
+}
+
+func ensureContextInConfig(raw clientcmdapi.Config, contextName string) error {
+	if _, ok := raw.Contexts[contextName]; !ok {
+		return Friendlier(fmt.Errorf(`context %q does not exist`, contextName))
+	}
+	return nil
 }

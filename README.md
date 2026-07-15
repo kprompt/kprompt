@@ -91,7 +91,8 @@ kprompt "scale api to 10" --approve
 ```
 
 Destructive prompts (wipe cluster, delete everything, delete a namespace, …) are **hard-denied**.
-Explain-lite can propose a follow-up **patch plan** (e.g. OOMKilled → raise memory) — still requires confirm / `--approve`.
+Phrases like `in staging` or `on kind-kprompt-e2e context` resolve to namespace / kube context
+(LLM + heuristics). Explicit `--namespace` / `--context` always win.
 
 Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt-website.vercel.app/#usage) when helpful.
 

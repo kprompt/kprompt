@@ -56,9 +56,19 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		}
 	}
 
-	in, err := intent.Extract(ctx, provider, cfg.Prompt, cfg.Namespace)
+	in, err := intent.Extract(ctx, provider, cfg.Prompt)
 	if err != nil {
 		return err
+	}
+	in = intent.ApplyScope(in, intent.ScopePrefs{
+		DefaultNamespace: cfg.Namespace,
+		DefaultContext:   cfg.Context,
+		ForceNamespace:   cfg.NamespaceFromCLI,
+		ForceContext:     cfg.ContextFromCLI,
+	})
+	cfg.Namespace = in.Target.Namespace
+	if in.Context != "" {
+		cfg.Context = in.Context
 	}
 
 	plan, err := planner.Build(in)
@@ -74,6 +84,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	client := deps.Client
 	if client == nil {
+		if cfg.Context != "" {
+			if err := cluster.EnsureContext(cfg.Context); err != nil {
+				return err
+			}
+		}
 		clients, err := cluster.Connect(cfg.Context)
 		if err != nil {
 			return err
