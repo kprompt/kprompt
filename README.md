@@ -17,7 +17,17 @@ kprompt "explain why payment-api is crashing"
 
 **v0 / early v1** — plan → safety → apply for **deploy** + **scale**; read-only **get/list** + **explain-lite**. Multi-LLM: OpenAI-compatible + Anthropic. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 
-## Install (dev)
+## Install
+
+### From releases (recommended)
+
+```bash
+curl -fsSL https://kprompt.ai/install | bash
+```
+
+See [docs/releasing.md](./docs/releasing.md) for tags, archives, and `KPROMPT_VERSION`.
+
+### From source (dev)
 
 ```bash
 git clone https://github.com/kprompt/kprompt.git
@@ -31,8 +41,6 @@ Or build locally:
 go build -o bin/kprompt ./cmd/kprompt
 ./bin/kprompt version
 ```
-
-Install script (release binaries) lives in [`install/install.sh`](./install/install.sh).
 
 ## Quick start
 
@@ -65,7 +73,7 @@ Destructive prompts (wipe cluster, delete everything, …) are **hard-denied**.
 
 | Flag | Description |
 |------|-------------|
-| `--approve` | Apply the plan after safety checks |
+| `--approve` | Apply without interactive confirmation |
 | `--provider` | `openai` or `anthropic` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |

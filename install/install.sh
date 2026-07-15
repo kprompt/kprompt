@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Install kprompt from GitHub Releases.
-# Usage: curl -fsSL https://raw.githubusercontent.com/kprompt/kprompt/main/install/install.sh | bash
+# Usage:
+#   curl -fsSL https://kprompt.ai/install | bash
+#   curl -fsSL https://raw.githubusercontent.com/kprompt/kprompt/main/install/install.sh | bash
 set -euo pipefail
 
 REPO="kprompt/kprompt"
@@ -19,21 +21,40 @@ case "$os" in
   *) echo "unsupported os: $os" >&2; exit 1 ;;
 esac
 
-tag="${KPROMPT_VERSION:-$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1)}"
+if [[ -n "${KPROMPT_VERSION:-}" ]]; then
+  tag="$KPROMPT_VERSION"
+else
+  tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1 || true)"
+fi
+
 if [[ -z "$tag" ]]; then
   echo "No GitHub release found yet. Build from source:" >&2
   echo "  go install github.com/kprompt/kprompt/cmd/kprompt@latest" >&2
   exit 1
 fi
 
-asset="${BIN}_${tag#v}_${os}_${arch}.tar.gz"
+# GoReleaser Version strips leading v from the tag for archive names.
+ver="${tag#v}"
+asset="${BIN}_${ver}_${os}_${arch}.tar.gz"
 url="https://github.com/${REPO}/releases/download/${tag}/${asset}"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "Downloading ${url}"
-curl -fsSL "$url" -o "${tmp}/${asset}"
+if ! curl -fL "$url" -o "${tmp}/${asset}"; then
+  echo "Failed to download ${url}" >&2
+  echo "Check releases: https://github.com/${REPO}/releases" >&2
+  exit 1
+fi
+
 tar -xzf "${tmp}/${asset}" -C "$tmp"
-install -m 755 "${tmp}/${BIN}" "${PREFIX}/${BIN}"
-echo "Installed ${PREFIX}/${BIN}"
+bin_path="$(find "$tmp" -type f -name "$BIN" | head -1)"
+if [[ -z "$bin_path" ]]; then
+  echo "binary $BIN not found in archive" >&2
+  exit 1
+fi
+
+mkdir -p "$PREFIX"
+install -m 755 "$bin_path" "${PREFIX}/${BIN}"
+echo "Installed ${PREFIX}/${BIN} (${tag})"
 "${PREFIX}/${BIN}" version
