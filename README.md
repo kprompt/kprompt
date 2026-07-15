@@ -15,7 +15,7 @@ kprompt "explain why payment-api is crashing"
 
 ## Status
 
-**v0 / early v1** — plan → safety → apply for **deploy** + **scale**; read-only **get/list** + **explain-lite**. Multi-LLM: OpenAI, Anthropic, Gemini, Groq, Mistral, DeepSeek, OpenRouter, Together, Ollama, plus generic OpenAI-compatible. Kind E2E under `go test -tags=e2e ./test/e2e/`.
+**v0.2.0** — plan → safety → apply for **deploy** + **scale**; read-only **get/list** + **explain-lite**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 
 ## Install
 
@@ -27,10 +27,10 @@ curl -fsSL https://kprompt-website.vercel.app/install | bash
 
 (After `kprompt.ai` DNS is live, the same path will be `https://kprompt.ai/install` — see architecture `DOMAIN.md`.)
 
-Fallback (pinned jsDelivr commit):
+Fallback (pinned release script on jsDelivr):
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@6ccb6a4/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.2.0/install/install.sh | bash
 ```
 
 ### From source (dev)

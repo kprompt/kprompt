@@ -7,8 +7,8 @@ kprompt ships binaries via [GoReleaser](https://goreleaser.com) and GitHub Relea
 ```bash
 # on main, clean working tree
 git pull origin main
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "v0.2.0"
+git push origin v0.2.0
 ```
 
 The [release workflow](../.github/workflows/release.yml) builds:
@@ -33,7 +33,7 @@ curl -fsSL https://raw.githubusercontent.com/kprompt/kprompt/main/install/instal
 Override version or install dir:
 
 ```bash
-KPROMPT_VERSION=v0.1.0 KPROMPT_INSTALL_DIR="$HOME/bin" bash install/install.sh
+KPROMPT_VERSION=v0.2.0 KPROMPT_INSTALL_DIR="$HOME/bin" bash install/install.sh
 ```
 
 ## Local snapshot (no publish)
