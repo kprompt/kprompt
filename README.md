@@ -8,6 +8,7 @@ Open-source AI CLI to control Kubernetes with natural language.
 kprompt "scale api to 10"
 kprompt "deploy redis" --approve
 kprompt "deploy nginx" --approve
+kprompt "rollback payment-api" --approve
 kprompt "list deployments"
 kprompt "show pods" -n default
 kprompt "explain why payment-api is crashing"
@@ -15,7 +16,7 @@ kprompt "explain why payment-api is crashing"
 
 ## Status
 
-**v0.2.0** — plan → safety → apply for **deploy** + **scale**; read-only **get/list** + **explain-lite**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
+**v0.2.0+** — plan → safety → apply for **deploy** + **scale** + **rollback**; read-only **get/list** + **explain-lite**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 
 ## Install
 

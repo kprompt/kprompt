@@ -68,7 +68,7 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 		}
 	}
 	switch plan.Intent.Kind {
-	case intent.KindScale, intent.KindDeploy:
+	case intent.KindScale, intent.KindDeploy, intent.KindRollback:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
 	case intent.KindGet, intent.KindExplain:
 		return Result{Risk: RiskLow}

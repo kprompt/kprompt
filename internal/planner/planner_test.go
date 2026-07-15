@@ -103,3 +103,41 @@ func TestBuildExplainRequiresName(t *testing.T) {
 		t.Fatal("explain is read-only")
 	}
 }
+
+func TestBuildRollback(t *testing.T) {
+	plan, err := Build(intent.Intent{
+		Kind:   intent.KindRollback,
+		Target: intent.Target{Name: "payment-api", Namespace: "prod"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("rollback should require approval")
+	}
+	if len(plan.Actions) != 1 || plan.Actions[0].Op != OpRollback {
+		t.Fatalf("actions=%v", plan.Actions)
+	}
+	if plan.Actions[0].Revision != nil {
+		t.Fatal("default rollback should not set revision")
+	}
+
+	plan, err = Build(intent.Intent{
+		Kind:   intent.KindRollback,
+		Target: intent.Target{Name: "payment-api", Namespace: "prod"},
+		Params: map[string]any{"revision": float64(17)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.Actions[0].Revision == nil || *plan.Actions[0].Revision != 17 {
+		t.Fatalf("revision=%v", plan.Actions[0].Revision)
+	}
+}
+
+func TestBuildRollbackRequiresName(t *testing.T) {
+	_, err := Build(intent.Intent{Kind: intent.KindRollback, Target: intent.Target{}})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}

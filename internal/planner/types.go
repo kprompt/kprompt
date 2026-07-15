@@ -6,11 +6,12 @@ import "github.com/kprompt/kprompt/internal/intent"
 type Op string
 
 const (
-	OpCreate Op = "create"
-	OpUpdate Op = "update"
-	OpScale  Op = "scale"
-	OpDelete Op = "delete"
-	OpGet    Op = "get"
+	OpCreate   Op = "create"
+	OpUpdate   Op = "update"
+	OpScale    Op = "scale"
+	OpRollback Op = "rollback"
+	OpDelete   Op = "delete"
+	OpGet      Op = "get"
 )
 
 // ObjectRef is a Kubernetes object identity.
@@ -28,6 +29,8 @@ type Action struct {
 	Manifest string
 	Diff     string
 	Replicas *int32
+	// Revision is the Deployment rollout target (nil = previous revision).
+	Revision *int64
 }
 
 // ExecutionPlan is the reviewable output of planning.

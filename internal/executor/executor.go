@@ -23,12 +23,16 @@ type Runner struct {
 	Client kubernetes.Interface
 }
 
-// Apply executes mutating actions (scale + deploy create/apply).
+// Apply executes mutating actions (scale + deploy create/apply + rollback).
 func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 	for _, a := range plan.Actions {
 		switch a.Op {
 		case planner.OpScale:
 			if err := r.scale(ctx, a); err != nil {
+				return err
+			}
+		case planner.OpRollback:
+			if err := r.rollback(ctx, a); err != nil {
 				return err
 			}
 		case planner.OpCreate, planner.OpUpdate:
@@ -40,6 +44,23 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 		}
 	}
 	return nil
+}
+
+func (r *Runner) rollback(ctx context.Context, a planner.Action) error {
+	ns := a.Object.Namespace
+	if ns == "" {
+		ns = "default"
+	}
+	toRev := int64(0)
+	if a.Revision != nil {
+		toRev = *a.Revision
+	}
+	switch a.Object.Kind {
+	case "Deployment", "":
+		return rollbackDeployment(ctx, r.Client, ns, a.Object.Name, toRev)
+	default:
+		return fmt.Errorf("rollback of %s not implemented", a.Object.Kind)
+	}
 }
 
 func (r *Runner) scale(ctx context.Context, a planner.Action) error {

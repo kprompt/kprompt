@@ -6,12 +6,13 @@ import "encoding/json"
 type Kind string
 
 const (
-	KindDeploy  Kind = "deploy"
-	KindScale   Kind = "scale"
-	KindGet     Kind = "get"
-	KindExplain Kind = "explain"
-	KindDeny    Kind = "deny"
-	KindUnknown Kind = "unknown"
+	KindDeploy   Kind = "deploy"
+	KindScale    Kind = "scale"
+	KindRollback Kind = "rollback"
+	KindGet      Kind = "get"
+	KindExplain  Kind = "explain"
+	KindDeny     Kind = "deny"
+	KindUnknown  Kind = "unknown"
 )
 
 // Intent is the structured result of NL understanding.
@@ -38,7 +39,7 @@ const SchemaJSON = `{
   "properties": {
     "kind": {
       "type": "string",
-      "enum": ["deploy", "scale", "get", "explain", "deny", "unknown"]
+      "enum": ["deploy", "scale", "rollback", "get", "explain", "deny", "unknown"]
     },
     "target": {
       "type": "object",

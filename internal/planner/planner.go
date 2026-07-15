@@ -23,6 +23,8 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 	switch in.Kind {
 	case intent.KindScale:
 		return buildScale(in, ns)
+	case intent.KindRollback:
+		return buildRollback(in, ns)
 	case intent.KindDeploy:
 		return buildDeploy(in, ns)
 	case intent.KindGet:
@@ -125,6 +127,45 @@ func buildScale(in intent.Intent, ns string) (ExecutionPlan, error) {
 			Diff:     fmt.Sprintf("scale %s/%s to %d replicas", kind, name, replicas),
 		}},
 		Summary:          fmt.Sprintf("Scale %s/%s in %s to %d replicas", kind, name, ns, replicas),
+		RequiresApproval: true,
+	}, nil
+}
+
+func buildRollback(in intent.Intent, ns string) (ExecutionPlan, error) {
+	name := strings.TrimSpace(in.Target.Name)
+	if name == "" {
+		return ExecutionPlan{}, fmt.Errorf("rollback intent missing target.name")
+	}
+	kind := first(in.Target.Kind, "Deployment")
+	kind = cluster.NormalizeKind(kind)
+	if kind != "Deployment" {
+		return ExecutionPlan{}, fmt.Errorf("rollback supports Deployment only (got %q)", kind)
+	}
+	var rev *int64
+	summary := fmt.Sprintf("Rollback Deployment/%s in %s to previous revision", name, ns)
+	diff := fmt.Sprintf("rollout undo Deployment/%s", name)
+	if r, ok := in.Revision(); ok {
+		if r < 1 {
+			return ExecutionPlan{}, fmt.Errorf("params.revision must be >= 1 when set")
+		}
+		rev = &r
+		summary = fmt.Sprintf("Rollback Deployment/%s in %s to revision %d", name, ns, r)
+		diff = fmt.Sprintf("rollout undo Deployment/%s --to-revision=%d", name, r)
+	}
+	return ExecutionPlan{
+		Intent: in,
+		Actions: []Action{{
+			Op: OpRollback,
+			Object: ObjectRef{
+				APIVersion: "apps/v1",
+				Kind:       "Deployment",
+				Name:       name,
+				Namespace:  ns,
+			},
+			Revision: rev,
+			Diff:     diff,
+		}},
+		Summary:          summary,
 		RequiresApproval: true,
 	}, nil
 }
