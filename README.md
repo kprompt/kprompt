@@ -11,6 +11,7 @@ kprompt "deploy nginx" --approve
 kprompt "rollback payment-api" --approve
 kprompt "logs payment-api"
 kprompt "describe payment-api"
+kprompt "delete deployment redis" --approve
 kprompt "list deployments"
 kprompt "show pods" -n default
 kprompt "explain why payment-api is crashing"
@@ -18,7 +19,7 @@ kprompt "explain why payment-api is crashing"
 
 ## Status
 
-**v0.2.0+** — plan → safety → apply for **deploy** + **scale** + **rollback**; read-only **get/list** + **explain-lite** + **logs** + **describe**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
+**v0.2.0+** — plan → safety → apply for **deploy** + **scale** + **rollback** + **named delete**; read-only **get/list** + **explain-lite** + **logs** + **describe**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 
 ## Install
 
@@ -89,7 +90,8 @@ kprompt "scale api to 10"
 kprompt "scale api to 10" --approve
 ```
 
-Destructive prompts (wipe cluster, delete everything, …) are **hard-denied**.
+Destructive prompts (wipe cluster, delete everything, delete a namespace, …) are **hard-denied**.
+Named deletes (`delete deployment redis`) require approval and only allow Pod / Deployment / Service.
 
 Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt-website.vercel.app/#usage) when helpful.
 

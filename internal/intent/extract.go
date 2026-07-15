@@ -10,7 +10,7 @@ import (
 
 const systemPrompt = `You convert Kubernetes ops requests into a single Intent JSON object.
 Rules:
-- kind must be one of: deploy, scale, rollback, get, explain, logs, describe, deny, unknown
+- kind must be one of: deploy, scale, rollback, get, explain, logs, describe, delete, deny, unknown
 - For scale: set target.name, target.kind (usually Deployment), target.namespace if mentioned, params.replicas as a number
 - For rollback / undo rollout / revert: kind=rollback; set target.name to the Deployment; target.kind Deployment; target.namespace if mentioned; optional params.revision (number) to roll back to a specific revision (omit for previous revision)
 - For deploy: set target.name (workload name), params.image when known (e.g. redis:7-alpine, nginx:1.27-alpine); for well-known apps like "redis" or "nginx" name alone is enough; optional params.replicas (default 1), params.port and/or params.createService=true for a ClusterIP Service
@@ -18,7 +18,8 @@ Rules:
 - For explain/why crashing/failing: kind=explain; set target.name to the workload; target.kind Deployment or Pod; target.namespace if mentioned
 - For logs / tail logs / show logs: kind=logs; set target.name (Pod or Deployment); optional target.kind; optional params.tail (lines, default 100); optional params.container
 - For describe / status of / show details (not crash-focused): kind=describe; set target.name; target.kind Pod or Deployment
-- For clearly destructive wipe/delete-cluster requests: kind=deny
+- For delete / remove a single named resource: kind=delete; MUST set target.name and target.kind (Deployment, Service, or Pod); target.namespace if mentioned. Never delete without a concrete name. Namespace deletes and wipe/all/cluster deletes use kind=deny
+- For clearly destructive wipe/delete-cluster / delete-all / delete namespace requests: kind=deny
 - Prefer Deployment as target.kind for named apps when unspecified
 - Only emit JSON matching the schema`
 

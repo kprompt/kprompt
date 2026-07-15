@@ -170,3 +170,36 @@ func TestBuildLogsAndDescribe(t *testing.T) {
 		t.Fatal("describe is read-only")
 	}
 }
+
+func TestBuildDelete(t *testing.T) {
+	plan, err := Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "redis", Namespace: "demo", Kind: "Deployment"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("delete requires approval")
+	}
+	if plan.Actions[0].Op != OpDelete {
+		t.Fatalf("op=%s", plan.Actions[0].Op)
+	}
+}
+
+func TestBuildDeleteRejectsUnscoped(t *testing.T) {
+	_, err := Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "all", Kind: "Deployment"},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	_, err = Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "prod", Kind: "Namespace"},
+	})
+	if err == nil {
+		t.Fatal("expected error for Namespace")
+	}
+}

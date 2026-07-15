@@ -35,6 +35,8 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 		return buildLogs(in, ns)
 	case intent.KindDescribe:
 		return buildDescribe(in, ns)
+	case intent.KindDelete:
+		return buildDelete(in, ns)
 	case intent.KindDeny:
 		return ExecutionPlan{Intent: in, Summary: "Denied intent", RequiresApproval: false}, nil
 	default:
@@ -168,6 +170,60 @@ func buildDescribe(in intent.Intent, ns string) (ExecutionPlan, error) {
 		Summary:          summary,
 		RequiresApproval: false,
 	}, nil
+}
+
+func buildDelete(in intent.Intent, ns string) (ExecutionPlan, error) {
+	name := strings.TrimSpace(in.Target.Name)
+	if name == "" {
+		return ExecutionPlan{}, fmt.Errorf("delete intent missing target.name (named deletes only)")
+	}
+	if isUnscopedName(name) {
+		return ExecutionPlan{}, fmt.Errorf("delete refuses unscoped name %q", name)
+	}
+	kind := strings.TrimSpace(in.Target.Kind)
+	if kind == "" {
+		kind = "Deployment"
+	}
+	kind = cluster.NormalizeKind(kind)
+	switch kind {
+	case "Pod", "Deployment", "Service":
+	default:
+		return ExecutionPlan{}, fmt.Errorf("delete kind %q not supported (Pod, Deployment, Service only; namespace wipe denied)", in.Target.Kind)
+	}
+	summary := fmt.Sprintf("Delete %s/%s in %s", kind, name, ns)
+	return ExecutionPlan{
+		Intent: in,
+		Actions: []Action{{
+			Op: OpDelete,
+			Object: ObjectRef{
+				APIVersion: apiVersionForKind(kind),
+				Kind:       kind,
+				Name:       name,
+				Namespace:  ns,
+			},
+			Diff: summary,
+		}},
+		Summary:          summary,
+		RequiresApproval: true,
+	}, nil
+}
+
+func isUnscopedName(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "*", "all", "everything", "--all", "any":
+		return true
+	default:
+		return false
+	}
+}
+
+func apiVersionForKind(kind string) string {
+	switch kind {
+	case "Deployment":
+		return "apps/v1"
+	default:
+		return "v1"
+	}
 }
 
 func buildScale(in intent.Intent, ns string) (ExecutionPlan, error) {

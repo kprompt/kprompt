@@ -13,10 +13,10 @@ import (
 type Risk string
 
 const (
-	RiskLow     Risk = "low"
-	RiskMedium  Risk = "medium"
-	RiskHigh    Risk = "high"
-	RiskDenied  Risk = "denied"
+	RiskLow    Risk = "low"
+	RiskMedium Risk = "medium"
+	RiskHigh   Risk = "high"
+	RiskDenied Risk = "denied"
 )
 
 // Result is the outcome of a safety evaluation.
@@ -30,7 +30,8 @@ var hardDenyPatterns = []*regexp.Regexp{
 	regexp.MustCompile(`(?i)\b(delete|remove|wipe|destroy|drop)\b.*\b(cluster|everything|all\s+namespaces)\b`),
 	regexp.MustCompile(`(?i)\b(cluster)\b.*\b(delete|remove|wipe|destroy)\b`),
 	regexp.MustCompile(`(?i)\bwipe\s+(the\s+)?cluster\b`),
-	regexp.MustCompile(`(?i)\bdelete\s+all\s+(pods|deployments|resources|namespaces)\b`),
+	regexp.MustCompile(`(?i)\bdelete\s+all\s+(pods|deployments|resources|namespaces|services)\b`),
+	regexp.MustCompile(`(?i)\b(delete|remove|wipe)\s+(the\s+)?namespace\b`),
 	regexp.MustCompile(`(?i)\bf\*?cking\s+cluster\b`),
 }
 
@@ -59,20 +60,56 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 		}
 	}
 	for _, a := range plan.Actions {
-		if a.Op == planner.OpDelete && strings.EqualFold(a.Object.Kind, "Namespace") && a.Object.Name == "" {
+		if a.Op != planner.OpDelete {
+			continue
+		}
+		if strings.TrimSpace(a.Object.Name) == "" || isUnscoped(a.Object.Name) {
 			return Result{
 				Risk:    RiskDenied,
 				Denied:  true,
-				Message: "🛡️ Refusing unscoped namespace deletion",
+				Message: "🛡️ Refusing unscoped delete — name a single resource",
+			}
+		}
+		if strings.EqualFold(a.Object.Kind, "Namespace") {
+			return Result{
+				Risk:    RiskDenied,
+				Denied:  true,
+				Message: "🛡️ Refusing namespace deletion",
+			}
+		}
+		switch strings.ToLower(a.Object.Kind) {
+		case "pod", "deployment", "service":
+		case "":
+			return Result{
+				Risk:    RiskDenied,
+				Denied:  true,
+				Message: "🛡️ Refusing delete without a resource kind",
+			}
+		default:
+			return Result{
+				Risk:    RiskDenied,
+				Denied:  true,
+				Message: fmt.Sprintf("🛡️ Refusing delete of %s (allowed: Pod, Deployment, Service)", a.Object.Kind),
 			}
 		}
 	}
 	switch plan.Intent.Kind {
+	case intent.KindDelete:
+		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
 	case intent.KindScale, intent.KindDeploy, intent.KindRollback:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
 	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe:
 		return Result{Risk: RiskLow}
 	default:
 		return Result{Risk: RiskHigh, Message: fmt.Sprintf("Unknown or unsupported intent %q", plan.Intent.Kind)}
+	}
+}
+
+func isUnscoped(name string) bool {
+	switch strings.ToLower(strings.TrimSpace(name)) {
+	case "*", "all", "everything", "--all", "any":
+		return true
+	default:
+		return false
 	}
 }

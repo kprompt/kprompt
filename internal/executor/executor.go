@@ -23,7 +23,7 @@ type Runner struct {
 	Client kubernetes.Interface
 }
 
-// Apply executes mutating actions (scale + deploy create/apply + rollback).
+// Apply executes mutating actions (scale, deploy, rollback, delete).
 func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 	for _, a := range plan.Actions {
 		switch a.Op {
@@ -35,6 +35,10 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 			if err := r.rollback(ctx, a); err != nil {
 				return err
 			}
+		case planner.OpDelete:
+			if err := r.delete(ctx, a); err != nil {
+				return err
+			}
 		case planner.OpCreate, planner.OpUpdate:
 			if err := r.applyManifest(ctx, a); err != nil {
 				return err
@@ -44,6 +48,29 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 		}
 	}
 	return nil
+}
+
+func (r *Runner) delete(ctx context.Context, a planner.Action) error {
+	name := strings.TrimSpace(a.Object.Name)
+	if name == "" {
+		return fmt.Errorf("delete missing object name")
+	}
+	ns := a.Object.Namespace
+	if ns == "" {
+		ns = "default"
+	}
+	policy := metav1.DeletePropagationBackground
+	opts := metav1.DeleteOptions{PropagationPolicy: &policy}
+	switch a.Object.Kind {
+	case "Deployment":
+		return r.Client.AppsV1().Deployments(ns).Delete(ctx, name, opts)
+	case "Service":
+		return r.Client.CoreV1().Services(ns).Delete(ctx, name, opts)
+	case "Pod":
+		return r.Client.CoreV1().Pods(ns).Delete(ctx, name, opts)
+	default:
+		return fmt.Errorf("delete of %s not implemented", a.Object.Kind)
+	}
 }
 
 func (r *Runner) rollback(ctx context.Context, a planner.Action) error {

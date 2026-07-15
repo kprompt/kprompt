@@ -163,3 +163,20 @@ func DescribeStub(name, namespace, resourceKind string) *Stub {
 	})
 	return &Stub{Structured: payload}
 }
+
+// DeleteStub returns a Stub that classifies a named delete intent.
+func DeleteStub(name, namespace, resourceKind string) *Stub {
+	if resourceKind == "" {
+		resourceKind = "Deployment"
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"kind": "delete",
+		"target": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+			"kind":      resourceKind,
+		},
+		"confidence": 1.0,
+	})
+	return &Stub{Structured: payload}
+}
