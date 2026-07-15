@@ -10,6 +10,7 @@ import (
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"sigs.k8s.io/yaml"
 
+	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/intent"
 )
 
@@ -24,10 +25,12 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 		return buildScale(in, ns)
 	case intent.KindDeploy:
 		return buildDeploy(in, ns)
-	case intent.KindGet, intent.KindExplain:
+	case intent.KindGet:
+		return buildGet(in, ns)
+	case intent.KindExplain:
 		return ExecutionPlan{
 			Intent:  in,
-			Summary: fmt.Sprintf("%s %s (read-only; planning only)", in.Kind, in.Target.Name),
+			Summary: fmt.Sprintf("explain %s (not implemented yet — see T-004)", in.Target.Name),
 			Actions: []Action{{
 				Op: OpGet,
 				Object: ObjectRef{
@@ -42,6 +45,40 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 	default:
 		return ExecutionPlan{}, fmt.Errorf("unsupported intent kind %q", in.Kind)
 	}
+}
+
+func buildGet(in intent.Intent, ns string) (ExecutionPlan, error) {
+	kind := cluster.NormalizeKind(first(in.Target.Kind, "Pod"))
+	switch kind {
+	case "Pod", "Deployment", "Service":
+	default:
+		return ExecutionPlan{}, fmt.Errorf("get kind %q not supported (Pod, Deployment, Service)", in.Target.Kind)
+	}
+	name := strings.TrimSpace(in.Target.Name)
+	summary := fmt.Sprintf("List %ss in %s", kind, ns)
+	if name != "" {
+		summary = fmt.Sprintf("Get %s/%s in %s", kind, name, ns)
+	}
+	if sel, ok := in.LabelSelector(); ok {
+		summary += fmt.Sprintf(" selector=%s", sel)
+	}
+	if mem, ok := in.MinMemory(); ok {
+		summary += fmt.Sprintf(" minMemory=%s", mem)
+	}
+	return ExecutionPlan{
+		Intent: in,
+		Actions: []Action{{
+			Op: OpGet,
+			Object: ObjectRef{
+				Kind:      kind,
+				Name:      name,
+				Namespace: ns,
+			},
+			Diff: summary,
+		}},
+		Summary:          summary,
+		RequiresApproval: false,
+	}, nil
 }
 
 func buildScale(in intent.Intent, ns string) (ExecutionPlan, error) {

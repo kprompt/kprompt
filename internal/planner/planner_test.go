@@ -65,3 +65,24 @@ func TestBuildDeployWithExplicitImage(t *testing.T) {
 		t.Fatalf("expected only Deployment without port, got %d", len(plan.Actions))
 	}
 }
+
+func TestBuildGetPods(t *testing.T) {
+	in := intent.Intent{
+		Kind: intent.KindGet,
+		Target: intent.Target{
+			Kind:      "pods",
+			Namespace: "demo",
+		},
+		Params: map[string]any{"minMemory": "2Gi"},
+	}
+	plan, err := Build(in)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if plan.RequiresApproval {
+		t.Fatal("get must not require approval")
+	}
+	if plan.Actions[0].Object.Kind != "Pod" {
+		t.Fatalf("kind=%s", plan.Actions[0].Object.Kind)
+	}
+}

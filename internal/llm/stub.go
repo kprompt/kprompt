@@ -65,3 +65,22 @@ func DeployStub(name, namespace, image string, replicas int, port int) *Stub {
 	})
 	return &Stub{Structured: payload}
 }
+
+// GetStub returns a Stub that classifies a get/list intent.
+func GetStub(resourceKind, name, namespace, minMemory string) *Stub {
+	params := map[string]any{}
+	if minMemory != "" {
+		params["minMemory"] = minMemory
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"kind": "get",
+		"target": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+			"kind":      resourceKind,
+		},
+		"params":     params,
+		"confidence": 1.0,
+	})
+	return &Stub{Structured: payload}
+}

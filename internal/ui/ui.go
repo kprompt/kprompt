@@ -4,7 +4,9 @@ import (
 	"fmt"
 	"io"
 	"strings"
+	"text/tabwriter"
 
+	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 )
@@ -46,4 +48,22 @@ Next: re-run with --approve to apply, or review and cancel.`))
 // PrintApplied confirms successful execution.
 func PrintApplied(w io.Writer, plan planner.ExecutionPlan) {
 	fmt.Fprintf(w, "✓ Applied: %s\n", plan.Summary)
+}
+
+// PrintQueryResult prints a read-only list/get table.
+func PrintQueryResult(w io.Writer, res cluster.Result) {
+	if len(res.Rows) == 0 {
+		fmt.Fprintf(w, "No %s found.\n", res.Kind)
+		return
+	}
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(tw, strings.Join(res.Headers, "\t"))
+	for _, row := range res.Rows {
+		cols := []string{row.Namespace, row.Name, row.Ready, row.Status}
+		if row.Extra != "" {
+			cols = append(cols, strings.Split(row.Extra, "\t")...)
+		}
+		fmt.Fprintln(tw, strings.Join(cols, "\t"))
+	}
+	_ = tw.Flush()
 }

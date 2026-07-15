@@ -49,6 +49,17 @@ func (i Intent) Port() (int32, bool) {
 	}
 }
 
+// MinMemory returns a memory quantity filter from params.minMemory when set
+// (e.g. "2Gi", "2048Mi").
+func (i Intent) MinMemory() (string, bool) {
+	return i.StringParam("minMemory")
+}
+
+// LabelSelector returns params.labelSelector when set.
+func (i Intent) LabelSelector() (string, bool) {
+	return i.StringParam("labelSelector")
+}
+
 // WantService is true when params.createService is true, or a port is set.
 func (i Intent) WantService() bool {
 	if _, ok := i.Port(); ok {

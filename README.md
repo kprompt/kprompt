@@ -8,6 +8,8 @@ Open-source AI CLI to control Kubernetes with natural language.
 kprompt "scale api to 10"
 kprompt "deploy redis" --approve
 kprompt "deploy nginx" --approve
+kprompt "list deployments"
+kprompt "show pods" -n default
 ```
 
 ## Status
