@@ -22,10 +22,16 @@ kprompt "explain why payment-api is crashing"
 ### From releases (recommended)
 
 ```bash
-curl -fsSL https://kprompt.ai/install | bash
+curl -fsSL https://kprompt-website.vercel.app/install | bash
 ```
 
-See [docs/releasing.md](./docs/releasing.md) for tags, archives, and `KPROMPT_VERSION`.
+(After `kprompt.ai` DNS is live, the same path will be `https://kprompt.ai/install` — see architecture `DOMAIN.md`.)
+
+Fallback (GitHub raw):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/kprompt/kprompt/main/install/install.sh | bash
+```
 
 ### From source (dev)
 

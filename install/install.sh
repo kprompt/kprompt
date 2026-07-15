@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Install kprompt from GitHub Releases.
 # Usage:
-#   curl -fsSL https://kprompt.ai/install | bash
+#   curl -fsSL https://kprompt-website.vercel.app/install | bash
 #   curl -fsSL https://raw.githubusercontent.com/kprompt/kprompt/main/install/install.sh | bash
+# Later (when DNS is live): curl -fsSL https://kprompt.ai/install | bash
 set -euo pipefail
 
 REPO="kprompt/kprompt"
