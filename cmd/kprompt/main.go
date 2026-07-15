@@ -56,6 +56,7 @@ func main() {
 			fmt.Fprintln(cmd.OutOrStdout(), version)
 		},
 	})
+	root.AddCommand(newConfigCmd())
 
 	ctx := context.Background()
 	if err := root.ExecuteContext(ctx); err != nil {

@@ -65,6 +65,15 @@ See [docs/providers.md](./docs/providers.md) for the full list.
 
 3. Optional config at `~/.kprompt/config.yaml` (no secrets):
 
+```bash
+kprompt config
+kprompt config set provider gemini
+kprompt config set model gemini-2.0-flash
+kprompt config set namespace default
+```
+
+Or edit YAML:
+
 ```yaml
 provider: openai
 model: gpt-4o-mini

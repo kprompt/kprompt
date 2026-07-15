@@ -1,0 +1,153 @@
+package config
+
+import (
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+
+	"gopkg.in/yaml.v3"
+
+	"github.com/kprompt/kprompt/internal/llm"
+)
+
+// SaveFile writes File to ~/.kprompt/config.yaml (creates directory).
+func SaveFile(f File) error {
+	path, err := DefaultPath()
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create config dir: %w", err)
+	}
+	data, err := yaml.Marshal(f)
+	if err != nil {
+		return fmt.Errorf("marshal config: %w", err)
+	}
+	if err := os.WriteFile(path, data, 0o600); err != nil {
+		return fmt.Errorf("write config: %w", err)
+	}
+	return nil
+}
+
+// SetField updates a non-secret config field and persists the file.
+func SetField(key, value string) (File, error) {
+	f, err := LoadFile()
+	if err != nil {
+		return File{}, err
+	}
+	k := strings.ToLower(strings.TrimSpace(key))
+	v := strings.TrimSpace(value)
+	switch k {
+	case "provider":
+		if v == "" {
+			return File{}, fmt.Errorf("provider cannot be empty")
+		}
+		if _, ok := llm.LookupPreset(v); !ok {
+			return File{}, fmt.Errorf("unknown provider %q (supported: %s)", v, llm.SupportedNames())
+		}
+		f.Provider = strings.ToLower(v)
+	case "model":
+		if v == "" {
+			return File{}, fmt.Errorf("model cannot be empty")
+		}
+		f.Model = v
+	case "base_url", "base-url", "baseurl":
+		f.BaseURL = v
+	case "context":
+		f.Context = v
+	case "namespace", "ns":
+		f.Namespace = v
+	default:
+		return File{}, fmt.Errorf("unknown config key %q (allowed: provider, model, base_url, context, namespace)", key)
+	}
+	if err := SaveFile(f); err != nil {
+		return File{}, err
+	}
+	return f, nil
+}
+
+// View is a redacted snapshot for `kprompt config`.
+type View struct {
+	Path      string
+	Provider  string
+	Model     string
+	BaseURL   string
+	Context   string
+	Namespace string
+	APIKey    string // "set" | "unset" | "optional" — never the secret
+	EnvHints  []string
+}
+
+// BuildView loads file + env status without exposing secrets.
+func BuildView() (View, error) {
+	path, err := DefaultPath()
+	if err != nil {
+		return View{}, err
+	}
+	f, err := LoadFile()
+	if err != nil {
+		return View{}, err
+	}
+	r := Merge(f, "", "", "", "", false, "")
+	v := View{
+		Path:      path,
+		Provider:  r.Provider,
+		Model:     r.Model,
+		BaseURL:   r.BaseURL,
+		Context:   dash(r.Context),
+		Namespace: r.Namespace,
+	}
+	preset, ok := llm.LookupPreset(r.Provider)
+	if ok {
+		v.EnvHints = append([]string{}, preset.EnvKeys...)
+		key := APIKeyFor(r.Provider)
+		switch {
+		case preset.AllowEmptyKey:
+			if key != "" && key != "ollama" {
+				v.APIKey = "set"
+			} else {
+				v.APIKey = "optional (local)"
+			}
+		case key != "":
+			v.APIKey = "set"
+		default:
+			v.APIKey = "unset"
+		}
+	} else {
+		v.APIKey = "unknown provider"
+	}
+	return v, nil
+}
+
+func dash(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "(default kube context)"
+	}
+	return s
+}
+
+// FormatView renders a human-readable redacted config.
+func FormatView(v View) string {
+	var b strings.Builder
+	fmt.Fprintf(&b, "Config file: %s\n", v.Path)
+	fmt.Fprintf(&b, "provider:    %s\n", v.Provider)
+	fmt.Fprintf(&b, "model:       %s\n", v.Model)
+	fmt.Fprintf(&b, "base_url:    %s\n", emptyDash(v.BaseURL))
+	fmt.Fprintf(&b, "namespace:   %s\n", v.Namespace)
+	fmt.Fprintf(&b, "context:     %s\n", v.Context)
+	fmt.Fprintf(&b, "api_key:     %s", v.APIKey)
+	if len(v.EnvHints) > 0 {
+		fmt.Fprintf(&b, "  (env: %s)", strings.Join(v.EnvHints, " | "))
+	}
+	b.WriteByte('\n')
+	b.WriteString("Secrets are never stored in the config file.\n")
+	return b.String()
+}
+
+func emptyDash(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "-"
+	}
+	return s
+}
