@@ -62,6 +62,9 @@ func TestMutationInteractiveYesApplies(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if !bytes.Contains(out.Bytes(), []byte("replicas: 1 → 5")) {
+		t.Fatalf("expected live scale diff, got:\n%s", out.String())
+	}
 	dep, err := client.AppsV1().Deployments("default").Get(context.Background(), "api", metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)

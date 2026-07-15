@@ -30,12 +30,18 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 			if a.Object.Namespace != "" {
 				line += " -n " + a.Object.Namespace
 			}
-			if a.Replicas != nil {
+			if a.Replicas != nil && a.Op == planner.OpScale {
 				line += fmt.Sprintf(" → %d replicas", *a.Replicas)
 			}
 			fmt.Fprintln(w, line)
 			if a.Diff != "" {
-				fmt.Fprintf(w, "     %s\n", a.Diff)
+				fmt.Fprintln(w, "     Diff:")
+				for _, dl := range strings.Split(a.Diff, "\n") {
+					if dl == "" {
+						continue
+					}
+					fmt.Fprintf(w, "       %s\n", dl)
+				}
 			}
 		}
 	}

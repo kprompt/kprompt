@@ -71,8 +71,6 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		return nil
 	}
 
-	ui.PrintPlan(out, plan, risk)
-
 	client := deps.Client
 	if client == nil {
 		clients, err := cluster.Connect(cfg.Context)
@@ -81,6 +79,12 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		}
 		client = clients.Clientset
 	}
+
+	if plan.RequiresApproval {
+		planner.EnrichDiffs(ctx, client, &plan)
+	}
+
+	ui.PrintPlan(out, plan, risk)
 
 	// Read-only paths run immediately (no --approve).
 	if isReadOnly(plan) {
