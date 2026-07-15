@@ -1,0 +1,21 @@
+# Binaries
+/bin/
+/dist/
+/kprompt
+*.exe
+
+# Go
+/vendor/
+coverage.out
+*.test
+
+# IDE / OS
+.idea/
+.vscode/
+.DS_Store
+*.swp
+
+# Local env
+.env
+.env.*
+!.env.example
