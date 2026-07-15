@@ -27,10 +27,10 @@ curl -fsSL https://kprompt-website.vercel.app/install | bash
 
 (After `kprompt.ai` DNS is live, the same path will be `https://kprompt.ai/install` — see architecture `DOMAIN.md`.)
 
-Fallback (jsDelivr — avoids stale GitHub raw CDN):
+Fallback (pinned jsDelivr commit):
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@main/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@6ccb6a4/install/install.sh | bash
 ```
 
 ### From source (dev)
