@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -15,6 +16,8 @@ import (
 var (
 	version   = "0.0.0-dev"
 	approve   bool
+	waitFlag  bool
+	timeout   time.Duration
 	provider  string
 	model     string
 	kubeCtx   string
@@ -39,11 +42,15 @@ func main() {
 				return err
 			}
 			cfg := config.Merge(file, provider, model, kubeCtx, namespace, approve, prompt)
+			cfg.Wait = waitFlag
+			cfg.Timeout = timeout
 			return pipeline.Run(cmd.Context(), cfg, cmd.OutOrStdout())
 		},
 	}
 
 	root.Flags().BoolVar(&approve, "approve", false, "apply the plan without interactive confirmation")
+	root.Flags().BoolVar(&waitFlag, "wait", false, "after apply, wait for Deployment rollout to complete")
+	root.Flags().DurationVar(&timeout, "timeout", 5*time.Minute, "timeout for --wait (default 5m)")
 	root.Flags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|mistral|deepseek|openrouter|together|ollama|openai-compatible)")
 	root.Flags().StringVar(&model, "model", "", "LLM model id")
 	root.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")

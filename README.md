@@ -5,7 +5,7 @@ Open-source AI CLI to control Kubernetes with natural language.
 > Talk to Your Cluster.
 
 ```bash
-kprompt "scale api to 10"
+kprompt "scale api to 10" --approve --wait
 kprompt "deploy redis" --approve
 kprompt "deploy nginx" --approve
 kprompt "rollback payment-api" --approve
@@ -100,6 +100,8 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 | Flag | Description |
 |------|-------------|
 | `--approve` | Apply without interactive confirmation |
+| `--wait` | After apply, wait for Deployment rollout |
+| `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `mistral`, `deepseek`, `openrouter`, `together`, `ollama`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |

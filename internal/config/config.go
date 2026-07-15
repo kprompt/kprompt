@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 
@@ -33,6 +34,8 @@ type Resolved struct {
 	Context   string
 	Namespace string
 	Approve   bool
+	Wait      bool
+	Timeout   time.Duration // used with Wait; 0 means default (5m)
 	Prompt    string
 }
 

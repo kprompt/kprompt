@@ -149,7 +149,48 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		return cluster.Friendlier(fmt.Errorf("apply: %w", err))
 	}
 	ui.PrintApplied(out, plan)
+
+	if cfg.Wait {
+		targets := deploymentWaitTargets(plan)
+		timeout := cfg.Timeout
+		if timeout <= 0 {
+			timeout = cluster.DefaultWaitTimeout
+		}
+		waiter := &cluster.Waiter{Client: client, Out: out}
+		for _, t := range targets {
+			if err := waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout); err != nil {
+				return cluster.Friendlier(err)
+			}
+		}
+	}
 	return nil
+}
+
+func deploymentWaitTargets(plan planner.ExecutionPlan) []planner.ObjectRef {
+	seen := map[string]struct{}{}
+	var out []planner.ObjectRef
+	for _, a := range plan.Actions {
+		switch a.Op {
+		case planner.OpScale, planner.OpRollback, planner.OpCreate, planner.OpUpdate:
+			if a.Object.Kind != "Deployment" && a.Object.Kind != "" {
+				continue
+			}
+			key := a.Object.Namespace + "/" + a.Object.Name
+			if a.Object.Name == "" {
+				continue
+			}
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
+			ref := a.Object
+			if ref.Kind == "" {
+				ref.Kind = "Deployment"
+			}
+			out = append(out, ref)
+		}
+	}
+	return out
 }
 
 func resolveApproval(flagApprove bool, out io.Writer, deps Deps) (bool, error) {
