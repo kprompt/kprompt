@@ -92,7 +92,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			}
 			rep, err := (&cluster.Explainer{Client: client}).Explain(ctx, req)
 			if err != nil {
-				return fmt.Errorf("explain: %w", err)
+				return cluster.Friendlier(fmt.Errorf("explain: %w", err))
 			}
 			ui.PrintExplain(out, rep)
 			return nil
@@ -103,7 +103,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			}
 			res, err := (&cluster.Reader{Client: client}).List(ctx, q)
 			if err != nil {
-				return fmt.Errorf("query: %w", err)
+				return cluster.Friendlier(fmt.Errorf("query: %w", err))
 			}
 			ui.PrintQueryResult(out, res)
 			return nil
@@ -120,7 +120,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	runner := &executor.Runner{Client: client}
 	if err := runner.Apply(ctx, plan); err != nil {
-		return fmt.Errorf("apply: %w", err)
+		return cluster.Friendlier(fmt.Errorf("apply: %w", err))
 	}
 	ui.PrintApplied(out, plan)
 	return nil

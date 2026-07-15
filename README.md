@@ -88,6 +88,8 @@ kprompt "scale api to 10" --approve
 
 Destructive prompts (wipe cluster, delete everything, …) are **hard-denied**.
 
+Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt-website.vercel.app/#usage) when helpful.
+
 ## Flags
 
 | Flag | Description |

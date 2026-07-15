@@ -25,15 +25,20 @@ func Connect(contextName string) (*Clients, error) {
 	clientCfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 	raw, err := clientCfg.RawConfig()
 	if err != nil {
-		return nil, fmt.Errorf("load kubeconfig: %w", err)
+		return nil, Friendlier(fmt.Errorf("load kubeconfig: %w", err))
+	}
+	if contextName != "" {
+		if _, ok := raw.Contexts[contextName]; !ok {
+			return nil, Friendlier(fmt.Errorf(`context %q does not exist`, contextName))
+		}
 	}
 	restCfg, err := clientCfg.ClientConfig()
 	if err != nil {
-		return nil, fmt.Errorf("kube client config: %w", err)
+		return nil, Friendlier(fmt.Errorf("kube client config: %w", err))
 	}
 	cs, err := kubernetes.NewForConfig(restCfg)
 	if err != nil {
-		return nil, fmt.Errorf("kubernetes clientset: %w", err)
+		return nil, Friendlier(fmt.Errorf("kubernetes clientset: %w", err))
 	}
 	ctx := raw.CurrentContext
 	if contextName != "" {
