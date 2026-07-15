@@ -40,8 +40,7 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 		}
 	}
 	if plan.RequiresApproval {
-		fmt.Fprintln(w, strings.TrimSpace(`
-Next: re-run with --approve to apply, or review and cancel.`))
+		fmt.Fprintln(w, "Next: confirm interactively on a TTY, or re-run with --approve.")
 	}
 }
 

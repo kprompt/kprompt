@@ -25,7 +25,7 @@ func main() {
 	root := &cobra.Command{
 		Use:   "kprompt [prompt]",
 		Short: "Talk to your Kubernetes cluster with natural language",
-		Long:  "kprompt plans cluster actions from a prompt, applies safety policy, and mutates only with --approve.",
+		Long:  "kprompt plans cluster actions from a prompt, applies safety policy, and mutates only after interactive confirm or --approve.",
 		Args:  cobra.ArbitraryArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			prompt := strings.TrimSpace(strings.Join(args, " "))
@@ -41,7 +41,7 @@ func main() {
 		},
 	}
 
-	root.Flags().BoolVar(&approve, "approve", false, "apply the plan after safety checks")
+	root.Flags().BoolVar(&approve, "approve", false, "apply the plan without interactive confirmation")
 	root.Flags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic)")
 	root.Flags().StringVar(&model, "model", "", "LLM model id")
 	root.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")

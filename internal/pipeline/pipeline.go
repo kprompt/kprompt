@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
@@ -18,10 +19,15 @@ import (
 	"github.com/kprompt/kprompt/internal/ui"
 )
 
-// Deps allows tests to inject LLM and Kubernetes clients.
+// ConfirmFunc asks the user whether to apply a mutating plan.
+type ConfirmFunc func(out io.Writer) (bool, error)
+
+// Deps allows tests to inject LLM, Kubernetes clients, and approval behavior.
 type Deps struct {
-	Provider llm.Provider
-	Client   kubernetes.Interface
+	Provider   llm.Provider
+	Client     kubernetes.Interface
+	Confirm    ConfirmFunc // if set, used instead of TTY prompt
+	IsTerminal *bool       // override ui.StdinIsTerminal when non-nil
 }
 
 // Run executes the full prompt → plan → safety → optional apply flow.
@@ -104,7 +110,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		}
 	}
 
-	if !cfg.Approve {
+	approved, err := resolveApproval(cfg.Approve, out, deps)
+	if err != nil {
+		return err
+	}
+	if !approved {
 		return nil
 	}
 
@@ -114,6 +124,38 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 	ui.PrintApplied(out, plan)
 	return nil
+}
+
+func resolveApproval(flagApprove bool, out io.Writer, deps Deps) (bool, error) {
+	if flagApprove {
+		return true, nil
+	}
+	if deps.Confirm != nil {
+		ok, err := deps.Confirm(out)
+		if err != nil {
+			return false, err
+		}
+		if !ok {
+			ui.PrintAborted(out)
+		}
+		return ok, nil
+	}
+	isTTY := ui.StdinIsTerminal()
+	if deps.IsTerminal != nil {
+		isTTY = *deps.IsTerminal
+	}
+	if !isTTY {
+		ui.PrintNeedsApprove(out)
+		return false, nil
+	}
+	ok, err := ui.ConfirmApply(os.Stdin, out)
+	if err != nil {
+		return false, err
+	}
+	if !ok {
+		ui.PrintAborted(out)
+	}
+	return ok, nil
 }
 
 func isReadOnly(plan planner.ExecutionPlan) bool {

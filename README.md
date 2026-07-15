@@ -52,7 +52,7 @@ provider: openai
 model: gpt-4o-mini
 ```
 
-4. Run a prompt (default is **plan only**):
+4. Run a prompt (default is **plan only**; mutations ask `y/N` on a TTY, or use `--approve`):
 
 ```bash
 kprompt "scale api to 10"
