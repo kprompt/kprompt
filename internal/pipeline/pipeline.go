@@ -12,6 +12,7 @@ import (
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/executor"
+	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/llm"
 	"github.com/kprompt/kprompt/internal/planner"
@@ -102,6 +103,12 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	ui.PrintPlan(out, plan, risk)
 
+	applied := false
+	defer func() {
+		_ = history.Append(history.FromPlan(cfg.Prompt, cfg.Context, plan, risk, applied))
+		_ = history.Truncate()
+	}()
+
 	// Read-only paths run immediately (no --approve).
 	if isReadOnly(plan) {
 		switch plan.Intent.Kind {
@@ -124,22 +131,25 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 			actionable := suggest.ActionablePlans(suggestions)
 			if len(actionable) == 0 {
+				applied = true
 				return nil
 			}
 			// Offer the primary patch plan (e.g. OOM → raise memory); still requires approval.
 			patch := *actionable[0].Plan
-			risk := safety.EvaluatePlan(patch)
-			if risk.Denied {
-				ui.PrintDenied(out, risk.Message)
+			patchRisk := safety.EvaluatePlan(patch)
+			if patchRisk.Denied {
+				ui.PrintDenied(out, patchRisk.Message)
+				applied = true
 				return nil
 			}
 			fmt.Fprintln(out, "Suggested fix (requires approval):")
-			ui.PrintPlan(out, patch, risk)
+			ui.PrintPlan(out, patch, patchRisk)
 			approved, err := resolveApproval(cfg.Approve, out, deps)
 			if err != nil {
 				return err
 			}
 			if !approved {
+				applied = true
 				return nil
 			}
 			runner := &executor.Runner{Client: client}
@@ -147,6 +157,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return cluster.Friendlier(fmt.Errorf("apply suggested patch: %w", err))
 			}
 			ui.PrintApplied(out, patch)
+			applied = true
 			return nil
 		case intent.KindLogs:
 			req, err := logsFromPlan(plan)
@@ -158,6 +169,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return cluster.Friendlier(fmt.Errorf("logs: %w", err))
 			}
 			ui.PrintLogs(out, res)
+			applied = true
 			return nil
 		case intent.KindDescribe:
 			req, err := describeFromPlan(plan)
@@ -169,6 +181,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return cluster.Friendlier(fmt.Errorf("describe: %w", err))
 			}
 			ui.PrintDescribe(out, rep)
+			applied = true
 			return nil
 		case intent.KindGet:
 			q, err := queryFromPlan(plan)
@@ -180,6 +193,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return cluster.Friendlier(fmt.Errorf("query: %w", err))
 			}
 			ui.PrintQueryResult(out, res)
+			applied = true
 			return nil
 		}
 	}
@@ -197,6 +211,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		return cluster.Friendlier(fmt.Errorf("apply: %w", err))
 	}
 	ui.PrintApplied(out, plan)
+	applied = true
 
 	if cfg.Wait {
 		targets := deploymentWaitTargets(plan)

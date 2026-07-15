@@ -91,8 +91,15 @@ kprompt "scale api to 10" --approve
 ```
 
 Destructive prompts (wipe cluster, delete everything, delete a namespace, …) are **hard-denied**.
-Phrases like `in staging` or `on kind-kprompt-e2e context` resolve to namespace / kube context
-(LLM + heuristics). Explicit `--namespace` / `--context` always win.
+## History
+
+```bash
+kprompt history              # last 20 prompts/plans (~/.kprompt/history.jsonl)
+kprompt history rerun        # replay newest prompt
+kprompt history rerun 3 --approve
+```
+
+History stores prompt, kind, summary, and action refs — never manifests or API keys.
 
 Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt-website.vercel.app/#usage) when helpful.
 

@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -14,8 +15,14 @@ import (
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kprompt/kprompt/internal/config"
+	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/llm"
 )
+
+func TestMain(m *testing.M) {
+	history.Disable = true
+	os.Exit(m.Run())
+}
 
 func TestMutationWithoutApproveNonInteractiveSkips(t *testing.T) {
 	client := fake.NewSimpleClientset(deployment("api", "default", 1))

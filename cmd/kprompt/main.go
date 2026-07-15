@@ -50,13 +50,13 @@ func main() {
 		},
 	}
 
-	root.Flags().BoolVar(&approve, "approve", false, "apply the plan without interactive confirmation")
-	root.Flags().BoolVar(&waitFlag, "wait", false, "after apply, wait for Deployment rollout to complete")
-	root.Flags().DurationVar(&timeout, "timeout", 5*time.Minute, "timeout for --wait (default 5m)")
-	root.Flags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|mistral|deepseek|openrouter|together|ollama|openai-compatible)")
-	root.Flags().StringVar(&model, "model", "", "LLM model id")
-	root.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
-	root.Flags().StringVarP(&namespace, "namespace", "n", "", "default namespace")
+	root.PersistentFlags().BoolVar(&approve, "approve", false, "apply the plan without interactive confirmation")
+	root.PersistentFlags().BoolVar(&waitFlag, "wait", false, "after apply, wait for Deployment rollout to complete")
+	root.PersistentFlags().DurationVar(&timeout, "timeout", 5*time.Minute, "timeout for --wait (default 5m)")
+	root.PersistentFlags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|mistral|deepseek|openrouter|together|ollama|openai-compatible)")
+	root.PersistentFlags().StringVar(&model, "model", "", "LLM model id")
+	root.PersistentFlags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
+	root.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "default namespace")
 
 	root.AddCommand(&cobra.Command{
 		Use:   "version",
@@ -66,6 +66,7 @@ func main() {
 		},
 	})
 	root.AddCommand(newConfigCmd())
+	root.AddCommand(newHistoryCmd())
 
 	ctx := context.Background()
 	if err := root.ExecuteContext(ctx); err != nil {
