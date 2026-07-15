@@ -91,7 +91,7 @@ kprompt "scale api to 10" --approve
 ```
 
 Destructive prompts (wipe cluster, delete everything, delete a namespace, …) are **hard-denied**.
-Mutations print a live **Diff** block before approve (replicas `1 → 3`, deploy create vs update, …).
+Explain-lite can propose a follow-up **patch plan** (e.g. OOMKilled → raise memory) — still requires confirm / `--approve`.
 
 Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt-website.vercel.app/#usage) when helpful.
 

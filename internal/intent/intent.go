@@ -14,6 +14,7 @@ const (
 	KindLogs     Kind = "logs"
 	KindDescribe Kind = "describe"
 	KindDelete   Kind = "delete"
+	KindPatch    Kind = "patch"
 	KindDeny     Kind = "deny"
 	KindUnknown  Kind = "unknown"
 )

@@ -9,6 +9,7 @@ import (
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
+	"github.com/kprompt/kprompt/internal/suggest"
 )
 
 // PrintDenied writes a hard-deny message.
@@ -114,5 +115,22 @@ func PrintDescribe(w io.Writer, rep cluster.DescribeReport) {
 	fmt.Fprintf(w, "Status:  %s\n", rep.Status)
 	for _, line := range rep.Lines {
 		fmt.Fprintln(w, line)
+	}
+}
+
+// PrintSuggestions prints explain follow-up prompts / fix ideas.
+func PrintSuggestions(w io.Writer, suggestions []suggest.Suggestion) {
+	if len(suggestions) == 0 {
+		return
+	}
+	fmt.Fprintln(w, "Suggestions:")
+	for _, s := range suggestions {
+		fmt.Fprintf(w, "  - [%s] %s\n", s.Code, s.Title)
+		if s.Summary != "" {
+			fmt.Fprintf(w, "      %s\n", s.Summary)
+		}
+		if hint := suggest.FormatPromptHint(s); hint != "" {
+			fmt.Fprintf(w, "      Try: %s\n", hint)
+		}
 	}
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/kprompt/kprompt/internal/llm"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
+	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/ui"
 )
 
@@ -99,6 +100,38 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return cluster.Friendlier(fmt.Errorf("explain: %w", err))
 			}
 			ui.PrintExplain(out, rep)
+
+			suggestions, err := suggest.FromExplain(ctx, client, rep)
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("suggest: %w", err))
+			}
+			ui.PrintSuggestions(out, suggestions)
+
+			actionable := suggest.ActionablePlans(suggestions)
+			if len(actionable) == 0 {
+				return nil
+			}
+			// Offer the primary patch plan (e.g. OOM → raise memory); still requires approval.
+			patch := *actionable[0].Plan
+			risk := safety.EvaluatePlan(patch)
+			if risk.Denied {
+				ui.PrintDenied(out, risk.Message)
+				return nil
+			}
+			fmt.Fprintln(out, "Suggested fix (requires approval):")
+			ui.PrintPlan(out, patch, risk)
+			approved, err := resolveApproval(cfg.Approve, out, deps)
+			if err != nil {
+				return err
+			}
+			if !approved {
+				return nil
+			}
+			runner := &executor.Runner{Client: client}
+			if err := runner.Apply(ctx, patch); err != nil {
+				return cluster.Friendlier(fmt.Errorf("apply suggested patch: %w", err))
+			}
+			ui.PrintApplied(out, patch)
 			return nil
 		case intent.KindLogs:
 			req, err := logsFromPlan(plan)

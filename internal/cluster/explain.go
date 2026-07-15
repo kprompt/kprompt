@@ -22,9 +22,10 @@ type ExplainRequest struct {
 
 // Finding is one diagnosed issue.
 type Finding struct {
-	Severity string // info, warning, error
-	Code     string
-	Message  string
+	Severity  string // info, warning, error
+	Code      string
+	Message   string
+	Container string // optional container name
 }
 
 // ExplainReport is the explain-lite outcome (facts + heuristics, no mutate).
@@ -120,14 +121,14 @@ func diagnosePod(pod corev1.Pod) []Finding {
 			msg := cs.State.Waiting.Message
 			switch reason {
 			case "CrashLoopBackOff":
-				out = append(out, Finding{Severity: "error", Code: "CrashLoopBackOff", Message: fmt.Sprintf("container %s is crash-looping: %s", cs.Name, msg)})
+				out = append(out, Finding{Severity: "error", Code: "CrashLoopBackOff", Container: cs.Name, Message: fmt.Sprintf("container %s is crash-looping: %s", cs.Name, msg)})
 			case "ImagePullBackOff", "ErrImagePull":
-				out = append(out, Finding{Severity: "error", Code: reason, Message: fmt.Sprintf("container %s cannot pull image: %s", cs.Name, msg)})
+				out = append(out, Finding{Severity: "error", Code: reason, Container: cs.Name, Message: fmt.Sprintf("container %s cannot pull image: %s", cs.Name, msg)})
 			case "CreateContainerConfigError":
-				out = append(out, Finding{Severity: "error", Code: reason, Message: fmt.Sprintf("container %s config error: %s", cs.Name, msg)})
+				out = append(out, Finding{Severity: "error", Code: reason, Container: cs.Name, Message: fmt.Sprintf("container %s config error: %s", cs.Name, msg)})
 			default:
 				if reason != "" {
-					out = append(out, Finding{Severity: "warning", Code: reason, Message: fmt.Sprintf("container %s waiting: %s", cs.Name, firstNonEmpty(msg, reason))})
+					out = append(out, Finding{Severity: "warning", Code: reason, Container: cs.Name, Message: fmt.Sprintf("container %s waiting: %s", cs.Name, firstNonEmpty(msg, reason))})
 				}
 			}
 		}
@@ -135,23 +136,26 @@ func diagnosePod(pod corev1.Pod) []Finding {
 			term := cs.LastTerminationState.Terminated
 			if term.Reason == "OOMKilled" {
 				out = append(out, Finding{
-					Severity: "error",
-					Code:     "OOMKilled",
-					Message:  fmt.Sprintf("container %s was OOMKilled (exit %d); consider raising memory limits", cs.Name, term.ExitCode),
+					Severity:  "error",
+					Code:      "OOMKilled",
+					Container: cs.Name,
+					Message:   fmt.Sprintf("container %s was OOMKilled (exit %d); consider raising memory limits", cs.Name, term.ExitCode),
 				})
 			} else if term.ExitCode != 0 {
 				out = append(out, Finding{
-					Severity: "warning",
-					Code:     firstNonEmpty(term.Reason, "Error"),
-					Message:  fmt.Sprintf("container %s last exit code %d (%s)", cs.Name, term.ExitCode, term.Reason),
+					Severity:  "warning",
+					Code:      firstNonEmpty(term.Reason, "Error"),
+					Container: cs.Name,
+					Message:   fmt.Sprintf("container %s last exit code %d (%s)", cs.Name, term.ExitCode, term.Reason),
 				})
 			}
 		}
 		if cs.RestartCount > 0 {
 			out = append(out, Finding{
-				Severity: "info",
-				Code:     "Restarts",
-				Message:  fmt.Sprintf("container %s restart count=%d", cs.Name, cs.RestartCount),
+				Severity:  "info",
+				Code:      "Restarts",
+				Container: cs.Name,
+				Message:   fmt.Sprintf("container %s restart count=%d", cs.Name, cs.RestartCount),
 			})
 		}
 	}
