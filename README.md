@@ -4,6 +4,8 @@ Open-source AI CLI to control Kubernetes with natural language.
 
 > Talk to Your Cluster.
 
+**Experimental.** Early software — always review the plan before apply, prefer non-production clusters first, and treat `--approve` with care. Safety hard-denies help; they do not make unattended production use safe.
+
 ```bash
 kprompt "scale api to 10" --approve --wait
 kprompt "deploy redis" --approve
@@ -19,8 +21,7 @@ kprompt "explain why payment-api is crashing"
 
 ## Status
 
-**v0.2.0+** — plan → safety → apply for **deploy** + **scale** + **rollback** + **named delete**; read-only **get/list** + **explain-lite** + **logs** + **describe**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
-
+**v0.2.0+ (experimental)** — plan → safety → apply for **deploy** + **scale** + **rollback** + **named delete**; read-only **get/list** + **explain-lite** + **logs** + **describe**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 ## Install
 
 ### From releases (recommended)
