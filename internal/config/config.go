@@ -5,13 +5,14 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"gopkg.in/yaml.v3"
+
+	"github.com/kprompt/kprompt/internal/llm"
 )
 
 const (
-	EnvOpenAIKey     = "KPROMPT_OPENAI_API_KEY"
-	EnvAnthropicKey  = "KPROMPT_ANTHROPIC_API_KEY"
 	EnvOpenAIBaseURL = "KPROMPT_OPENAI_BASE_URL"
 )
 
@@ -64,69 +65,49 @@ func DefaultPath() (string, error) {
 	return filepath.Join(home, ".kprompt", "config.yaml"), nil
 }
 
-// APIKeyFor returns the env-sourced API key for a provider.
+// APIKeyFor returns the env-sourced API key for a provider preset.
 func APIKeyFor(provider string) string {
-	switch provider {
-	case "openai", "openai-compatible", "":
-		if v := os.Getenv(EnvOpenAIKey); v != "" {
-			return v
-		}
-		// Common fallbacks
-		return os.Getenv("OPENAI_API_KEY")
-	case "anthropic":
-		if v := os.Getenv(EnvAnthropicKey); v != "" {
-			return v
-		}
-		return os.Getenv("ANTHROPIC_API_KEY")
-	default:
+	preset, ok := llm.LookupPreset(provider)
+	if !ok {
 		return ""
 	}
-}
-
-// OpenAIBaseURL returns the OpenAI-compatible base URL if set.
-func OpenAIBaseURL(cfg string) string {
-	if cfg != "" {
-		return cfg
+	for _, k := range preset.EnvKeys {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
 	}
-	if v := os.Getenv(EnvOpenAIBaseURL); v != "" {
-		return v
+	if preset.AllowEmptyKey {
+		return "ollama"
 	}
-	return "https://api.openai.com/v1"
+	return ""
 }
 
 // Merge builds Resolved from file defaults and CLI overrides.
 func Merge(file File, provider, model, context, namespace string, approve bool, prompt string) Resolved {
+	prov := first(provider, file.Provider, "openai")
+	preset, _ := llm.LookupPreset(prov)
+	defModel := "gpt-4o-mini"
+	if preset.Name != "" {
+		defModel = preset.DefaultModel
+	}
+
 	r := Resolved{
-		Provider:  first(provider, file.Provider, "openai"),
-		Model:     first(model, file.Model, defaultModel(first(provider, file.Provider, "openai"))),
-		BaseURL:   first("", file.BaseURL),
+		Provider:  strings.ToLower(prov),
+		Model:     first(model, file.Model, defModel),
+		BaseURL:   first(file.BaseURL, os.Getenv(EnvOpenAIBaseURL), preset.BaseURL),
 		Context:   first(context, file.Context),
 		Namespace: first(namespace, file.Namespace, "default"),
 		Approve:   approve,
 		Prompt:    prompt,
-	}
-	if r.BaseURL == "" {
-		r.BaseURL = OpenAIBaseURL("")
-	} else {
-		r.BaseURL = OpenAIBaseURL(r.BaseURL)
 	}
 	return r
 }
 
 func first(vals ...string) string {
 	for _, v := range vals {
-		if v != "" {
+		if strings.TrimSpace(v) != "" {
 			return v
 		}
 	}
 	return ""
-}
-
-func defaultModel(provider string) string {
-	switch provider {
-	case "anthropic":
-		return "claude-sonnet-4-20250514"
-	default:
-		return "gpt-4o-mini"
-	}
 }

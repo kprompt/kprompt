@@ -44,7 +44,7 @@ func main() {
 	}
 
 	root.Flags().BoolVar(&approve, "approve", false, "apply the plan without interactive confirmation")
-	root.Flags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic)")
+	root.Flags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|mistral|deepseek|openrouter|together|ollama|openai-compatible)")
 	root.Flags().StringVar(&model, "model", "", "LLM model id")
 	root.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
 	root.Flags().StringVarP(&namespace, "namespace", "n", "", "default namespace")

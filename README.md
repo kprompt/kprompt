@@ -15,7 +15,7 @@ kprompt "explain why payment-api is crashing"
 
 ## Status
 
-**v0 / early v1** — plan → safety → apply for **deploy** + **scale**; read-only **get/list** + **explain-lite**. Multi-LLM: OpenAI-compatible + Anthropic. Kind E2E under `go test -tags=e2e ./test/e2e/`.
+**v0 / early v1** — plan → safety → apply for **deploy** + **scale**; read-only **get/list** + **explain-lite**. Multi-LLM: OpenAI, Anthropic, Gemini, Groq, Mistral, DeepSeek, OpenRouter, Together, Ollama, plus generic OpenAI-compatible. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 
 ## Install
 
@@ -51,13 +51,17 @@ go build -o bin/kprompt ./cmd/kprompt
 ## Quick start
 
 1. Point kubeconfig at a cluster (`~/.kube/config` or `KUBECONFIG`).
-2. Set an LLM API key:
+2. Set an LLM API key (pick a provider):
 
 ```bash
-export KPROMPT_OPENAI_API_KEY=sk-...
-# or
-export KPROMPT_ANTHROPIC_API_KEY=sk-ant-...
+export KPROMPT_OPENAI_API_KEY=sk-...          # --provider openai (default)
+export KPROMPT_ANTHROPIC_API_KEY=sk-ant-...   # --provider anthropic
+export KPROMPT_GEMINI_API_KEY=...             # --provider gemini
+export KPROMPT_GROQ_API_KEY=...               # --provider groq
+# local: kprompt --provider ollama --model llama3.2 "..."
 ```
+
+See [docs/providers.md](./docs/providers.md) for the full list.
 
 3. Optional config at `~/.kprompt/config.yaml` (no secrets):
 
@@ -80,7 +84,7 @@ Destructive prompts (wipe cluster, delete everything, …) are **hard-denied**.
 | Flag | Description |
 |------|-------------|
 | `--approve` | Apply without interactive confirmation |
-| `--provider` | `openai` or `anthropic` |
+| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `mistral`, `deepseek`, `openrouter`, `together`, `ollama`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |
 | `--namespace` / `-n` | Default namespace |

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
+	"strings"
 )
 
 // CompletionRequest is a provider-agnostic chat completion request.
@@ -25,20 +27,60 @@ type Provider interface {
 	CompleteStructured(ctx context.Context, req CompletionRequest, schema json.RawMessage) (json.RawMessage, error)
 }
 
-// Registry maps provider names to constructors is handled by New.
+// New constructs a Provider from a preset name.
+// baseURL overrides the preset default when non-empty (openai-compatible backends).
 func New(name, apiKey, baseURL, model string) (Provider, error) {
-	switch name {
-	case "openai", "openai-compatible", "":
-		if apiKey == "" {
-			return nil, fmt.Errorf("missing API key for openai — set KPROMPT_OPENAI_API_KEY (or OPENAI_API_KEY). Example:\n  export KPROMPT_OPENAI_API_KEY=sk-...\nUsage guide: https://kprompt-website.vercel.app/#usage")
-		}
-		return NewOpenAI(apiKey, baseURL, model), nil
-	case "anthropic":
-		if apiKey == "" {
-			return nil, fmt.Errorf("missing API key for anthropic — set KPROMPT_ANTHROPIC_API_KEY (or ANTHROPIC_API_KEY). Example:\n  export KPROMPT_ANTHROPIC_API_KEY=sk-ant-...\nUsage guide: https://kprompt-website.vercel.app/#usage")
-		}
-		return NewAnthropic(apiKey, model), nil
-	default:
-		return nil, fmt.Errorf("unknown provider %q (supported: openai, anthropic)", name)
+	preset, ok := LookupPreset(name)
+	if !ok {
+		return nil, fmt.Errorf("unknown provider %q (supported: %s)", name, SupportedNames())
 	}
+
+	key := strings.TrimSpace(apiKey)
+	if key == "" {
+		key = firstEnv(preset.EnvKeys...)
+	}
+	if key == "" && preset.AllowEmptyKey {
+		key = "ollama"
+	}
+	if key == "" {
+		return nil, missingKeyError(preset)
+	}
+
+	mdl := model
+	if mdl == "" {
+		mdl = preset.DefaultModel
+	}
+
+	switch preset.Kind {
+	case "openai":
+		bu := strings.TrimRight(baseURL, "/")
+		if bu == "" {
+			bu = preset.BaseURL
+		}
+		if bu == "" {
+			bu = strings.TrimRight(os.Getenv("KPROMPT_OPENAI_BASE_URL"), "/")
+		}
+		if bu == "" && preset.Name == "openai-compatible" {
+			return nil, fmt.Errorf("provider openai-compatible requires base_url (config or KPROMPT_OPENAI_BASE_URL)")
+		}
+		if bu == "" {
+			bu = "https://api.openai.com/v1"
+		}
+		return NewOpenAI(key, bu, mdl), nil
+	case "anthropic":
+		return NewAnthropic(key, mdl), nil
+	case "gemini":
+		return NewGemini(key, mdl), nil
+	default:
+		return nil, fmt.Errorf("internal: unhandled provider kind %q", preset.Kind)
+	}
+}
+
+func firstEnv(keys ...string) string {
+	for _, k := range keys {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
+	}
+	return ""
 }
