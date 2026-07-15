@@ -3,10 +3,15 @@ package executor
 import (
 	"context"
 	"fmt"
+	"strings"
 
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/util/retry"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kprompt/kprompt/internal/planner"
 )
@@ -18,7 +23,7 @@ type Runner struct {
 	Client kubernetes.Interface
 }
 
-// Apply executes mutating actions. v0 supports Deployment scale.
+// Apply executes mutating actions (scale + deploy create/apply).
 func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 	for _, a := range plan.Actions {
 		switch a.Op {
@@ -26,8 +31,12 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 			if err := r.scale(ctx, a); err != nil {
 				return err
 			}
+		case planner.OpCreate, planner.OpUpdate:
+			if err := r.applyManifest(ctx, a); err != nil {
+				return err
+			}
 		default:
-			return fmt.Errorf("executor: unsupported op %q in v0", a.Op)
+			return fmt.Errorf("executor: unsupported op %q", a.Op)
 		}
 	}
 	return nil
@@ -58,6 +67,76 @@ func (r *Runner) scale(ctx context.Context, a planner.Action) error {
 			return err
 		})
 	default:
-		return fmt.Errorf("scale of %s not implemented in v0", a.Object.Kind)
+		return fmt.Errorf("scale of %s not implemented", a.Object.Kind)
 	}
+}
+
+func (r *Runner) applyManifest(ctx context.Context, a planner.Action) error {
+	if strings.TrimSpace(a.Manifest) == "" {
+		return fmt.Errorf("create/update action missing manifest")
+	}
+	switch a.Object.Kind {
+	case "Deployment":
+		var dep appsv1.Deployment
+		if err := yaml.Unmarshal([]byte(a.Manifest), &dep); err != nil {
+			return fmt.Errorf("decode Deployment: %w", err)
+		}
+		return r.applyDeployment(ctx, &dep)
+	case "Service":
+		var svc corev1.Service
+		if err := yaml.Unmarshal([]byte(a.Manifest), &svc); err != nil {
+			return fmt.Errorf("decode Service: %w", err)
+		}
+		return r.applyService(ctx, &svc)
+	default:
+		return fmt.Errorf("apply of %s not implemented", a.Object.Kind)
+	}
+}
+
+func (r *Runner) applyDeployment(ctx context.Context, dep *appsv1.Deployment) error {
+	ns := dep.Namespace
+	if ns == "" {
+		ns = "default"
+		dep.Namespace = ns
+	}
+	existing, err := r.Client.AppsV1().Deployments(ns).Get(ctx, dep.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		_, err = r.Client.AppsV1().Deployments(ns).Create(ctx, dep, metav1.CreateOptions{
+			FieldManager: FieldManager,
+		})
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	dep.ResourceVersion = existing.ResourceVersion
+	_, err = r.Client.AppsV1().Deployments(ns).Update(ctx, dep, metav1.UpdateOptions{
+		FieldManager: FieldManager,
+	})
+	return err
+}
+
+func (r *Runner) applyService(ctx context.Context, svc *corev1.Service) error {
+	ns := svc.Namespace
+	if ns == "" {
+		ns = "default"
+		svc.Namespace = ns
+	}
+	existing, err := r.Client.CoreV1().Services(ns).Get(ctx, svc.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		_, err = r.Client.CoreV1().Services(ns).Create(ctx, svc, metav1.CreateOptions{
+			FieldManager: FieldManager,
+		})
+		return err
+	}
+	if err != nil {
+		return err
+	}
+	svc.ResourceVersion = existing.ResourceVersion
+	svc.Spec.ClusterIP = existing.Spec.ClusterIP
+	svc.Spec.ClusterIPs = existing.Spec.ClusterIPs
+	_, err = r.Client.CoreV1().Services(ns).Update(ctx, svc, metav1.UpdateOptions{
+		FieldManager: FieldManager,
+	})
+	return err
 }

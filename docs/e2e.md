@@ -15,5 +15,5 @@ kind delete cluster --name kprompt-e2e
 
 Notes:
 
-- Uses `llm.ScaleStub` so no real API key is required.
-- Exercises: Intent parse → Planner → Safety → Executor scale against a live APIserver.
+- Uses stub LLM providers (`ScaleStub` / `DeployStub`) so no real API key is required.
+- Exercises: Intent → Planner → Safety → Executor against a live APIserver (scale + deploy).

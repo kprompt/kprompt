@@ -7,13 +7,12 @@ Open-source AI CLI to control Kubernetes with natural language.
 ```bash
 kprompt "scale api to 10"
 kprompt "deploy redis" --approve
+kprompt "deploy nginx" --approve
 ```
 
 ## Status
 
-**v0 skeleton** — plan → safety → approve → apply pipeline is in place. First mutation path: **scale a Deployment**. Multi-LLM providers: OpenAI-compatible + Anthropic. Kind E2E cover scale (`go test -tags=e2e ./test/e2e/`).
-
-Deploy path is tracked in architecture [#1](https://github.com/kprompt/kprompt-architecture/issues/1) (private).
+**v0 skeleton** — plan → safety → approve → apply pipeline is in place. Mutation paths: **deploy** (Deployment ± Service) and **scale**. Multi-LLM providers: OpenAI-compatible + Anthropic. Kind E2E covers deploy + scale (`go test -tags=e2e ./test/e2e/`).
 
 ## Install (dev)
 

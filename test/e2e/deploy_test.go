@@ -15,7 +15,7 @@ import (
 	"github.com/kprompt/kprompt/internal/pipeline"
 )
 
-func TestScaleDeploymentOnKind(t *testing.T) {
+func TestDeployRedisOnKind(t *testing.T) {
 	requireKind(t)
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
@@ -27,17 +27,21 @@ func TestScaleDeploymentOnKind(t *testing.T) {
 
 	client := clientFromKubeconfig(t, kubeconfig)
 	ensureNamespace(t, ctx, client)
-	ensureDeployment(t, ctx, client, 1)
+
+	const name = "redis"
+	// Clean previous run if any.
+	_ = client.AppsV1().Deployments(ns).Delete(ctx, name, metav1.DeleteOptions{})
+	_ = client.CoreV1().Services(ns).Delete(ctx, name, metav1.DeleteOptions{})
 
 	var out bytes.Buffer
 	cfg := config.Resolved{
 		Provider:  "stub",
 		Namespace: ns,
 		Approve:   true,
-		Prompt:    "scale demo to 3",
+		Prompt:    "deploy redis",
 	}
 	err := pipeline.RunWith(ctx, cfg, &out, pipeline.Deps{
-		Provider: llm.ScaleStub(deployName, ns, 3),
+		Provider: llm.DeployStub(name, ns, "", 1, 0),
 		Client:   client,
 	})
 	if err != nil {
@@ -45,11 +49,14 @@ func TestScaleDeploymentOnKind(t *testing.T) {
 	}
 	t.Log(out.String())
 
-	dep, err := client.AppsV1().Deployments(ns).Get(ctx, deployName, metav1.GetOptions{})
+	dep, err := client.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if dep.Spec.Replicas == nil || *dep.Spec.Replicas != 3 {
-		t.Fatalf("expected 3 replicas, got %v", dep.Spec.Replicas)
+	if len(dep.Spec.Template.Spec.Containers) == 0 || dep.Spec.Template.Spec.Containers[0].Image != "redis:7-alpine" {
+		t.Fatalf("unexpected deployment: %+v", dep.Spec.Template.Spec.Containers)
+	}
+	if _, err := client.CoreV1().Services(ns).Get(ctx, name, metav1.GetOptions{}); err != nil {
+		t.Fatalf("expected service: %v", err)
 	}
 }

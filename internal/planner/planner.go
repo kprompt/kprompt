@@ -2,48 +2,18 @@ package planner
 
 import (
 	"fmt"
+	"strings"
+
+	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/util/intstr"
+	"sigs.k8s.io/yaml"
 
 	"github.com/kprompt/kprompt/internal/intent"
 )
 
-// Op is a planned Kubernetes operation.
-type Op string
-
-const (
-	OpCreate Op = "create"
-	OpUpdate Op = "update"
-	OpScale  Op = "scale"
-	OpDelete Op = "delete"
-	OpGet    Op = "get"
-)
-
-// ObjectRef is a Kubernetes object identity.
-type ObjectRef struct {
-	APIVersion string
-	Kind       string
-	Name       string
-	Namespace  string
-}
-
-// Action is one step in an execution plan.
-type Action struct {
-	Op       Op
-	Object   ObjectRef
-	Manifest string
-	Diff     string
-	Replicas *int32
-}
-
-// ExecutionPlan is the reviewable output of planning.
-type ExecutionPlan struct {
-	Intent           intent.Intent
-	Actions          []Action
-	Summary          string
-	RequiresApproval bool
-}
-
 // Build creates an ExecutionPlan from a structured Intent.
-// v0 supports scale as the first mutation path.
 func Build(in intent.Intent) (ExecutionPlan, error) {
 	ns := in.Target.Namespace
 	if ns == "" {
@@ -51,40 +21,13 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 	}
 	switch in.Kind {
 	case intent.KindScale:
-		name := in.Target.Name
-		if name == "" {
-			return ExecutionPlan{}, fmt.Errorf("scale intent missing target.name")
-		}
-		replicas, ok := in.Replicas()
-		if !ok || replicas < 0 {
-			return ExecutionPlan{}, fmt.Errorf("scale intent missing valid params.replicas")
-		}
-		kind := in.Target.Kind
-		if kind == "" {
-			kind = "Deployment"
-		}
-		rep := replicas
-		plan := ExecutionPlan{
-			Intent: in,
-			Actions: []Action{{
-				Op: OpScale,
-				Object: ObjectRef{
-					APIVersion: "apps/v1",
-					Kind:       kind,
-					Name:       name,
-					Namespace:  ns,
-				},
-				Replicas: &rep,
-				Diff:     fmt.Sprintf("scale %s/%s to %d replicas", kind, name, replicas),
-			}},
-			Summary:          fmt.Sprintf("Scale %s/%s in %s to %d replicas", kind, name, ns, replicas),
-			RequiresApproval: true,
-		}
-		return plan, nil
+		return buildScale(in, ns)
+	case intent.KindDeploy:
+		return buildDeploy(in, ns)
 	case intent.KindGet, intent.KindExplain:
 		return ExecutionPlan{
 			Intent:  in,
-			Summary: fmt.Sprintf("%s %s (read-only; not implemented in v0 beyond planning)", in.Kind, in.Target.Name),
+			Summary: fmt.Sprintf("%s %s (read-only; planning only)", in.Kind, in.Target.Name),
 			Actions: []Action{{
 				Op: OpGet,
 				Object: ObjectRef{
@@ -94,13 +37,206 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 				},
 			}},
 		}, nil
-	case intent.KindDeploy:
-		return ExecutionPlan{}, fmt.Errorf("deploy planning is not implemented in v0 (scale is the first mutation path)")
 	case intent.KindDeny:
 		return ExecutionPlan{Intent: in, Summary: "Denied intent", RequiresApproval: false}, nil
 	default:
 		return ExecutionPlan{}, fmt.Errorf("unsupported intent kind %q", in.Kind)
 	}
+}
+
+func buildScale(in intent.Intent, ns string) (ExecutionPlan, error) {
+	name := in.Target.Name
+	if name == "" {
+		return ExecutionPlan{}, fmt.Errorf("scale intent missing target.name")
+	}
+	replicas, ok := in.Replicas()
+	if !ok || replicas < 0 {
+		return ExecutionPlan{}, fmt.Errorf("scale intent missing valid params.replicas")
+	}
+	kind := in.Target.Kind
+	if kind == "" {
+		kind = "Deployment"
+	}
+	rep := replicas
+	return ExecutionPlan{
+		Intent: in,
+		Actions: []Action{{
+			Op: OpScale,
+			Object: ObjectRef{
+				APIVersion: "apps/v1",
+				Kind:       kind,
+				Name:       name,
+				Namespace:  ns,
+			},
+			Replicas: &rep,
+			Diff:     fmt.Sprintf("scale %s/%s to %d replicas", kind, name, replicas),
+		}},
+		Summary:          fmt.Sprintf("Scale %s/%s in %s to %d replicas", kind, name, ns, replicas),
+		RequiresApproval: true,
+	}, nil
+}
+
+func buildDeploy(in intent.Intent, ns string) (ExecutionPlan, error) {
+	name := strings.TrimSpace(in.Target.Name)
+	if name == "" {
+		return ExecutionPlan{}, fmt.Errorf("deploy intent missing target.name")
+	}
+	image, err := resolveImage(name, in)
+	if err != nil {
+		return ExecutionPlan{}, err
+	}
+	replicas := int32(1)
+	if r, ok := in.Replicas(); ok && r > 0 {
+		replicas = r
+	}
+	port, hasPort := in.Port()
+	if !hasPort {
+		if p, ok := defaultPort(name, image); ok {
+			port = p
+			hasPort = true
+		}
+	}
+	wantSvc := in.WantService() || hasPort
+
+	labels := map[string]string{"app": name, "app.kubernetes.io/managed-by": "kprompt"}
+	dep := &appsv1.Deployment{
+		TypeMeta: metav1.TypeMeta{APIVersion: "apps/v1", Kind: "Deployment"},
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      name,
+			Namespace: ns,
+			Labels:    labels,
+		},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": name}},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": name}},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  sanitizeContainerName(name),
+						Image: image,
+					}},
+				},
+			},
+		},
+	}
+	if hasPort && port > 0 {
+		dep.Spec.Template.Spec.Containers[0].Ports = []corev1.ContainerPort{{
+			ContainerPort: port,
+			Name:          "http",
+		}}
+	}
+
+	depYAML, err := yaml.Marshal(dep)
+	if err != nil {
+		return ExecutionPlan{}, err
+	}
+
+	actions := []Action{{
+		Op: OpCreate,
+		Object: ObjectRef{
+			APIVersion: "apps/v1",
+			Kind:       "Deployment",
+			Name:       name,
+			Namespace:  ns,
+		},
+		Manifest: string(depYAML),
+		Replicas: &replicas,
+		Diff:     fmt.Sprintf("create Deployment/%s image=%s replicas=%d", name, image, replicas),
+	}}
+
+	summary := fmt.Sprintf("Deploy %s (%s) in %s with %d replica(s)", name, image, ns, replicas)
+
+	if wantSvc && hasPort && port > 0 {
+		svc := &corev1.Service{
+			TypeMeta: metav1.TypeMeta{APIVersion: "v1", Kind: "Service"},
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      name,
+				Namespace: ns,
+				Labels:    labels,
+			},
+			Spec: corev1.ServiceSpec{
+				Selector: map[string]string{"app": name},
+				Ports: []corev1.ServicePort{{
+					Name:       "http",
+					Port:       port,
+					TargetPort: intstr.FromInt32(port),
+				}},
+				Type: corev1.ServiceTypeClusterIP,
+			},
+		}
+		svcYAML, err := yaml.Marshal(svc)
+		if err != nil {
+			return ExecutionPlan{}, err
+		}
+		actions = append(actions, Action{
+			Op: OpCreate,
+			Object: ObjectRef{
+				APIVersion: "v1",
+				Kind:       "Service",
+				Name:       name,
+				Namespace:  ns,
+			},
+			Manifest: string(svcYAML),
+			Diff:     fmt.Sprintf("create Service/%s port=%d", name, port),
+		})
+		summary += fmt.Sprintf(" + Service :%d", port)
+	}
+
+	return ExecutionPlan{
+		Intent:           in,
+		Actions:          actions,
+		Summary:          summary,
+		RequiresApproval: true,
+	}, nil
+}
+
+func resolveImage(name string, in intent.Intent) (string, error) {
+	if img, ok := in.Image(); ok {
+		return img, nil
+	}
+	switch strings.ToLower(name) {
+	case "redis":
+		return "redis:7-alpine", nil
+	case "nginx":
+		return "nginx:1.27-alpine", nil
+	default:
+		// Allow image-like names (repo/name:tag).
+		if strings.Contains(name, "/") || strings.Contains(name, ":") {
+			return name, nil
+		}
+		return "", fmt.Errorf("deploy intent missing params.image for %q (known shortcuts: redis, nginx)", name)
+	}
+}
+
+func defaultPort(name, image string) (int32, bool) {
+	key := strings.ToLower(name + " " + image)
+	switch {
+	case strings.Contains(key, "redis"):
+		return 6379, true
+	case strings.Contains(key, "nginx"):
+		return 80, true
+	default:
+		return 0, false
+	}
+}
+
+func sanitizeContainerName(name string) string {
+	name = strings.ToLower(name)
+	name = strings.Map(func(r rune) rune {
+		if (r >= 'a' && r <= 'z') || (r >= '0' && r <= '9') || r == '-' {
+			return r
+		}
+		return '-'
+	}, name)
+	name = strings.Trim(name, "-")
+	if name == "" {
+		return "app"
+	}
+	if len(name) > 63 {
+		name = name[:63]
+	}
+	return name
 }
 
 func first(vals ...string) string {
