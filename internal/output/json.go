@@ -119,6 +119,17 @@ func (r PlanResult) WithExplainResult(rep cluster.ExplainReport) PlanResult {
 		"summary":   rep.Summary,
 		"findings":  rep.Findings,
 		"events":    rep.Events,
+		"chain":     rep.Chain,
+	}
+	if rep.LogTail != "" {
+		body := rep.LogTail
+		const max = 32 * 1024
+		if len(body) > max {
+			body = body[:max] + "\n…(truncated)"
+		}
+		payload["log_tail"] = body
+		payload["log_pod"] = rep.LogPod
+		payload["log_container"] = rep.LogContainer
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

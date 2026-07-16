@@ -74,11 +74,17 @@ func PrintQueryResult(w io.Writer, res cluster.Result) {
 	_ = tw.Flush()
 }
 
-// PrintExplain prints an explain-lite report.
+// PrintExplain prints an investigation report.
 func PrintExplain(w io.Writer, rep cluster.ExplainReport) {
 	fmt.Fprintf(w, "Target:  %s/%s -n %s\n", rep.Kind, rep.Target, rep.Namespace)
 	fmt.Fprintf(w, "Status:  %s\n", rep.Status)
 	fmt.Fprintf(w, "Summary: %s\n", rep.Summary)
+	if len(rep.Chain) > 0 {
+		fmt.Fprintln(w, "Investigation chain:")
+		for _, step := range rep.Chain {
+			fmt.Fprintf(w, "  - %s/%s — %s\n", step.Level, step.Name, step.Detail)
+		}
+	}
 	if len(rep.Findings) > 0 {
 		fmt.Fprintln(w, "Findings:")
 		for _, f := range rep.Findings {
@@ -90,6 +96,14 @@ func PrintExplain(w io.Writer, rep cluster.ExplainReport) {
 		for _, ev := range rep.Events {
 			fmt.Fprintf(w, "  - %s\n", ev)
 		}
+	}
+	if strings.TrimSpace(rep.LogTail) != "" {
+		header := fmt.Sprintf("Log tail: Pod/%s -n %s", rep.LogPod, rep.Namespace)
+		if rep.LogContainer != "" {
+			header += " container=" + rep.LogContainer
+		}
+		fmt.Fprintln(w, header)
+		fmt.Fprintln(w, strings.TrimRight(rep.LogTail, "\n"))
 	}
 }
 

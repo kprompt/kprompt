@@ -71,6 +71,12 @@ ready:
 	if !strings.Contains(text, "Summary:") {
 		t.Fatal("expected summary")
 	}
+	if !strings.Contains(text, "Investigation chain:") {
+		t.Fatalf("expected investigation chain, got:\n%s", text)
+	}
+	if !strings.Contains(text, "ReplicaSet/") {
+		t.Fatalf("expected ReplicaSet in chain, got:\n%s", text)
+	}
 	// Soft assert: heuristic or restart-related signal.
 	if !strings.Contains(text, "CrashLoopBackOff") &&
 		!strings.Contains(text, "exit code") &&

@@ -88,7 +88,7 @@ func buildExplain(in intent.Intent, ns string) (ExecutionPlan, error) {
 	if kind != "Pod" && kind != "Deployment" {
 		kind = "Deployment"
 	}
-	summary := fmt.Sprintf("Explain %s/%s in %s (status + events)", kind, name, ns)
+	summary := fmt.Sprintf("Explain %s/%s in %s (deployment chain + events + logs)", kind, name, ns)
 	return ExecutionPlan{
 		Intent: in,
 		Actions: []Action{{

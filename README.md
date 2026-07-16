@@ -21,7 +21,7 @@ kprompt "explain why payment-api is crashing"
 
 ## Status
 
-**v0.2.0+ (experimental)** — plan → safety → apply for **deploy** + **scale** + **rollback** + **named delete**; read-only **get/list** + **explain-lite** + **logs** + **describe**; `kprompt config`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
+**v0.2.0+ (experimental)** — plan → safety → apply for **deploy** + **scale** + **rollback** + **named delete**; read-only **get/list** + **explain** (deployment chain: RS → pods → events → logs) + **logs** + **describe**; `kprompt config`; `kprompt tools`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
 ## Install
 
 ### From releases (recommended)

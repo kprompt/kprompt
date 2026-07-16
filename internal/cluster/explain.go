@@ -8,7 +8,6 @@ import (
 	"time"
 
 	corev1 "k8s.io/api/core/v1"
-	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 )
@@ -28,7 +27,7 @@ type Finding struct {
 	Container string // optional container name
 }
 
-// ExplainReport is the explain-lite outcome (facts + heuristics, no mutate).
+// ExplainReport is the outcome of a read-only investigation (facts + heuristics).
 type ExplainReport struct {
 	Target    string
 	Namespace string
@@ -37,6 +36,19 @@ type ExplainReport struct {
 	Findings  []Finding
 	Events    []string
 	Summary   string
+	// Chain is the Deployment → ReplicaSet → Pod → Events → Logs walk (T-024).
+	Chain []ChainStep
+	// LogTail is a short log excerpt from the most problematic Pod (when applicable).
+	LogTail    string
+	LogPod     string
+	LogContainer string
+}
+
+// ChainStep is one line in the investigation chain.
+type ChainStep struct {
+	Level  string // Deployment, ReplicaSet, Pod, Events, Logs
+	Name   string
+	Detail string
 }
 
 // Explainer gathers status + events and applies lightweight heuristics.
@@ -60,43 +72,14 @@ func (e *Explainer) Explain(ctx context.Context, req ExplainRequest) (ExplainRep
 		kind = "Deployment"
 	}
 
-	rep := ExplainReport{Target: name, Namespace: ns, Kind: kind}
-
 	switch kind {
 	case "Deployment":
-		dep, err := e.Client.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
-		if apierrors.IsNotFound(err) {
-			// Fall back to Pod of the same name.
-			return e.explainPod(ctx, ns, name)
-		}
-		if err != nil {
-			return rep, err
-		}
-		desired := int32(1)
-		if dep.Spec.Replicas != nil {
-			desired = *dep.Spec.Replicas
-		}
-		rep.Status = fmt.Sprintf("ready %d/%d, unavailable %d", dep.Status.ReadyReplicas, desired, dep.Status.UnavailableReplicas)
-		pods, err := e.Client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
-			LabelSelector: metav1.FormatLabelSelector(dep.Spec.Selector),
-		})
-		if err != nil {
-			return rep, err
-		}
-		for _, pod := range pods.Items {
-			rep.Findings = append(rep.Findings, diagnosePod(pod)...)
-		}
-		rep.Events = e.recentEvents(ctx, ns, "Deployment", name)
-		for _, pod := range pods.Items {
-			rep.Events = append(rep.Events, e.recentEvents(ctx, ns, "Pod", pod.Name)...)
-		}
+		return e.explainDeployment(ctx, ns, name)
 	case "Pod":
 		return e.explainPod(ctx, ns, name)
+	default:
+		return e.explainDeployment(ctx, ns, name)
 	}
-
-	rep.Findings = dedupeFindings(rep.Findings)
-	rep.Summary = summarize(rep)
-	return rep, nil
 }
 
 func (e *Explainer) explainPod(ctx context.Context, ns, name string) (ExplainReport, error) {
@@ -108,6 +91,23 @@ func (e *Explainer) explainPod(ctx context.Context, ns, name string) (ExplainRep
 	rep.Status = string(pod.Status.Phase)
 	rep.Findings = diagnosePod(*pod)
 	rep.Events = e.recentEvents(ctx, ns, "Pod", name)
+	rep.Chain = []ChainStep{{
+		Level:  "Pod",
+		Name:   name,
+		Detail: fmt.Sprintf("phase=%s", pod.Status.Phase),
+	}}
+	if problemScore(*pod) > 0 {
+		if tail, container, err := e.tailPodLogs(ctx, ns, pod.Name, "", explainLogTail); err == nil && strings.TrimSpace(tail) != "" {
+			rep.LogPod = pod.Name
+			rep.LogContainer = container
+			rep.LogTail = tail
+			rep.Chain = append(rep.Chain, ChainStep{
+				Level:  "Logs",
+				Name:   pod.Name,
+				Detail: fmt.Sprintf("last %d lines (container=%s)", explainLogTail, firstNonEmpty(container, "(default)")),
+			})
+		}
+	}
 	rep.Findings = dedupeFindings(rep.Findings)
 	rep.Summary = summarize(rep)
 	return rep, nil
