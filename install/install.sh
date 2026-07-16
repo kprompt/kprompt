@@ -5,7 +5,7 @@
 #   curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@main/install/install.sh | bash
 #
 # Optional:
-#   KPROMPT_VERSION=v0.2.0
+#   KPROMPT_VERSION=v0.3.0
 #   KPROMPT_INSTALL_DIR=/usr/local/bin   # system-wide (often needs: sudo bash)
 set -euo pipefail
 

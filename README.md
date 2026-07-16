@@ -23,7 +23,7 @@ kprompt "explain why payment-api is crashing"
 
 ## Status
 
-**v0.2.0+ (experimental)** — plan → safety → apply for **deploy** + **scale** + **rollback** + **named delete**; read-only **get/list** + **explain** (deployment chain: RS → pods → events → logs) + **logs** + **describe**; `kprompt config`; `kprompt tools`; multi-LLM presets; friendlier kube/RBAC errors. Kind E2E under `go test -tags=e2e ./test/e2e/`.
+**v0.3.0 (experimental)** — Kubernetes plan → safety → apply for deploy, scale, rollback, and named delete; deep explain, logs, describe, history, JSON CI output, and terminal themes. Integration support includes Helm install/upgrade previews, Argo Workflow generation/submit/status, Prometheus performance diagnosis, and Jaeger/Tempo trace query adapters.
 ## Install
 
 ### From releases (recommended)
@@ -35,7 +35,7 @@ curl -fsSL https://kprompt.ai/install | bash
 Fallback (pinned release script on jsDelivr):
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.2.0/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.3.0/install/install.sh | bash
 ```
 
 ### From source (dev)
