@@ -27,10 +27,8 @@ kprompt "explain why payment-api is crashing"
 ### From releases (recommended)
 
 ```bash
-curl -fsSL https://kprompt-website.vercel.app/install | bash
+curl -fsSL https://kprompt.ai/install | bash
 ```
-
-(After `kprompt.ai` DNS is live, the same path will be `https://kprompt.ai/install` — see architecture `DOMAIN.md`.)
 
 Fallback (pinned release script on jsDelivr):
 
@@ -106,7 +104,7 @@ History stores prompt, kind, summary, and action refs — never manifests or API
 
 Use `--output json` for a versioned PlanResult (see [docs/ci.md](./docs/ci.md)).
 
-Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt-website.vercel.app/#usage) when helpful.
+Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt.ai/#usage) when helpful.
 
 ## Flags
 

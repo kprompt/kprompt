@@ -130,7 +130,7 @@ func missingKeyError(p Preset) error {
 	if len(p.EnvKeys) > 1 {
 		msg += fmt.Sprintf(" (or %s)", strings.Join(p.EnvKeys[1:], " / "))
 	}
-	msg += fmt.Sprintf("\n  export %s=...\nUsage guide: https://kprompt-website.vercel.app/#usage", primary)
+	msg += fmt.Sprintf("\n  export %s=...\nUsage guide: https://kprompt.ai/#usage", primary)
 	if p.HelpURL != "" {
 		msg += "\nKeys: " + p.HelpURL
 	}

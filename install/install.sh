@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install kprompt from GitHub Releases.
 # Usage:
-#   curl -fsSL https://kprompt-website.vercel.app/install | bash
+#   curl -fsSL https://kprompt.ai/install | bash
 #   curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@main/install/install.sh | bash
 #
 # Optional:
@@ -62,9 +62,9 @@ mkdir -p "$PREFIX"
 if [[ ! -w "$PREFIX" ]]; then
   echo "Cannot write to ${PREFIX} (permission denied)." >&2
   echo "Retry with:" >&2
-  echo "  KPROMPT_INSTALL_DIR=\"\$HOME/.local/bin\" curl -fsSL https://kprompt-website.vercel.app/install | bash" >&2
+  echo "  KPROMPT_INSTALL_DIR=\"\$HOME/.local/bin\" curl -fsSL https://kprompt.ai/install | bash" >&2
   echo "Or system-wide:" >&2
-  echo "  curl -fsSL https://kprompt-website.vercel.app/install | sudo bash" >&2
+  echo "  curl -fsSL https://kprompt.ai/install | sudo bash" >&2
   exit 1
 fi
 

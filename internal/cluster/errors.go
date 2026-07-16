@@ -12,7 +12,7 @@ import (
 	"k8s.io/client-go/tools/clientcmd"
 )
 
-const usageGuide = "https://kprompt-website.vercel.app/#usage"
+const usageGuide = "https://kprompt.ai/#usage"
 
 // Friendlier maps opaque kubeconfig / API errors to short, actionable messages.
 // The original error remains available via errors.Unwrap.

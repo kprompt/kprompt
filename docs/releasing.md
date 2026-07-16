@@ -22,10 +22,8 @@ Archive name: `kprompt_<version>_<os>_<arch>.tar.gz` (version without leading `v
 
 ## Install
 
-Until the brand domain DNS is live, prefer the Vercel host:
-
 ```bash
-curl -fsSL https://kprompt-website.vercel.app/install | bash
+curl -fsSL https://kprompt.ai/install | bash
 # or
 curl -fsSL https://raw.githubusercontent.com/kprompt/kprompt/main/install/install.sh | bash
 ```
