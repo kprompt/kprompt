@@ -70,6 +70,7 @@ func main() {
 	})
 	root.AddCommand(newConfigCmd())
 	root.AddCommand(newHistoryCmd())
+	root.AddCommand(newToolsCmd())
 
 	ctx := context.Background()
 	if err := root.ExecuteContext(ctx); err != nil {

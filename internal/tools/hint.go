@@ -1,0 +1,21 @@
+package tools
+
+// MissingHint returns an actionable message when a backend is not available.
+func MissingHint(id ID) string {
+	switch id {
+	case IDHelm:
+		return "Helm is not available. Install Helm (https://helm.sh/docs/intro/install/) or use the Kubernetes shortcut: kprompt \"deploy redis\""
+	case IDArgoWorkflows:
+		return "Argo Workflows is not available in this cluster. Install the Argo Workflows controller or pick a Kubernetes-only prompt."
+	case IDPrometheus:
+		return "Prometheus is not configured. Set KPROMPT_PROMETHEUS_URL or tools.prometheus.url in ~/.kprompt/config.yaml"
+	case IDGrafana:
+		return "Grafana is not configured. Set KPROMPT_GRAFANA_URL (and KPROMPT_GRAFANA_API_KEY when the API requires it)"
+	case IDOpenTelemetry:
+		return "OpenTelemetry is not configured. Set KPROMPT_OTEL_ENDPOINT or tools.otel.endpoint in ~/.kprompt/config.yaml"
+	case IDKubernetes:
+		return "Kubernetes is not reachable. Check kubeconfig and context (kubectl config current-context)."
+	default:
+		return "Requested tool integration is not available."
+	}
+}

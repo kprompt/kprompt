@@ -73,6 +73,7 @@ kprompt config
 kprompt config set provider gemini
 kprompt config set model gemini-2.0-flash
 kprompt config set namespace default
+kprompt tools   # detect Helm, Argo CRD, Prometheus/Grafana URLs (integration layer)
 ```
 
 Or edit YAML:

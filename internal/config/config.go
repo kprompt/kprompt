@@ -19,11 +19,44 @@ const (
 
 // File holds non-secret preferences (~/.kprompt/config.yaml).
 type File struct {
-	Provider  string `yaml:"provider"`
-	Model     string `yaml:"model"`
-	BaseURL   string `yaml:"base_url,omitempty"`
-	Context   string `yaml:"context,omitempty"`
-	Namespace string `yaml:"namespace,omitempty"`
+	Provider  string    `yaml:"provider"`
+	Model     string    `yaml:"model"`
+	BaseURL   string    `yaml:"base_url,omitempty"`
+	Context   string    `yaml:"context,omitempty"`
+	Namespace string    `yaml:"namespace,omitempty"`
+	Tools     ToolsFile `yaml:"tools,omitempty"`
+}
+
+// ToolsFile holds integration endpoints and opt-outs (no secrets).
+type ToolsFile struct {
+	Helm          ToolToggle       `yaml:"helm,omitempty"`
+	ArgoWorkflows ToolToggle       `yaml:"argo_workflows,omitempty"`
+	Prometheus    PrometheusTool   `yaml:"prometheus,omitempty"`
+	Grafana       GrafanaTool      `yaml:"grafana,omitempty"`
+	OTel          OTelTool         `yaml:"otel,omitempty"`
+}
+
+// ToolToggle can disable a backend (enabled defaults to true).
+type ToolToggle struct {
+	Enabled *bool `yaml:"enabled,omitempty"`
+}
+
+// PrometheusTool configures Prometheus query integration.
+type PrometheusTool struct {
+	Enabled *bool  `yaml:"enabled,omitempty"`
+	URL     string `yaml:"url,omitempty"`
+}
+
+// GrafanaTool configures Grafana integration.
+type GrafanaTool struct {
+	Enabled *bool  `yaml:"enabled,omitempty"`
+	URL     string `yaml:"url,omitempty"`
+}
+
+// OTelTool configures trace backend endpoints.
+type OTelTool struct {
+	Enabled  *bool  `yaml:"enabled,omitempty"`
+	Endpoint string `yaml:"endpoint,omitempty"`
 }
 
 // Resolved is the effective runtime configuration.

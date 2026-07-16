@@ -58,8 +58,14 @@ func SetField(key, value string) (File, error) {
 		f.Context = v
 	case "namespace", "ns":
 		f.Namespace = v
+	case "tools.prometheus.url", "tools.prometheus_url":
+		f.Tools.Prometheus.URL = v
+	case "tools.grafana.url", "tools.grafana_url":
+		f.Tools.Grafana.URL = v
+	case "tools.otel.endpoint", "tools.otel_endpoint":
+		f.Tools.OTel.Endpoint = v
 	default:
-		return File{}, fmt.Errorf("unknown config key %q (allowed: provider, model, base_url, context, namespace)", key)
+		return File{}, fmt.Errorf("unknown config key %q (allowed: provider, model, base_url, context, namespace, tools.prometheus.url, tools.grafana.url, tools.otel.endpoint)", key)
 	}
 	if err := SaveFile(f); err != nil {
 		return File{}, err

@@ -25,7 +25,7 @@ func newConfigCmd() *cobra.Command {
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "set <key> <value>",
-		Short: "Set a config value (provider|model|base_url|context|namespace)",
+		Short: "Set a config value (provider|model|base_url|context|namespace|tools.*)",
 		Args:  cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			f, err := config.SetField(args[0], args[1])
