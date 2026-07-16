@@ -9,6 +9,7 @@ import (
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/pipeline"
+	"github.com/kprompt/kprompt/internal/ui"
 )
 
 func newHistoryCmd() *cobra.Command {
@@ -63,6 +64,10 @@ func newHistoryCmd() *cobra.Command {
 			root := cmd.Root()
 			cfg.NamespaceFromCLI = root.PersistentFlags().Changed("namespace")
 			cfg.ContextFromCLI = root.PersistentFlags().Changed("context")
+			if root.PersistentFlags().Changed("theme") {
+				cfg.Theme = theme
+			}
+			ui.SetTheme(cfg.Theme)
 			return pipeline.Run(cmd.Context(), cfg, cmd.OutOrStdout())
 		},
 	})

@@ -18,7 +18,8 @@ func StdinIsTerminal() bool {
 // ConfirmApply prompts `Apply this plan? [y/N]` and returns true for y/yes.
 // Empty input, n/no, or EOF aborts (false, nil).
 func ConfirmApply(in io.Reader, out io.Writer) (bool, error) {
-	fmt.Fprint(out, "Apply this plan? [y/N]: ")
+	t := themeFor(out)
+	fmt.Fprint(out, t.Bold("Apply this plan?")+" [y/N]: ")
 	if f, ok := out.(*os.File); ok {
 		_ = f.Sync()
 	}
@@ -38,10 +39,12 @@ func ConfirmApply(in io.Reader, out io.Writer) (bool, error) {
 
 // PrintNeedsApprove reminds non-interactive users to pass --approve.
 func PrintNeedsApprove(w io.Writer) {
-	fmt.Fprintln(w, "Mutation requires approval. Re-run with --approve, or run in a TTY to confirm interactively.")
+	t := themeFor(w)
+	fmt.Fprintln(w, t.Warn("Mutation requires approval. Re-run with --approve, or run in a TTY to confirm interactively."))
 }
 
 // PrintAborted notes the user declined to apply.
 func PrintAborted(w io.Writer) {
-	fmt.Fprintln(w, "Aborted.")
+	t := themeFor(w)
+	fmt.Fprintln(w, t.Muted("Aborted."))
 }

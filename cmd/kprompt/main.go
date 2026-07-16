@@ -11,6 +11,7 @@ import (
 
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/pipeline"
+	"github.com/kprompt/kprompt/internal/ui"
 )
 
 var (
@@ -23,6 +24,7 @@ var (
 	kubeCtx   string
 	namespace string
 	outputFmt string
+	theme     string
 )
 
 func main() {
@@ -48,6 +50,10 @@ func main() {
 			cfg.Output = outputFmt
 			cfg.NamespaceFromCLI = cmd.Flags().Changed("namespace")
 			cfg.ContextFromCLI = cmd.Flags().Changed("context")
+			if cmd.Flags().Changed("theme") {
+				cfg.Theme = theme
+			}
+			ui.SetTheme(cfg.Theme)
 			return pipeline.Run(cmd.Context(), cfg, cmd.OutOrStdout())
 		},
 	}
@@ -60,6 +66,7 @@ func main() {
 	root.PersistentFlags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
 	root.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "default namespace")
 	root.PersistentFlags().StringVarP(&outputFmt, "output", "o", "text", "output format: text|json")
+	root.PersistentFlags().StringVar(&theme, "theme", "", "color theme: auto|dracula|nord|gruvbox|mono|none")
 
 	root.AddCommand(&cobra.Command{
 		Use:   "version",
