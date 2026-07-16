@@ -120,8 +120,12 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		client = clients.Clientset
 	}
 
-	if plan.RequiresApproval && !executor.IsHelmPlan(plan) {
-		planner.EnrichDiffs(ctx, client, &plan)
+	if plan.RequiresApproval {
+		if executor.IsHelmPlan(plan) {
+			planner.EnrichHelmPlan(ctx, &plan)
+		} else {
+			planner.EnrichDiffs(ctx, client, &plan)
+		}
 	}
 
 	doc := output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false)

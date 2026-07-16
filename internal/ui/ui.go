@@ -49,6 +49,12 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 					fmt.Fprintf(w, "       %s\n", dl)
 				}
 			}
+			if strings.TrimSpace(a.Manifest) != "" {
+				fmt.Fprintln(w, "     Preview:")
+				for _, line := range strings.Split(strings.TrimRight(a.Manifest, "\n"), "\n") {
+					fmt.Fprintf(w, "       %s\n", line)
+				}
+			}
 		}
 	}
 	if plan.RequiresApproval {

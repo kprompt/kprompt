@@ -47,6 +47,9 @@ func CheckPrompt(prompt string) Result {
 			}
 		}
 	}
+	if helmDenied := CheckHelmPrompt(p); helmDenied.Denied {
+		return helmDenied
+	}
 	return Result{Risk: RiskLow}
 }
 
@@ -92,6 +95,9 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 				Message: fmt.Sprintf("🛡️ Refusing delete of %s (allowed: Pod, Deployment, Service)", a.Object.Kind),
 			}
 		}
+	}
+	if helmDenied := evaluateHelmPlan(plan); helmDenied.Denied {
+		return helmDenied
 	}
 	switch plan.Intent.Kind {
 	case intent.KindDelete:
