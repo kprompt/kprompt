@@ -40,6 +40,14 @@ func (i Intent) RepoURL() (string, bool) {
 	return i.StringParam("repo_url")
 }
 
+// ChartVersion returns params.version or params.chart_version when set.
+func (i Intent) ChartVersion() (string, bool) {
+	if v, ok := i.StringParam("version"); ok {
+		return v, true
+	}
+	return i.StringParam("chart_version")
+}
+
 // Image returns params.image when set.
 func (i Intent) Image() (string, bool) {
 	return i.StringParam("image")

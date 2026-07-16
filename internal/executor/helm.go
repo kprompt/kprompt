@@ -12,7 +12,7 @@ import (
 func ApplyHelm(ctx context.Context, plan planner.ExecutionPlan) error {
 	for _, a := range plan.Actions {
 		switch a.Op {
-		case planner.OpHelmRepo, planner.OpHelmInstall:
+		case planner.OpHelmRepo, planner.OpHelmRepoUpdate, planner.OpHelmInstall, planner.OpHelmUpgrade:
 			if len(a.Command) == 0 {
 				return fmt.Errorf("helm action missing command")
 			}

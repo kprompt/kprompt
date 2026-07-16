@@ -30,3 +30,21 @@ func TestRepoAddCommand(t *testing.T) {
 		t.Fatalf("cmd=%v", cmd)
 	}
 }
+
+func TestUpgradeCommand(t *testing.T) {
+	cmd := UpgradeCommand("nginx", "bitnami/nginx", "default", "", "15.3.2")
+	joined := strings.Join(cmd, " ")
+	if !strings.Contains(joined, "helm upgrade nginx bitnami/nginx") {
+		t.Fatalf("cmd=%s", joined)
+	}
+	if !strings.Contains(joined, "--version 15.3.2") {
+		t.Fatalf("cmd=%s", joined)
+	}
+}
+
+func TestRepoUpdateCommand(t *testing.T) {
+	cmd := RepoUpdateCommand("bitnami")
+	if strings.Join(cmd, " ") != "helm repo update bitnami" {
+		t.Fatalf("cmd=%v", cmd)
+	}
+}

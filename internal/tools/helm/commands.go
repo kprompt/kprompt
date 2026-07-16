@@ -22,3 +22,23 @@ func InstallCommand(release, chartRef, namespace, kubeContext string, replicaCou
 	}
 	return cmd
 }
+
+// RepoUpdateCommand returns argv for helm repo update.
+func RepoUpdateCommand(repoName string) []string {
+	return []string{"helm", "repo", "update", repoName}
+}
+
+// UpgradeCommand returns argv for helm upgrade.
+func UpgradeCommand(release, chartRef, namespace, kubeContext, chartVersion string) []string {
+	cmd := []string{
+		"helm", "upgrade", release, chartRef,
+		"-n", namespace,
+	}
+	if kubeContext != "" {
+		cmd = append(cmd, "--kube-context", kubeContext)
+	}
+	if chartVersion != "" {
+		cmd = append(cmd, "--version", chartVersion)
+	}
+	return cmd
+}

@@ -13,7 +13,9 @@ const (
 	OpDelete   Op = "delete"
 	OpGet      Op = "get"
 	OpHelmRepo Op = "helm-repo"
+	OpHelmRepoUpdate Op = "helm-repo-update"
 	OpHelmInstall Op = "helm-install"
+	OpHelmUpgrade Op = "helm-upgrade"
 )
 
 // ObjectRef is a Kubernetes object identity.

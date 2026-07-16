@@ -2,17 +2,15 @@ package planner
 
 import (
 	"fmt"
-	"os/exec"
 	"strings"
 
 	"github.com/kprompt/kprompt/internal/intent"
-	"github.com/kprompt/kprompt/internal/tools"
 	toolshelm "github.com/kprompt/kprompt/internal/tools/helm"
 )
 
 func buildInstall(in intent.Intent, ns string) (ExecutionPlan, error) {
-	if _, err := exec.LookPath("helm"); err != nil {
-		return ExecutionPlan{}, fmt.Errorf("%s", tools.MissingHint(tools.IDHelm))
+	if err := requireHelmBinary(); err != nil {
+		return ExecutionPlan{}, err
 	}
 	name := strings.TrimSpace(in.Target.Name)
 	if name == "" {
@@ -36,20 +34,12 @@ func buildInstall(in intent.Intent, ns string) (ExecutionPlan, error) {
 		ns = "default"
 	}
 
+	kubeContext := strings.TrimSpace(in.Context)
 	repoCmd := toolshelm.RepoAddCommand(chart.RepoName, chart.RepoURL)
-	installCmd := toolshelm.InstallCommand(release, chart.ChartRef, ns, strings.TrimSpace(in.Context), replicas)
+	installCmd := toolshelm.InstallCommand(release, chart.ChartRef, ns, kubeContext, replicas)
 
 	actions := []Action{
-		{
-			Op:      OpHelmRepo,
-			Backend: "helm",
-			Command: repoCmd,
-			Diff:    strings.Join(repoCmd, " "),
-			Object: ObjectRef{
-				Kind: "HelmRepo",
-				Name: chart.RepoName,
-			},
-		},
+		helmRepoAction(chart.RepoName, repoCmd),
 		{
 			Op:      OpHelmInstall,
 			Backend: "helm",
@@ -72,14 +62,15 @@ func buildInstall(in intent.Intent, ns string) (ExecutionPlan, error) {
 	}, nil
 }
 
-func resolveHelmChart(in intent.Intent, name string) (toolshelm.Chart, bool) {
-	if chartRef, ok := in.Chart(); ok {
-		repo, _ := in.Repo()
-		if url, hasURL := in.RepoURL(); hasURL {
-			if c, ok := toolshelm.FromParams(chartRef, repo, url); ok {
-				return c, true
-			}
-		}
+func helmRepoAction(repoName string, repoCmd []string) Action {
+	return Action{
+		Op:      OpHelmRepo,
+		Backend: "helm",
+		Command: repoCmd,
+		Diff:    strings.Join(repoCmd, " "),
+		Object: ObjectRef{
+			Kind: "HelmRepo",
+			Name: repoName,
+		},
 	}
-	return toolshelm.Lookup(name)
 }

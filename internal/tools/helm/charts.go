@@ -29,6 +29,12 @@ var knownCharts = map[string]Chart{
 		RepoURL:  "https://charts.bitnami.com/bitnami",
 		ChartRef: "bitnami/mongodb",
 	},
+	"nginx": {
+		AppName:  "nginx",
+		RepoName: "bitnami",
+		RepoURL:  "https://charts.bitnami.com/bitnami",
+		ChartRef: "bitnami/nginx",
+	},
 }
 
 // Lookup returns a known chart recipe by app name.

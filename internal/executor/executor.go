@@ -43,7 +43,7 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 			if err := r.applyManifest(ctx, a); err != nil {
 				return err
 			}
-		case planner.OpHelmRepo, planner.OpHelmInstall:
+		case planner.OpHelmRepo, planner.OpHelmInstall, planner.OpHelmRepoUpdate, planner.OpHelmUpgrade:
 			return fmt.Errorf("executor: use ApplyHelm for helm actions")
 		default:
 			return fmt.Errorf("executor: unsupported op %q", a.Op)
