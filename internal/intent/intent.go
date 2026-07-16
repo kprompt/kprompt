@@ -7,6 +7,7 @@ type Kind string
 
 const (
 	KindDeploy   Kind = "deploy"
+	KindInstall  Kind = "install"
 	KindScale    Kind = "scale"
 	KindRollback Kind = "rollback"
 	KindGet      Kind = "get"
@@ -44,7 +45,7 @@ const SchemaJSON = `{
   "properties": {
     "kind": {
       "type": "string",
-      "enum": ["deploy", "scale", "rollback", "get", "explain", "logs", "describe", "delete", "deny", "unknown"]
+      "enum": ["deploy", "install", "scale", "rollback", "get", "explain", "logs", "describe", "delete", "deny", "unknown"]
     },
     "target": {
       "type": "object",

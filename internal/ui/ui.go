@@ -27,15 +27,20 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 	if len(plan.Actions) > 0 {
 		fmt.Fprintln(w, "Actions:")
 		for i, a := range plan.Actions {
-			line := fmt.Sprintf("  %d. %s %s/%s", i+1, a.Op, a.Object.Kind, a.Object.Name)
-			if a.Object.Namespace != "" {
-				line += " -n " + a.Object.Namespace
-			}
-			if a.Replicas != nil && a.Op == planner.OpScale {
-				line += fmt.Sprintf(" → %d replicas", *a.Replicas)
+			var line string
+			if len(a.Command) > 0 {
+				line = fmt.Sprintf("  %d. $ %s", i+1, strings.Join(a.Command, " "))
+			} else {
+				line = fmt.Sprintf("  %d. %s %s/%s", i+1, a.Op, a.Object.Kind, a.Object.Name)
+				if a.Object.Namespace != "" {
+					line += " -n " + a.Object.Namespace
+				}
+				if a.Replicas != nil && a.Op == planner.OpScale {
+					line += fmt.Sprintf(" → %d replicas", *a.Replicas)
+				}
 			}
 			fmt.Fprintln(w, line)
-			if a.Diff != "" {
+			if a.Diff != "" && (len(a.Command) == 0 || a.Diff != strings.Join(a.Command, " ")) {
 				fmt.Fprintln(w, "     Diff:")
 				for _, dl := range strings.Split(a.Diff, "\n") {
 					if dl == "" {

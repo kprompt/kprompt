@@ -49,7 +49,9 @@ func FromPlan(prompt, kubeContext string, plan planner.ExecutionPlan, risk safet
 			ns = a.Object.Namespace
 		}
 		line := fmt.Sprintf("%s %s/%s", a.Op, a.Object.Kind, a.Object.Name)
-		if a.Object.Namespace != "" {
+		if len(a.Command) > 0 {
+			line = strings.Join(a.Command, " ")
+		} else if a.Object.Namespace != "" {
 			line += " -n " + a.Object.Namespace
 		}
 		actions = append(actions, line)

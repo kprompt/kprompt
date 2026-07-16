@@ -20,6 +20,26 @@ func (i Intent) StringParam(key string) (string, bool) {
 	}
 }
 
+// Chart returns params.chart (e.g. bitnami/redis) when set.
+func (i Intent) Chart() (string, bool) {
+	return i.StringParam("chart")
+}
+
+// Release returns params.release (Helm release name) when set.
+func (i Intent) Release() (string, bool) {
+	return i.StringParam("release")
+}
+
+// Repo returns params.repo (Helm repo name) when set.
+func (i Intent) Repo() (string, bool) {
+	return i.StringParam("repo")
+}
+
+// RepoURL returns params.repo_url when set.
+func (i Intent) RepoURL() (string, bool) {
+	return i.StringParam("repo_url")
+}
+
 // Image returns params.image when set.
 func (i Intent) Image() (string, bool) {
 	return i.StringParam("image")

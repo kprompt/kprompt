@@ -86,6 +86,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		ForceNamespace:   cfg.NamespaceFromCLI,
 		ForceContext:     cfg.ContextFromCLI,
 	})
+	in = intent.NormalizeVerb(in, cfg.Prompt)
 	cfg.Namespace = in.Target.Namespace
 	if in.Context != "" {
 		cfg.Context = in.Context
@@ -119,7 +120,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		client = clients.Clientset
 	}
 
-	if plan.RequiresApproval {
+	if plan.RequiresApproval && !executor.IsHelmPlan(plan) {
 		planner.EnrichDiffs(ctx, client, &plan)
 	}
 
@@ -249,7 +250,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 
 	runner := &executor.Runner{Client: client}
-	if err := runner.Apply(ctx, plan); err != nil {
+	if executor.IsHelmPlan(plan) {
+		if err := executor.ApplyHelm(ctx, plan); err != nil {
+			return cluster.Friendlier(fmt.Errorf("apply: %w", err))
+		}
+	} else if err := runner.Apply(ctx, plan); err != nil {
 		return cluster.Friendlier(fmt.Errorf("apply: %w", err))
 	}
 	if !jsonMode {

@@ -9,6 +9,7 @@ Open-source AI CLI to control Kubernetes with natural language.
 ```bash
 kprompt "scale api to 10" --approve --wait
 kprompt "deploy redis" --approve
+kprompt "install redis" --approve   # Helm chart (requires helm on PATH)
 kprompt "deploy nginx" --approve
 kprompt "rollback payment-api" --approve
 kprompt "logs payment-api"

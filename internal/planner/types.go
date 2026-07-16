@@ -12,6 +12,8 @@ const (
 	OpRollback Op = "rollback"
 	OpDelete   Op = "delete"
 	OpGet      Op = "get"
+	OpHelmRepo Op = "helm-repo"
+	OpHelmInstall Op = "helm-install"
 )
 
 // ObjectRef is a Kubernetes object identity.
@@ -31,6 +33,10 @@ type Action struct {
 	Replicas *int32
 	// Revision is the Deployment rollout target (nil = previous revision).
 	Revision *int64
+	// Backend is the integration owner (kubernetes, helm).
+	Backend string
+	// Command is the argv shown and executed for CLI backends (includes binary).
+	Command []string
 }
 
 // ExecutionPlan is the reviewable output of planning.

@@ -27,6 +27,8 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 		return buildRollback(in, ns)
 	case intent.KindDeploy:
 		return buildDeploy(in, ns)
+	case intent.KindInstall:
+		return buildInstall(in, ns)
 	case intent.KindGet:
 		return buildGet(in, ns)
 	case intent.KindExplain:

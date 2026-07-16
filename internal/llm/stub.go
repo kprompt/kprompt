@@ -41,6 +41,24 @@ func ScaleStub(name, namespace string, replicas int) *Stub {
 	return &Stub{Structured: payload}
 }
 
+// InstallStub returns a Stub that classifies a Helm install intent.
+func InstallStub(name, namespace string, replicas int) *Stub {
+	params := map[string]any{}
+	if replicas > 0 {
+		params["replicas"] = replicas
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"kind": "install",
+		"target": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+		},
+		"params":     params,
+		"confidence": 1.0,
+	})
+	return &Stub{Structured: payload}
+}
+
 // DeployStub returns a Stub that classifies a deploy intent.
 func DeployStub(name, namespace, image string, replicas int, port int) *Stub {
 	params := map[string]any{

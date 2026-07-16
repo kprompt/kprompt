@@ -10,10 +10,11 @@ import (
 
 const systemPrompt = `You convert Kubernetes ops requests into a single Intent JSON object.
 Rules:
-- kind must be one of: deploy, scale, rollback, get, explain, logs, describe, delete, deny, unknown
+- kind must be one of: deploy, install, scale, rollback, get, explain, logs, describe, delete, deny, unknown
 - For scale: set target.name, target.kind (usually Deployment), target.namespace if mentioned, params.replicas as a number
 - For rollback / undo rollout / revert: kind=rollback; set target.name to the Deployment; target.kind Deployment; target.namespace if mentioned; optional params.revision (number) to roll back to a specific revision (omit for previous revision)
-- For deploy: set target.name (workload name), params.image when known (e.g. redis:7-alpine, nginx:1.27-alpine); for well-known apps like "redis" or "nginx" name alone is enough; optional params.replicas (default 1), params.port and/or params.createService=true for a ClusterIP Service
+- For install (helm chart): kind=install; set target.name to the app or release name (e.g. redis); target.namespace if mentioned; optional params.release, params.chart, params.repo, params.repo_url, params.replicas
+- For deploy (kubernetes manifests): set target.name (workload name), params.image when known (e.g. redis:7-alpine, nginx:1.27-alpine); for well-known apps like "redis" or "nginx" name alone is enough; optional params.replicas (default 1), params.port and/or params.createService=true for a ClusterIP Service. Use deploy — not install — when the user says deploy
 - For get/list/show: kind=get; set target.kind to Pod, Deployment, or Service; target.namespace if mentioned; target.name only for a single object; optional params.labelSelector; optional params.minMemory (e.g. "2Gi") when the user asks for pods using more than X memory (filter by memory requests)
 - For explain/why crashing/failing: kind=explain; set target.name to the workload; target.kind Deployment or Pod; target.namespace if mentioned
 - For logs / tail logs / show logs: kind=logs; set target.name (Pod or Deployment); optional target.kind; optional params.tail (lines, default 100); optional params.container
