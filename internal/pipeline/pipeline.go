@@ -93,7 +93,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		cfg.Context = in.Context
 	}
 
-	if intent.LooksLikeWorkflowPrompt(cfg.Prompt) {
+	if intent.LooksLikeWorkflowPrompt(cfg.Prompt) || in.Kind == intent.KindWorkflow {
 		if err := tools.RequireArgoWorkflows(ctx, cfg.Context, nil); err != nil {
 			return err
 		}
@@ -130,7 +130,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if plan.RequiresApproval {
 		if executor.IsHelmPlan(plan) {
 			planner.EnrichHelmPlan(ctx, &plan)
-		} else {
+		} else if !executor.IsArgoWorkflowPlan(plan) {
 			planner.EnrichDiffs(ctx, client, &plan)
 		}
 	}
@@ -261,6 +261,13 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 
 	runner := &executor.Runner{Client: client}
+	if executor.IsArgoWorkflowPlan(plan) {
+		if !jsonMode {
+			ui.PrintWorkflowReady(human, plan)
+		}
+		applied = true
+		return nil
+	}
 	if executor.IsHelmPlan(plan) {
 		if err := executor.ApplyHelm(ctx, plan); err != nil {
 			return cluster.Friendlier(fmt.Errorf("apply: %w", err))

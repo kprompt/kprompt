@@ -16,6 +16,7 @@ const (
 	OpHelmRepoUpdate Op = "helm-repo-update"
 	OpHelmInstall Op = "helm-install"
 	OpHelmUpgrade Op = "helm-upgrade"
+	OpWorkflowCreate Op = "workflow-create"
 )
 
 // ObjectRef is a Kubernetes object identity.

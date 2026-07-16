@@ -17,3 +17,18 @@ func TestNormalizeVerbDeployUnchanged(t *testing.T) {
 		t.Fatalf("kind=%s", got.Kind)
 	}
 }
+
+func TestNormalizeWorkflowTrainModel(t *testing.T) {
+	in := Intent{Kind: KindUnknown, Params: map[string]any{}}
+	got := NormalizeVerb(in, `train a yolov11 model`)
+	if got.Kind != KindWorkflow {
+		t.Fatalf("kind=%s", got.Kind)
+	}
+	if got.Target.Name != "train-yolov11" {
+		t.Fatalf("name=%s", got.Target.Name)
+	}
+	model, ok := got.Model()
+	if !ok || model != "yolov11" {
+		t.Fatalf("model=%q ok=%v", model, ok)
+	}
+}

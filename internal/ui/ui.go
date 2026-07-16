@@ -62,6 +62,12 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 	}
 }
 
+// PrintWorkflowReady confirms a generated workflow manifest without submitting it (T-030).
+func PrintWorkflowReady(w io.Writer, plan planner.ExecutionPlan) {
+	fmt.Fprintf(w, "✓ Workflow manifest ready: %s\n", plan.Summary)
+	fmt.Fprintln(w, "Submit to the cluster is planned for a follow-up release (T-030).")
+}
+
 // PrintApplied confirms successful execution.
 func PrintApplied(w io.Writer, plan planner.ExecutionPlan) {
 	fmt.Fprintf(w, "✓ Applied: %s\n", plan.Summary)

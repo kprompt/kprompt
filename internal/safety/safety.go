@@ -50,6 +50,9 @@ func CheckPrompt(prompt string) Result {
 	if helmDenied := CheckHelmPrompt(p); helmDenied.Denied {
 		return helmDenied
 	}
+	if argoDenied := CheckArgoPrompt(p); argoDenied.Denied {
+		return argoDenied
+	}
 	return Result{Risk: RiskLow}
 }
 
@@ -99,10 +102,13 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 	if helmDenied := evaluateHelmPlan(plan); helmDenied.Denied {
 		return helmDenied
 	}
+	if argoDenied := evaluateArgoPlan(plan); argoDenied.Denied {
+		return argoDenied
+	}
 	switch plan.Intent.Kind {
 	case intent.KindDelete:
 		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
-	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch:
+	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
 	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe:
 		return Result{Risk: RiskLow}

@@ -159,3 +159,82 @@ func (i Intent) TailLines() (int64, bool) {
 func (i Intent) Container() (string, bool) {
 	return i.StringParam("container")
 }
+
+// Task returns params.task when set (e.g. train, infer).
+func (i Intent) Task() (string, bool) {
+	return i.StringParam("task")
+}
+
+// Model returns params.model when set (e.g. yolov11).
+func (i Intent) Model() (string, bool) {
+	return i.StringParam("model")
+}
+
+// Dataset returns params.dataset when set.
+func (i Intent) Dataset() (string, bool) {
+	return i.StringParam("dataset")
+}
+
+// WantGPU is true when params.gpu is true.
+func (i Intent) WantGPU() bool {
+	v, ok := i.Params["gpu"]
+	if !ok {
+		return false
+	}
+	switch b := v.(type) {
+	case bool:
+		return b
+	case string:
+		return strings.EqualFold(b, "true") || b == "1"
+	default:
+		return false
+	}
+}
+
+// Command returns params.command as argv when set.
+func (i Intent) Command() ([]string, bool) {
+	return stringSliceParam(i.Params["command"])
+}
+
+// Args returns params.args as argv when set.
+func (i Intent) Args() ([]string, bool) {
+	return stringSliceParam(i.Params["args"])
+}
+
+func stringSliceParam(v any) ([]string, bool) {
+	if v == nil {
+		return nil, false
+	}
+	switch xs := v.(type) {
+	case []string:
+		if len(xs) == 0 {
+			return nil, false
+		}
+		return xs, true
+	case []any:
+		out := make([]string, 0, len(xs))
+		for _, item := range xs {
+			s := strings.TrimSpace(fmt.Sprint(item))
+			if s == "" {
+				continue
+			}
+			out = append(out, s)
+		}
+		if len(out) == 0 {
+			return nil, false
+		}
+		return out, true
+	case string:
+		s := strings.TrimSpace(xs)
+		if s == "" {
+			return nil, false
+		}
+		return []string{s}, true
+	default:
+		s := strings.TrimSpace(fmt.Sprint(v))
+		if s == "" {
+			return nil, false
+		}
+		return []string{s}, true
+	}
+}

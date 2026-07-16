@@ -39,6 +39,8 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 		return buildLogs(in, ns)
 	case intent.KindDescribe:
 		return buildDescribe(in, ns)
+	case intent.KindWorkflow:
+		return buildWorkflow(in, ns)
 	case intent.KindDelete:
 		return buildDelete(in, ns)
 	case intent.KindDeny:
