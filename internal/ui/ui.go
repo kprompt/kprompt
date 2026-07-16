@@ -10,6 +10,7 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
+	"github.com/kprompt/kprompt/internal/tools/argo"
 )
 
 // PrintDenied writes a hard-deny message.
@@ -62,10 +63,25 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 	}
 }
 
-// PrintWorkflowReady confirms a generated workflow manifest without submitting it (T-030).
-func PrintWorkflowReady(w io.Writer, plan planner.ExecutionPlan) {
-	fmt.Fprintf(w, "✓ Workflow manifest ready: %s\n", plan.Summary)
-	fmt.Fprintln(w, "Submit to the cluster is planned for a follow-up release (T-030).")
+// PrintWorkflowApplied confirms a submitted workflow and its phase.
+func PrintWorkflowApplied(w io.Writer, plan planner.ExecutionPlan, st argo.WorkflowStatus) {
+	fmt.Fprintf(w, "✓ Submitted: %s\n", plan.Summary)
+	fmt.Fprintf(w, "  %s\n", st.Label())
+}
+
+// PrintWorkflowStatus prints a read-only workflow phase lookup.
+func PrintWorkflowStatus(w io.Writer, st argo.WorkflowStatus) {
+	fmt.Fprintf(w, "Workflow/%s -n %s\n", st.Name, st.Namespace)
+	fmt.Fprintf(w, "  phase: %s\n", st.Phase)
+	if st.Message != "" {
+		fmt.Fprintf(w, "  message: %s\n", st.Message)
+	}
+	if st.StartedAt != "" {
+		fmt.Fprintf(w, "  started: %s\n", st.StartedAt)
+	}
+	if st.FinishedAt != "" {
+		fmt.Fprintf(w, "  finished: %s\n", st.FinishedAt)
+	}
 }
 
 // PrintApplied confirms successful execution.

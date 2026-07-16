@@ -53,11 +53,14 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 func buildGet(in intent.Intent, ns string) (ExecutionPlan, error) {
 	kind := cluster.NormalizeKind(first(in.Target.Kind, "Pod"))
 	switch kind {
-	case "Pod", "Deployment", "Service":
+	case "Pod", "Deployment", "Service", "Workflow":
 	default:
-		return ExecutionPlan{}, fmt.Errorf("get kind %q not supported (Pod, Deployment, Service)", in.Target.Kind)
+		return ExecutionPlan{}, fmt.Errorf("get kind %q not supported (Pod, Deployment, Service, Workflow)", in.Target.Kind)
 	}
 	name := strings.TrimSpace(in.Target.Name)
+	if kind == "Workflow" && name == "" {
+		return ExecutionPlan{}, fmt.Errorf("get Workflow requires target.name")
+	}
 	summary := fmt.Sprintf("List %ss in %s", kind, ns)
 	if name != "" {
 		summary = fmt.Sprintf("Get %s/%s in %s", kind, name, ns)
@@ -73,9 +76,10 @@ func buildGet(in intent.Intent, ns string) (ExecutionPlan, error) {
 		Actions: []Action{{
 			Op: OpGet,
 			Object: ObjectRef{
-				Kind:      kind,
-				Name:      name,
-				Namespace: ns,
+				APIVersion: apiVersionForKind(kind),
+				Kind:       kind,
+				Name:       name,
+				Namespace:  ns,
 			},
 			Diff: summary,
 		}},
@@ -227,6 +231,8 @@ func apiVersionForKind(kind string) string {
 	switch kind {
 	case "Deployment":
 		return "apps/v1"
+	case "Workflow":
+		return "argoproj.io/v1alpha1"
 	default:
 		return "v1"
 	}

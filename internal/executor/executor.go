@@ -46,7 +46,7 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 		case planner.OpHelmRepo, planner.OpHelmInstall, planner.OpHelmRepoUpdate, planner.OpHelmUpgrade:
 			return fmt.Errorf("executor: use ApplyHelm for helm actions")
 		case planner.OpWorkflowCreate:
-			return fmt.Errorf("executor: argo workflow submit is not enabled yet (T-030)")
+			return fmt.Errorf("executor: use ApplyArgo for argo workflow actions")
 		default:
 			return fmt.Errorf("executor: unsupported op %q", a.Op)
 		}

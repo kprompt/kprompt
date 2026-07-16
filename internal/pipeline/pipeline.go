@@ -8,6 +8,7 @@ import (
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
+	"k8s.io/client-go/rest"
 
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/config"
@@ -20,6 +21,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools"
+	"github.com/kprompt/kprompt/internal/tools/argo"
 	"github.com/kprompt/kprompt/internal/ui"
 )
 
@@ -114,6 +116,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 
 	client := deps.Client
+	var restCfg *rest.Config
 	if client == nil {
 		if cfg.Context != "" {
 			if err := cluster.EnsureContext(cfg.Context); err != nil {
@@ -125,6 +128,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			return err
 		}
 		client = clients.Clientset
+		restCfg = clients.Config
 	}
 
 	if plan.RequiresApproval {
@@ -235,6 +239,25 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			applied = true
 			return nil
 		case intent.KindGet:
+			if isWorkflowGetPlan(plan) {
+				if err := tools.RequireArgoWorkflows(ctx, cfg.Context, nil); err != nil {
+					return err
+				}
+				cfgREST, err := restConfigForArgo(cfg.Context, restCfg)
+				if err != nil {
+					return err
+				}
+				st, err := workflowStatusFromPlan(ctx, cfgREST, plan)
+				if err != nil {
+					return cluster.Friendlier(fmt.Errorf("workflow status: %w", err))
+				}
+				doc = doc.WithWorkflowResult(st)
+				if !jsonMode {
+					ui.PrintWorkflowStatus(out, st)
+				}
+				applied = true
+				return nil
+			}
 			q, err := queryFromPlan(plan)
 			if err != nil {
 				return err
@@ -262,10 +285,32 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	runner := &executor.Runner{Client: client}
 	if executor.IsArgoWorkflowPlan(plan) {
+		cfgREST, err := restConfigForArgo(cfg.Context, restCfg)
+		if err != nil {
+			return err
+		}
+		st, err := executor.ApplyArgo(ctx, cfgREST, plan)
+		if err != nil {
+			return cluster.Friendlier(fmt.Errorf("apply: %w", err))
+		}
+		doc = doc.WithWorkflowResult(st)
 		if !jsonMode {
-			ui.PrintWorkflowReady(human, plan)
+			ui.PrintWorkflowApplied(human, plan, st)
 		}
 		applied = true
+		if cfg.Wait {
+			timeout := cfg.Timeout
+			if timeout <= 0 {
+				timeout = argo.DefaultWaitTimeout
+			}
+			for _, t := range executor.WorkflowTargets(plan) {
+				st, err = argo.Wait(ctx, cfgREST, t.Namespace, t.Name, timeout, human)
+				if err != nil {
+					return cluster.Friendlier(err)
+				}
+				doc = doc.WithWorkflowResult(st)
+			}
+		}
 		return nil
 	}
 	if executor.IsHelmPlan(plan) {
@@ -441,4 +486,33 @@ func describeFromPlan(plan planner.ExecutionPlan) (cluster.DescribeRequest, erro
 		Namespace: a.Object.Namespace,
 		Kind:      a.Object.Kind,
 	}, nil
+}
+
+func restConfigForArgo(kubeContext string, cached *rest.Config) (*rest.Config, error) {
+	if cached != nil {
+		return cached, nil
+	}
+	clients, err := cluster.Connect(kubeContext)
+	if err != nil {
+		return nil, err
+	}
+	return clients.Config, nil
+}
+
+func isWorkflowGetPlan(plan planner.ExecutionPlan) bool {
+	if plan.Intent.Kind != intent.KindGet || len(plan.Actions) == 0 {
+		return false
+	}
+	return plan.Actions[0].Object.Kind == "Workflow"
+}
+
+func workflowStatusFromPlan(ctx context.Context, cfg *rest.Config, plan planner.ExecutionPlan) (argo.WorkflowStatus, error) {
+	if len(plan.Actions) == 0 {
+		return argo.WorkflowStatus{}, fmt.Errorf("workflow get plan has no actions")
+	}
+	a := plan.Actions[0]
+	if a.Object.Name == "" {
+		return argo.WorkflowStatus{}, fmt.Errorf("workflow get requires a named target")
+	}
+	return argo.GetStatus(ctx, cfg, a.Object.Namespace, a.Object.Name)
 }

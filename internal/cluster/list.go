@@ -70,6 +70,8 @@ func NormalizeKind(k string) string {
 		return "Deployment"
 	case "service", "services", "svc":
 		return "Service"
+	case "workflow", "workflows", "wf":
+		return "Workflow"
 	default:
 		return strings.TrimSpace(k)
 	}

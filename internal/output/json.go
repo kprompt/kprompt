@@ -7,6 +7,7 @@ import (
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
+	"github.com/kprompt/kprompt/internal/tools/argo"
 )
 
 const (
@@ -165,6 +166,22 @@ func (r PlanResult) WithLogsResult(res cluster.LogsResult) PlanResult {
 		"container": res.Container,
 		"tail":      res.Tail,
 		"body":      body,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithWorkflowResult attaches workflow submit/status payload.
+func (r PlanResult) WithWorkflowResult(st argo.WorkflowStatus) PlanResult {
+	payload := map[string]any{
+		"type":       "workflow",
+		"name":       st.Name,
+		"namespace":  st.Namespace,
+		"phase":      st.Phase,
+		"message":    st.Message,
+		"startedAt":  st.StartedAt,
+		"finishedAt": st.FinishedAt,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw
