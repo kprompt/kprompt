@@ -19,6 +19,7 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
+	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/ui"
 )
 
@@ -90,6 +91,12 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	cfg.Namespace = in.Target.Namespace
 	if in.Context != "" {
 		cfg.Context = in.Context
+	}
+
+	if intent.LooksLikeWorkflowPrompt(cfg.Prompt) {
+		if err := tools.RequireArgoWorkflows(ctx, cfg.Context, nil); err != nil {
+			return err
+		}
 	}
 
 	plan, err := planner.Build(in)

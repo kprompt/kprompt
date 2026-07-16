@@ -2,8 +2,10 @@ package tools
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/kprompt/kprompt/internal/cluster"
+	"github.com/kprompt/kprompt/internal/tools/argo"
 )
 
 type kubeConnector interface {
@@ -47,7 +49,7 @@ func detectArgoWorkflows(ctx context.Context, settings Settings, kubeCtx string,
 	if !settings.ArgoEnabled {
 		r.Status = StatusDisabled
 		r.Detail = "disabled in config or KPROMPT_ARGO_WORKFLOWS_ENABLED=0"
-		r.Hint = MissingHint(IDArgoWorkflows)
+		r.Hint = argo.InstallHint()
 		return r
 	}
 	cl, err := k.Connect(kubeCtx)
@@ -57,20 +59,32 @@ func detectArgoWorkflows(ctx context.Context, settings Settings, kubeCtx string,
 		r.Hint = MissingHint(IDKubernetes)
 		return r
 	}
-	ok, err := cluster.HasWorkflowCRD(ctx, cl.Config)
+	av, err := argo.Detect(ctx, cl.Config)
 	if err != nil {
 		r.Status = StatusUnavailable
 		r.Detail = err.Error()
-		r.Hint = MissingHint(IDArgoWorkflows)
+		r.Hint = argo.InstallHint()
 		return r
 	}
-	if !ok {
+	if !av.Installed {
 		r.Status = StatusUnavailable
-		r.Detail = "Workflow CRD not found (argoproj.io/Workflow)"
-		r.Hint = MissingHint(IDArgoWorkflows)
+		r.Detail = argo.DetailLabel(av)
+		r.Hint = argo.InstallHint()
 		return r
 	}
 	r.Status = StatusAvailable
-	r.Detail = "Workflow CRD present"
+	r.Detail = argo.DetailLabel(av)
 	return r
+}
+
+// RequireArgoWorkflows ensures the Workflow CRD is served in the active cluster.
+func RequireArgoWorkflows(ctx context.Context, kubeCtx string, k kubeConnector) error {
+	if k == nil {
+		k = defaultKube{}
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
+	}
+	return argo.Require(ctx, cl.Config)
 }

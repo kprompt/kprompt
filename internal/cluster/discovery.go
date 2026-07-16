@@ -3,28 +3,56 @@ package cluster
 import (
 	"context"
 	"fmt"
+	"sort"
 
 	"k8s.io/client-go/discovery"
 	"k8s.io/client-go/rest"
 )
 
-// HasWorkflowCRD reports whether the Argo Workflows API (Workflow kind) is served.
-func HasWorkflowCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
-	return hasServedKind(ctx, cfg, "argoproj.io", "Workflow")
+// CRDStatus describes whether an API kind is served and which versions exist.
+type CRDStatus struct {
+	Found    bool
+	Group    string
+	Kind     string
+	Versions []string
 }
 
-func hasServedKind(ctx context.Context, cfg *rest.Config, group, kind string) (bool, error) {
+// WorkflowCRDStatus reports Argo Workflows API availability in the cluster.
+func WorkflowCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
+	_ = ctx
+	st := CRDStatus{Group: "argoproj.io", Kind: "Workflow"}
+	versions, found, err := servedKindVersions(cfg, st.Group, st.Kind)
+	if err != nil {
+		return st, err
+	}
+	st.Found = found
+	st.Versions = versions
+	return st, nil
+}
+
+// HasWorkflowCRD reports whether the Argo Workflows API (Workflow kind) is served.
+func HasWorkflowCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
+	st, err := WorkflowCRDStatus(ctx, cfg)
+	if err != nil {
+		return false, err
+	}
+	return st.Found, nil
+}
+
+func servedKindVersions(cfg *rest.Config, group, kind string) ([]string, bool, error) {
 	if cfg == nil {
-		return false, fmt.Errorf("rest config is nil")
+		return nil, false, fmt.Errorf("rest config is nil")
 	}
 	dc, err := discovery.NewDiscoveryClientForConfig(cfg)
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
 	groups, err := dc.ServerGroups()
 	if err != nil {
-		return false, err
+		return nil, false, err
 	}
+	var versions []string
+	found := false
 	for _, g := range groups.Groups {
 		if g.Name != group {
 			continue
@@ -35,14 +63,16 @@ func hasServedKind(ctx context.Context, cfg *rest.Config, group, kind string) (b
 				if discovery.IsGroupDiscoveryFailedError(err) {
 					continue
 				}
-				return false, err
+				return nil, false, err
 			}
 			for _, r := range res.APIResources {
 				if r.Kind == kind {
-					return true, nil
+					found = true
+					versions = append(versions, v.Version)
 				}
 			}
 		}
 	}
-	return false, nil
+	sort.Strings(versions)
+	return versions, found, nil
 }

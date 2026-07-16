@@ -1,12 +1,14 @@
 package tools
 
+import "github.com/kprompt/kprompt/internal/tools/argo"
+
 // MissingHint returns an actionable message when a backend is not available.
 func MissingHint(id ID) string {
 	switch id {
 	case IDHelm:
 		return "Helm is not available. Install Helm (https://helm.sh/docs/intro/install/) or use the Kubernetes shortcut: kprompt \"deploy redis\""
 	case IDArgoWorkflows:
-		return "Argo Workflows is not available in this cluster. Install the Argo Workflows controller or pick a Kubernetes-only prompt."
+		return argo.InstallHint()
 	case IDPrometheus:
 		return "Prometheus is not configured. Set KPROMPT_PROMETHEUS_URL or tools.prometheus.url in ~/.kprompt/config.yaml"
 	case IDGrafana:
