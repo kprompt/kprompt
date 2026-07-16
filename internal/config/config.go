@@ -29,11 +29,11 @@ type File struct {
 
 // ToolsFile holds integration endpoints and opt-outs (no secrets).
 type ToolsFile struct {
-	Helm          ToolToggle       `yaml:"helm,omitempty"`
-	ArgoWorkflows ToolToggle       `yaml:"argo_workflows,omitempty"`
-	Prometheus    PrometheusTool   `yaml:"prometheus,omitempty"`
-	Grafana       GrafanaTool      `yaml:"grafana,omitempty"`
-	OTel          OTelTool         `yaml:"otel,omitempty"`
+	Helm          ToolToggle     `yaml:"helm,omitempty"`
+	ArgoWorkflows ToolToggle     `yaml:"argo_workflows,omitempty"`
+	Prometheus    PrometheusTool `yaml:"prometheus,omitempty"`
+	Grafana       GrafanaTool    `yaml:"grafana,omitempty"`
+	OTel          OTelTool       `yaml:"otel,omitempty"`
 }
 
 // ToolToggle can disable a backend (enabled defaults to true).
@@ -66,6 +66,7 @@ type Resolved struct {
 	BaseURL   string
 	Context   string
 	Namespace string
+	Tools     ToolsFile
 	Approve   bool
 	Wait      bool
 	Timeout   time.Duration // used with Wait; 0 means default (5m)
@@ -143,6 +144,7 @@ func Merge(file File, provider, model, context, namespace string, approve bool, 
 		BaseURL:   first(file.BaseURL, os.Getenv(EnvOpenAIBaseURL), preset.BaseURL),
 		Context:   first(context, file.Context),
 		Namespace: first(namespace, file.Namespace, "default"),
+		Tools:     file.Tools,
 		Approve:   approve,
 		Prompt:    prompt,
 	}

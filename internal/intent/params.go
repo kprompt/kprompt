@@ -160,6 +160,11 @@ func (i Intent) Container() (string, bool) {
 	return i.StringParam("container")
 }
 
+// Window returns params.window for time-bounded metrics queries.
+func (i Intent) Window() (string, bool) {
+	return i.StringParam("window")
+}
+
 // Task returns params.task when set (e.g. train, infer).
 func (i Intent) Task() (string, bool) {
 	return i.StringParam("task")

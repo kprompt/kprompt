@@ -110,7 +110,7 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
 	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance:
 		return Result{Risk: RiskLow}
 	default:
 		return Result{Risk: RiskHigh, Message: fmt.Sprintf("Unknown or unsupported intent %q", plan.Intent.Kind)}

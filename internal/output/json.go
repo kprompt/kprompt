@@ -8,12 +8,13 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
 
 const (
-	APIVersion    = "kprompt.io/v1"
+	APIVersion     = "kprompt.io/v1"
 	KindPlanResult = "PlanResult"
-	SchemaVersion = "1"
+	SchemaVersion  = "1"
 )
 
 // PlanResult is the stable CI-facing JSON document.
@@ -182,6 +183,23 @@ func (r PlanResult) WithWorkflowResult(st argo.WorkflowStatus) PlanResult {
 		"message":    st.Message,
 		"startedAt":  st.StartedAt,
 		"finishedAt": st.FinishedAt,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithPerformanceResult attaches a Prometheus-backed performance diagnosis.
+func (r PlanResult) WithPerformanceResult(report toolprometheus.PerformanceReport) PlanResult {
+	payload := map[string]any{
+		"type":       "performance",
+		"workload":   report.Workload,
+		"namespace":  report.Namespace,
+		"window":     report.Window,
+		"summary":    report.Summary,
+		"metrics":    report.Metrics,
+		"findings":   report.Findings,
+		"suggestion": report.Suggestion,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

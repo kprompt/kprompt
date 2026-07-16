@@ -8,6 +8,7 @@ import (
 	"io"
 	"os"
 	"testing"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -18,6 +19,7 @@ import (
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/llm"
+	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
 
 func TestMain(m *testing.M) {
@@ -52,6 +54,46 @@ func TestMutationWithoutApproveNonInteractiveSkips(t *testing.T) {
 	if !bytes.Contains(out.Bytes(), []byte("--approve")) {
 		t.Fatalf("expected --approve hint, got %s", out.String())
 	}
+}
+
+func TestPerformanceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Namespace: "prod",
+		Prompt:    "why is my api slow",
+	}, &out, Deps{
+		Provider: llm.PerformanceStub("api", "prod", "15m"),
+		Prometheus: performanceQuerierFunc(
+			func(context.Context, string, time.Time) (toolprometheus.Result, error) {
+				return toolprometheus.Result{
+					Type: "vector",
+					Series: []toolprometheus.Series{{
+						Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "0.5"}},
+					}},
+				}, nil
+			},
+		),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("Performance: Deployment/api")) {
+		t.Fatalf("output=%s", out.String())
+	}
+}
+
+type performanceQuerierFunc func(
+	context.Context,
+	string,
+	time.Time,
+) (toolprometheus.Result, error)
+
+func (f performanceQuerierFunc) Query(
+	ctx context.Context,
+	query string,
+	at time.Time,
+) (toolprometheus.Result, error) {
+	return f(ctx, query, at)
 }
 
 func TestMutationInteractiveYesApplies(t *testing.T) {

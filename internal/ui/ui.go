@@ -11,6 +11,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
 
 // PrintDenied writes a hard-deny message.
@@ -81,6 +82,74 @@ func PrintWorkflowStatus(w io.Writer, st argo.WorkflowStatus) {
 	}
 	if st.FinishedAt != "" {
 		fmt.Fprintf(w, "  finished: %s\n", st.FinishedAt)
+	}
+}
+
+// PrintPerformanceReport prints a Prometheus-backed workload diagnosis.
+func PrintPerformanceReport(w io.Writer, report toolprometheus.PerformanceReport) {
+	fmt.Fprintf(
+		w,
+		"Performance: Deployment/%s -n %s (%s)\n",
+		report.Workload,
+		report.Namespace,
+		report.Window,
+	)
+	fmt.Fprintf(w, "Summary:     %s\n", report.Summary)
+	fmt.Fprintln(w, "Metrics:")
+	for _, metric := range report.Metrics {
+		switch {
+		case metric.Value != nil:
+			fmt.Fprintf(w, "  - %s: %s\n", metric.Name, formatPerformanceValue(*metric.Value, metric.Unit))
+		case metric.Error != "":
+			fmt.Fprintf(w, "  - %s: unavailable (%s)\n", metric.Name, metric.Error)
+		default:
+			fmt.Fprintf(w, "  - %s: no matching series\n", metric.Name)
+		}
+	}
+	if len(report.Findings) > 0 {
+		fmt.Fprintln(w, "Findings:")
+		for _, finding := range report.Findings {
+			fmt.Fprintf(w, "  - %s\n", finding)
+		}
+	}
+	if report.Suggestion != nil {
+		fmt.Fprintf(
+			w,
+			"Suggestion: scale Deployment/%s from %d to %d replicas (%s).\n",
+			report.Workload,
+			report.Suggestion.Current,
+			report.Suggestion.Suggested,
+			report.Suggestion.Reason,
+		)
+	}
+}
+
+func formatPerformanceValue(value float64, unit string) string {
+	switch unit {
+	case "bytes":
+		const (
+			kib = 1024
+			mib = 1024 * kib
+			gib = 1024 * mib
+		)
+		switch {
+		case value >= gib:
+			return fmt.Sprintf("%.2f GiB", value/gib)
+		case value >= mib:
+			return fmt.Sprintf("%.2f MiB", value/mib)
+		case value >= kib:
+			return fmt.Sprintf("%.2f KiB", value/kib)
+		default:
+			return fmt.Sprintf("%.0f bytes", value)
+		}
+	case "seconds":
+		return fmt.Sprintf("%.3fs", value)
+	case "cores":
+		return fmt.Sprintf("%.3f cores", value)
+	case "replicas":
+		return fmt.Sprintf("%.0f", value)
+	default:
+		return fmt.Sprintf("%.3f %s", value, unit)
 	}
 }
 

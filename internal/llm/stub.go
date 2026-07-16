@@ -136,6 +136,25 @@ func ExplainStub(name, namespace, resourceKind string) *Stub {
 	return &Stub{Structured: payload}
 }
 
+// PerformanceStub returns a Stub that classifies a metrics-backed diagnosis.
+func PerformanceStub(name, namespace, window string) *Stub {
+	params := map[string]any{}
+	if window != "" {
+		params["window"] = window
+	}
+	payload, _ := json.Marshal(map[string]any{
+		"kind": "performance",
+		"target": map[string]any{
+			"name":      name,
+			"namespace": namespace,
+			"kind":      "Deployment",
+		},
+		"params":     params,
+		"confidence": 1.0,
+	})
+	return &Stub{Structured: payload}
+}
+
 // RollbackStub returns a Stub that classifies a Deployment rollback intent.
 // revision 0 means previous revision (omit params.revision).
 func RollbackStub(name, namespace string, revision int64) *Stub {

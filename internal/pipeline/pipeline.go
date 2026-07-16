@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/client-go/kubernetes"
@@ -22,6 +23,7 @@ import (
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 	"github.com/kprompt/kprompt/internal/ui"
 )
 
@@ -32,6 +34,7 @@ type ConfirmFunc func(out io.Writer) (bool, error)
 type Deps struct {
 	Provider   llm.Provider
 	Client     kubernetes.Interface
+	Prometheus toolprometheus.Querier
 	Confirm    ConfirmFunc // if set, used instead of TTY prompt
 	IsTerminal *bool       // override ui.StdinIsTerminal when non-nil
 }
@@ -117,7 +120,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	client := deps.Client
 	var restCfg *rest.Config
-	if client == nil {
+	if client == nil && plan.Intent.Kind != intent.KindPerformance {
 		if cfg.Context != "" {
 			if err := cluster.EnsureContext(cfg.Context); err != nil {
 				return err
@@ -157,6 +160,38 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	// Read-only paths run immediately (no --approve).
 	if isReadOnly(plan) {
 		switch plan.Intent.Kind {
+		case intent.KindPerformance:
+			querier := deps.Prometheus
+			if querier == nil {
+				settings := tools.LoadSettings(config.File{Tools: cfg.Tools})
+				promClient, err := tools.NewPrometheusClient(settings)
+				if err != nil {
+					return err
+				}
+				querier = promClient
+			}
+			window := 15 * time.Minute
+			if raw, ok := plan.Intent.Window(); ok {
+				parsed, err := time.ParseDuration(raw)
+				if err != nil {
+					return fmt.Errorf("params.window: %w", err)
+				}
+				window = parsed
+			}
+			report, err := toolprometheus.ExplainPerformance(ctx, querier, toolprometheus.PerformanceRequest{
+				Workload:  plan.Intent.Target.Name,
+				Namespace: plan.Intent.Target.Namespace,
+				Window:    window,
+			})
+			if err != nil {
+				return fmt.Errorf("performance explain: %w", err)
+			}
+			doc = doc.WithPerformanceResult(report)
+			if !jsonMode {
+				ui.PrintPerformanceReport(out, report)
+			}
+			applied = true
+			return nil
 		case intent.KindExplain:
 			req, err := explainFromPlan(plan)
 			if err != nil {
@@ -405,7 +440,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance:
 		return true
 	default:
 		return false

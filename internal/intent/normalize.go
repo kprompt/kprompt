@@ -12,7 +12,8 @@ func NormalizeVerb(in Intent, prompt string) Intent {
 	if strings.HasPrefix(p, "install ") && in.Kind == KindDeploy {
 		in.Kind = KindInstall
 	}
-	return NormalizeWorkflow(in, prompt)
+	in = NormalizeWorkflow(in, prompt)
+	return NormalizePerformance(in, prompt)
 }
 
 // NormalizeWorkflow maps workflow-shaped prompts to workflow intent and fills params.
