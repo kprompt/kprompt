@@ -88,7 +88,7 @@ func detectOTel(settings Settings) Result {
 		return r
 	}
 	r.Status = StatusConfigured
-	r.Detail = settings.OTelEndpoint
+	r.Detail = fmt.Sprintf("%s (backend: %s)", settings.OTelEndpoint, settings.OTelBackend)
 	return r
 }
 

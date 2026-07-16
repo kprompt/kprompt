@@ -14,7 +14,7 @@ func MissingHint(id ID) string {
 	case IDGrafana:
 		return "Grafana is not configured. Set KPROMPT_GRAFANA_URL (and KPROMPT_GRAFANA_API_KEY when the API requires it)"
 	case IDOpenTelemetry:
-		return "OpenTelemetry is not configured. Set KPROMPT_OTEL_ENDPOINT or tools.otel.endpoint in ~/.kprompt/config.yaml"
+		return "Trace backend is not configured. Set KPROMPT_OTEL_ENDPOINT to a Jaeger/Tempo query URL and KPROMPT_OTEL_BACKEND=jaeger|tempo (or tools.otel.* in ~/.kprompt/config.yaml)"
 	case IDKubernetes:
 		return "Kubernetes is not reachable. Check kubeconfig and context (kubectl config current-context)."
 	default:

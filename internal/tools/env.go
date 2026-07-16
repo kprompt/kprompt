@@ -12,6 +12,7 @@ const (
 	EnvGrafanaURL      = "KPROMPT_GRAFANA_URL"
 	EnvGrafanaAPIKey   = "KPROMPT_GRAFANA_API_KEY"
 	EnvOTelEndpoint    = "KPROMPT_OTEL_ENDPOINT"
+	EnvOTelBackend     = "KPROMPT_OTEL_BACKEND"
 	EnvHelmEnabled     = "KPROMPT_HELM_ENABLED"
 	EnvPrometheusOn    = "KPROMPT_PROMETHEUS_ENABLED"
 	EnvGrafanaOn       = "KPROMPT_GRAFANA_ENABLED"
@@ -29,6 +30,7 @@ type Settings struct {
 	PrometheusURL     string
 	GrafanaURL        string
 	OTelEndpoint      string
+	OTelBackend       string
 }
 
 // LoadSettings reads tool-related config and environment.
@@ -42,6 +44,7 @@ func LoadSettings(file config.File) Settings {
 		PrometheusURL:     firstNonEmpty(os.Getenv(EnvPrometheusURL), file.Tools.Prometheus.URL),
 		GrafanaURL:        firstNonEmpty(os.Getenv(EnvGrafanaURL), file.Tools.Grafana.URL),
 		OTelEndpoint:      firstNonEmpty(os.Getenv(EnvOTelEndpoint), file.Tools.OTel.Endpoint),
+		OTelBackend:       firstNonEmpty(os.Getenv(EnvOTelBackend), file.Tools.OTel.Backend, "auto"),
 	}
 	return s
 }

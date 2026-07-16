@@ -70,3 +70,17 @@ func TestSetFieldRejectsUnknownKey(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestSetFieldOTelBackend(t *testing.T) {
+	t.Setenv("HOME", t.TempDir())
+	file, err := SetField("tools.otel.backend", "tempo")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if file.Tools.OTel.Backend != "tempo" {
+		t.Fatalf("backend=%q", file.Tools.OTel.Backend)
+	}
+	if _, err := SetField("tools.otel.backend", "otlp"); err == nil {
+		t.Fatal("expected unsupported backend error")
+	}
+}

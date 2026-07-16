@@ -58,14 +58,23 @@ func SetField(key, value string) (File, error) {
 		f.Context = v
 	case "namespace", "ns":
 		f.Namespace = v
+	case "theme":
+		f.Theme = strings.ToLower(v)
 	case "tools.prometheus.url", "tools.prometheus_url":
 		f.Tools.Prometheus.URL = v
 	case "tools.grafana.url", "tools.grafana_url":
 		f.Tools.Grafana.URL = v
 	case "tools.otel.endpoint", "tools.otel_endpoint":
 		f.Tools.OTel.Endpoint = v
+	case "tools.otel.backend", "tools.otel_backend":
+		switch strings.ToLower(v) {
+		case "", "auto", "jaeger", "tempo":
+			f.Tools.OTel.Backend = strings.ToLower(v)
+		default:
+			return File{}, fmt.Errorf("tools.otel.backend must be auto, jaeger, or tempo")
+		}
 	default:
-		return File{}, fmt.Errorf("unknown config key %q (allowed: provider, model, base_url, context, namespace, tools.prometheus.url, tools.grafana.url, tools.otel.endpoint)", key)
+		return File{}, fmt.Errorf("unknown config key %q (allowed: provider, model, base_url, context, namespace, theme, tools.prometheus.url, tools.grafana.url, tools.otel.endpoint, tools.otel.backend)", key)
 	}
 	if err := SaveFile(f); err != nil {
 		return File{}, err
@@ -81,6 +90,7 @@ type View struct {
 	BaseURL   string
 	Context   string
 	Namespace string
+	Theme     string
 	APIKey    string // "set" | "unset" | "optional" — never the secret
 	EnvHints  []string
 }
@@ -103,6 +113,7 @@ func BuildView() (View, error) {
 		BaseURL:   r.BaseURL,
 		Context:   dash(r.Context),
 		Namespace: r.Namespace,
+		Theme:     themeOrAuto(r.Theme),
 	}
 	preset, ok := llm.LookupPreset(r.Provider)
 	if ok {
@@ -133,6 +144,13 @@ func dash(s string) string {
 	return s
 }
 
+func themeOrAuto(s string) string {
+	if strings.TrimSpace(s) == "" {
+		return "auto"
+	}
+	return s
+}
+
 // FormatView renders a human-readable redacted config.
 func FormatView(v View) string {
 	var b strings.Builder
@@ -141,6 +159,7 @@ func FormatView(v View) string {
 	fmt.Fprintf(&b, "model:       %s\n", v.Model)
 	fmt.Fprintf(&b, "base_url:    %s\n", emptyDash(v.BaseURL))
 	fmt.Fprintf(&b, "namespace:   %s\n", v.Namespace)
+	fmt.Fprintf(&b, "theme:       %s\n", v.Theme)
 	fmt.Fprintf(&b, "context:     %s\n", v.Context)
 	fmt.Fprintf(&b, "api_key:     %s", v.APIKey)
 	if len(v.EnvHints) > 0 {

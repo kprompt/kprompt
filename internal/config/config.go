@@ -24,6 +24,7 @@ type File struct {
 	BaseURL   string    `yaml:"base_url,omitempty"`
 	Context   string    `yaml:"context,omitempty"`
 	Namespace string    `yaml:"namespace,omitempty"`
+	Theme     string    `yaml:"theme,omitempty"`
 	Tools     ToolsFile `yaml:"tools,omitempty"`
 }
 
@@ -57,6 +58,7 @@ type GrafanaTool struct {
 type OTelTool struct {
 	Enabled  *bool  `yaml:"enabled,omitempty"`
 	Endpoint string `yaml:"endpoint,omitempty"`
+	Backend  string `yaml:"backend,omitempty"`
 }
 
 // Resolved is the effective runtime configuration.
@@ -66,6 +68,7 @@ type Resolved struct {
 	BaseURL   string
 	Context   string
 	Namespace string
+	Theme     string
 	Tools     ToolsFile
 	Approve   bool
 	Wait      bool
@@ -144,6 +147,7 @@ func Merge(file File, provider, model, context, namespace string, approve bool, 
 		BaseURL:   first(file.BaseURL, os.Getenv(EnvOpenAIBaseURL), preset.BaseURL),
 		Context:   first(context, file.Context),
 		Namespace: first(namespace, file.Namespace, "default"),
+		Theme:     strings.ToLower(strings.TrimSpace(file.Theme)),
 		Tools:     file.Tools,
 		Approve:   approve,
 		Prompt:    prompt,
