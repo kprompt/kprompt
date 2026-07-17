@@ -13,7 +13,8 @@ func NormalizeVerb(in Intent, prompt string) Intent {
 		in.Kind = KindInstall
 	}
 	in = NormalizeWorkflow(in, prompt)
-	return NormalizePerformance(in, prompt)
+	in = NormalizePerformance(in, prompt)
+	return NormalizeTrace(in, prompt)
 }
 
 // NormalizeWorkflow maps workflow-shaped prompts to workflow intent and fills params.

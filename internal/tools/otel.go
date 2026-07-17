@@ -7,7 +7,7 @@ import (
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 )
 
-// NewOTelClient builds the trace query adapter from resolved tool settings.
+// NewOTelClient builds the trace adapter from resolved tool settings.
 func NewOTelClient(settings Settings, options ...toolotel.Option) (*toolotel.Client, error) {
 	if !settings.OTelEnabled {
 		return nil, fmt.Errorf("OpenTelemetry integration is disabled")

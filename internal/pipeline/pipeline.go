@@ -23,6 +23,7 @@ import (
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 	"github.com/kprompt/kprompt/internal/ui"
 )
@@ -35,6 +36,7 @@ type Deps struct {
 	Provider   llm.Provider
 	Client     kubernetes.Interface
 	Prometheus toolprometheus.Querier
+	OTel       toolotel.Querier
 	Confirm    ConfirmFunc // if set, used instead of TTY prompt
 	IsTerminal *bool       // override ui.StdinIsTerminal when non-nil
 }
@@ -120,7 +122,9 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	client := deps.Client
 	var restCfg *rest.Config
-	if client == nil && plan.Intent.Kind != intent.KindPerformance {
+	if client == nil &&
+		plan.Intent.Kind != intent.KindPerformance &&
+		plan.Intent.Kind != intent.KindTrace {
 		if cfg.Context != "" {
 			if err := cluster.EnsureContext(cfg.Context); err != nil {
 				return err
@@ -160,6 +164,42 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	// Read-only paths run immediately (no --approve).
 	if isReadOnly(plan) {
 		switch plan.Intent.Kind {
+		case intent.KindTrace:
+			querier := deps.OTel
+			if querier == nil {
+				settings := tools.LoadSettings(config.File{Tools: cfg.Tools})
+				traceClient, err := tools.NewOTelClient(settings)
+				if err != nil {
+					return err
+				}
+				querier = traceClient
+			}
+			window := time.Hour
+			if raw, ok := plan.Intent.Window(); ok {
+				parsed, err := time.ParseDuration(raw)
+				if err != nil {
+					return fmt.Errorf("params.window: %w", err)
+				}
+				window = parsed
+			}
+			end := time.Now()
+			operation, _ := plan.Intent.Operation()
+			trace, err := toolotel.LatestTrace(ctx, querier, toolotel.SearchRequest{
+				Service:   plan.Intent.Target.Name,
+				Operation: operation,
+				Start:     end.Add(-window),
+				End:       end,
+				Limit:     20,
+			})
+			if err != nil {
+				return fmt.Errorf("trace walk: %w", err)
+			}
+			doc = doc.WithTraceResult(trace)
+			if !jsonMode {
+				ui.PrintTrace(out, trace)
+			}
+			applied = true
+			return nil
 		case intent.KindPerformance:
 			querier := deps.Prometheus
 			if querier == nil {
@@ -440,7 +480,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace:
 		return true
 	default:
 		return false

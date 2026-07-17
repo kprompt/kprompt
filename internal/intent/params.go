@@ -165,6 +165,11 @@ func (i Intent) Window() (string, bool) {
 	return i.StringParam("window")
 }
 
+// Operation returns an optional trace operation/span name filter.
+func (i Intent) Operation() (string, bool) {
+	return i.StringParam("operation")
+}
+
 // Task returns params.task when set (e.g. train, infer).
 func (i Intent) Task() (string, bool) {
 	return i.StringParam("task")

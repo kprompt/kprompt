@@ -8,6 +8,7 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
 
@@ -200,6 +201,22 @@ func (r PlanResult) WithPerformanceResult(report toolprometheus.PerformanceRepor
 		"metrics":    report.Metrics,
 		"findings":   report.Findings,
 		"suggestion": report.Suggestion,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithTraceResult attaches a backend-neutral distributed span tree.
+func (r PlanResult) WithTraceResult(trace toolotel.Trace) PlanResult {
+	payload := map[string]any{
+		"type":          "trace",
+		"traceId":       trace.TraceID,
+		"rootService":   trace.RootService,
+		"rootOperation": trace.RootOperation,
+		"startTime":     trace.StartTime,
+		"duration":      trace.Duration.String(),
+		"spans":         toolotel.WalkSpans(trace),
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

@@ -11,6 +11,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
 
@@ -137,6 +138,45 @@ func PrintPerformanceReport(w io.Writer, report toolprometheus.PerformanceReport
 			report.Suggestion.Current,
 			report.Suggestion.Suggested,
 			report.Suggestion.Reason,
+		)
+	}
+}
+
+// PrintTrace prints a parent-before-child distributed span tree.
+func PrintTrace(w io.Writer, trace toolotel.Trace) {
+	t := themeFor(w)
+	fmt.Fprintf(w, "%s %s\n", t.Heading("Trace:"), t.Accent(trace.TraceID))
+	root := trace.RootService
+	if trace.RootService != "" && trace.RootOperation != "" {
+		root += " — "
+	}
+	root += trace.RootOperation
+	if root != "" {
+		fmt.Fprintf(w, "%s %s (%s)\n", t.Heading("Root: "), root, trace.Duration)
+	}
+	fmt.Fprintln(w, t.Heading("Spans:"))
+	rows := toolotel.WalkSpans(trace)
+	if len(rows) == 0 {
+		fmt.Fprintln(w, "  "+t.Muted("(no spans)"))
+		return
+	}
+	for _, row := range rows {
+		span := row.Span
+		label := span.Operation
+		if span.Service != "" {
+			label = span.Service + ": " + label
+		}
+		status := ""
+		if span.Status != "" {
+			status = " [" + span.Status + "]"
+		}
+		fmt.Fprintf(
+			w,
+			"  %s└─ %s (%s)%s\n",
+			strings.Repeat("  ", row.Depth),
+			label,
+			span.Duration,
+			status,
 		)
 	}
 }

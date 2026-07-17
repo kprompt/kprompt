@@ -19,6 +19,7 @@ import (
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/llm"
+	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
 
@@ -80,6 +81,56 @@ func TestPerformanceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 	if !bytes.Contains(out.Bytes(), []byte("Performance: Deployment/api")) {
 		t.Fatalf("output=%s", out.String())
 	}
+}
+
+func TestTraceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "trace payment request",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"trace","target":{"name":"payment","kind":"Service"},"confidence":1}`,
+		)},
+		OTel: traceQuerierFunc(func(
+			_ context.Context,
+			req toolotel.SearchRequest,
+		) ([]toolotel.Trace, error) {
+			if req.Service != "payment" {
+				t.Fatalf("service=%q", req.Service)
+			}
+			return []toolotel.Trace{{
+				TraceID:       "trace-1",
+				RootService:   "payment",
+				RootOperation: "POST /charge",
+				Duration:      120 * time.Millisecond,
+				Spans: []toolotel.Span{{
+					SpanID:    "root",
+					Service:   "payment",
+					Operation: "POST /charge",
+					Duration:  120 * time.Millisecond,
+				}},
+			}}, nil
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("Trace: trace-1")) ||
+		!bytes.Contains(out.Bytes(), []byte("payment: POST /charge")) {
+		t.Fatalf("output=%s", out.String())
+	}
+}
+
+type traceQuerierFunc func(
+	context.Context,
+	toolotel.SearchRequest,
+) ([]toolotel.Trace, error)
+
+func (f traceQuerierFunc) SearchTraces(
+	ctx context.Context,
+	req toolotel.SearchRequest,
+) ([]toolotel.Trace, error) {
+	return f(ctx, req)
 }
 
 type performanceQuerierFunc func(
