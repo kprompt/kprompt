@@ -39,8 +39,9 @@ type Deps struct {
 	Prometheus toolprometheus.Querier
 	OTel       toolotel.Querier
 	Grafana    toolgrafana.Querier
-	Confirm    ConfirmFunc // if set, used instead of TTY prompt
-	IsTerminal *bool       // override ui.StdinIsTerminal when non-nil
+	Confirm    ConfirmFunc             // if set, used instead of TTY prompt
+	IsTerminal *bool                   // override ui.StdinIsTerminal when non-nil
+	OnResult   func(output.PlanResult) // optional per-plan completion observer
 }
 
 // Run executes the full prompt → plan → safety → optional apply flow.
@@ -60,18 +61,22 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 
 	if denied := safety.CheckPrompt(cfg.Prompt); denied.Denied {
+		doc := output.PlanResult{
+			APIVersion:    output.APIVersion,
+			Kind:          output.KindPlanResult,
+			SchemaVersion: output.SchemaVersion,
+			Prompt:        cfg.Prompt,
+			Risk: output.RiskPayload{
+				Level:   string(safety.RiskDenied),
+				Denied:  true,
+				Message: denied.Message,
+			},
+		}
+		if deps.OnResult != nil {
+			deps.OnResult(doc)
+		}
 		if jsonMode {
-			return output.Encode(out, output.PlanResult{
-				APIVersion:    output.APIVersion,
-				Kind:          output.KindPlanResult,
-				SchemaVersion: output.SchemaVersion,
-				Prompt:        cfg.Prompt,
-				Risk: output.RiskPayload{
-					Level:   string(safety.RiskDenied),
-					Denied:  true,
-					Message: denied.Message,
-				},
-			})
+			return output.Encode(out, doc)
 		}
 		ui.PrintDenied(out, denied.Message)
 		return nil
@@ -84,6 +89,19 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		if err != nil {
 			return err
 		}
+	}
+
+	routeSteps := intent.SplitRoutePrompt(cfg.Prompt)
+	if len(routeSteps) > intent.MaxRouteSteps {
+		return fmt.Errorf(
+			"route has %d steps; maximum is %d",
+			len(routeSteps),
+			intent.MaxRouteSteps,
+		)
+	}
+	if len(routeSteps) > 1 {
+		deps.Provider = provider
+		return runRoute(ctx, cfg, out, deps, routeSteps)
 	}
 
 	in, err := intent.Extract(ctx, provider, cfg.Prompt)
@@ -115,8 +133,12 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 
 	risk := safety.EvaluatePlan(plan)
 	if risk.Denied {
+		doc := output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false)
+		if deps.OnResult != nil {
+			deps.OnResult(doc)
+		}
 		if jsonMode {
-			return output.Encode(out, output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false))
+			return output.Encode(out, doc)
 		}
 		ui.PrintDenied(out, risk.Message)
 		return nil
@@ -158,8 +180,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	defer func() {
 		_ = history.Append(history.FromPlan(cfg.Prompt, cfg.Context, plan, risk, applied))
 		_ = history.Truncate()
+		doc.Applied = applied
+		if deps.OnResult != nil {
+			deps.OnResult(doc)
+		}
 		if jsonMode {
-			doc.Applied = applied
 			_ = output.Encode(out, doc)
 		}
 	}()

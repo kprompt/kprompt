@@ -19,6 +19,7 @@ import (
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/llm"
+	"github.com/kprompt/kprompt/internal/output"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
@@ -219,6 +220,193 @@ func (f *grafanaQuerierStub) GetDashboard(
 	string,
 ) (toolgrafana.Dashboard, error) {
 	return f.dashboard, nil
+}
+
+func TestMultiToolRouteRunsSequentialReadOnlySteps(t *testing.T) {
+	provider := &sequenceProvider{structured: []json.RawMessage{
+		json.RawMessage(
+			`{"kind":"performance","target":{"name":"api","kind":"Deployment"},"params":{"window":"15m"}}`,
+		),
+		json.RawMessage(
+			`{"kind":"trace","target":{"name":"payment","kind":"Service"},"params":{"window":"1h"}}`,
+		),
+	}}
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Namespace: "prod",
+		Prompt:    "why is api slow then trace payment request",
+	}, &out, Deps{
+		Provider: provider,
+		Prometheus: performanceQuerierFunc(
+			func(context.Context, string, time.Time) (toolprometheus.Result, error) {
+				return toolprometheus.Result{
+					Type: "vector",
+					Series: []toolprometheus.Series{{
+						Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "0.5"}},
+					}},
+				}, nil
+			},
+		),
+		OTel: traceQuerierFunc(func(
+			context.Context,
+			toolotel.SearchRequest,
+		) ([]toolotel.Trace, error) {
+			return []toolotel.Trace{{
+				TraceID:       "trace-1",
+				RootService:   "payment",
+				RootOperation: "POST /charge",
+				Duration:      100 * time.Millisecond,
+				Spans: []toolotel.Span{{
+					SpanID:    "root",
+					Service:   "payment",
+					Operation: "POST /charge",
+					Duration:  100 * time.Millisecond,
+				}},
+			}}, nil
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if provider.index != 2 ||
+		!bytes.Contains(out.Bytes(), []byte("Route: 2 sequential steps")) ||
+		!bytes.Contains(out.Bytes(), []byte("Performance:")) ||
+		!bytes.Contains(out.Bytes(), []byte("Trace: trace-1")) {
+		t.Fatalf("calls=%d output=%s", provider.index, out.String())
+	}
+}
+
+func TestMultiToolRouteJSONIsSingleDocument(t *testing.T) {
+	provider := &sequenceProvider{structured: []json.RawMessage{
+		json.RawMessage(
+			`{"kind":"dashboard","target":{"kind":"Dashboard"}}`,
+		),
+		json.RawMessage(
+			`{"kind":"trace","target":{"name":"payment","kind":"Service"}}`,
+		),
+	}}
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "show dashboards; trace payment request",
+		Output: "json",
+	}, &out, Deps{
+		Provider: provider,
+		Grafana: &grafanaQuerierStub{
+			dashboards: []toolgrafana.DashboardSummary{{
+				UID:   "payments",
+				Title: "Payments",
+			}},
+		},
+		OTel: traceQuerierFunc(func(
+			context.Context,
+			toolotel.SearchRequest,
+		) ([]toolotel.Trace, error) {
+			return []toolotel.Trace{{
+				TraceID: "trace-1",
+				Spans:   []toolotel.Span{},
+			}}, nil
+		}),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result output.RouteResult
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatalf("invalid route JSON: %v\n%s", err, out.String())
+	}
+	if result.Kind != output.KindRouteResult ||
+		!result.Applied ||
+		len(result.Steps) != 2 {
+		t.Fatalf("result=%+v", result)
+	}
+	if result.Steps[0].Plan.Actions[0].Backend != "grafana" ||
+		result.Steps[1].Plan.Actions[0].Backend != "opentelemetry" {
+		t.Fatalf("route backends=%+v", result.Steps)
+	}
+}
+
+func TestMultiToolRouteStopsAfterUnapprovedMutation(t *testing.T) {
+	provider := &sequenceProvider{structured: []json.RawMessage{
+		json.RawMessage(
+			`{"kind":"scale","target":{"name":"api","kind":"Deployment"},"params":{"replicas":3}}`,
+		),
+		json.RawMessage(
+			`{"kind":"dashboard","target":{"kind":"Dashboard"}}`,
+		),
+	}}
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "scale api to 3 then show dashboards",
+	}, &out, Deps{
+		Provider:   provider,
+		Client:     fake.NewSimpleClientset(deployment("api", "default", 1)),
+		IsTerminal: boolPtr(false),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if provider.index != 2 ||
+		!bytes.Contains(out.Bytes(), []byte("Route stopped at")) {
+		t.Fatalf("calls=%d output=%s", provider.index, out.String())
+	}
+}
+
+func TestMultiToolRoutePreflightsAllStepsBeforeMutation(t *testing.T) {
+	provider := &sequenceProvider{structured: []json.RawMessage{
+		json.RawMessage(
+			`{"kind":"scale","target":{"name":"api","kind":"Deployment"},"params":{"replicas":3}}`,
+		),
+		json.RawMessage(`{"kind":"unknown","target":{}}`),
+	}}
+	client := fake.NewSimpleClientset(deployment("api", "default", 1))
+	err := RunWith(context.Background(), config.Resolved{
+		Approve: true,
+		Prompt:  "scale api to 3 then investigate something unsupported",
+	}, io.Discard, Deps{
+		Provider: provider,
+		Client:   client,
+	})
+	if err == nil || !bytes.Contains([]byte(err.Error()), []byte("route step 2")) {
+		t.Fatalf("err=%v", err)
+	}
+	dep, getErr := client.AppsV1().Deployments("default").Get(
+		context.Background(),
+		"api",
+		metav1.GetOptions{},
+	)
+	if getErr != nil {
+		t.Fatal(getErr)
+	}
+	if dep.Spec.Replicas == nil || *dep.Spec.Replicas != 1 {
+		t.Fatalf("preflight failure must not mutate, replicas=%v", dep.Spec.Replicas)
+	}
+}
+
+type sequenceProvider struct {
+	structured []json.RawMessage
+	index      int
+}
+
+func (p *sequenceProvider) Name() string { return "sequence" }
+
+func (p *sequenceProvider) Complete(
+	context.Context,
+	llm.CompletionRequest,
+) (llm.CompletionResponse, error) {
+	return llm.CompletionResponse{}, nil
+}
+
+func (p *sequenceProvider) CompleteStructured(
+	_ context.Context,
+	_ llm.CompletionRequest,
+	_ json.RawMessage,
+) (json.RawMessage, error) {
+	if p.index >= len(p.structured) {
+		return nil, fmt.Errorf("unexpected structured completion %d", p.index+1)
+	}
+	result := p.structured[p.index]
+	p.index++
+	return result, nil
 }
 
 type traceQuerierFunc func(

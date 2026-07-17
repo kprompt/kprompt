@@ -41,6 +41,9 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 				if a.Object.Namespace != "" {
 					line += " -n " + a.Object.Namespace
 				}
+				if a.Backend != "" {
+					line += " via " + t.Accent(a.Backend)
+				}
 				if a.Replicas != nil && a.Op == planner.OpScale {
 					line += fmt.Sprintf(" → %d replicas", *a.Replicas)
 				}
@@ -66,6 +69,38 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 	if plan.RequiresApproval {
 		fmt.Fprintln(w, t.Muted("Next: confirm interactively on a TTY, or re-run with --approve."))
 	}
+}
+
+// PrintRoute prints the ordered NL requests in a multi-tool chain.
+func PrintRoute(w io.Writer, steps []string) {
+	t := themeFor(w)
+	fmt.Fprintf(w, "%s %d sequential steps\n", t.Heading("Route:"), len(steps))
+	for index, step := range steps {
+		fmt.Fprintf(w, "  %d. %s\n", index+1, step)
+	}
+}
+
+// PrintRouteStep separates one routed plan from the next.
+func PrintRouteStep(w io.Writer, index, total int, prompt string) {
+	t := themeFor(w)
+	fmt.Fprintf(
+		w,
+		"\n%s %s\n",
+		t.Heading(fmt.Sprintf("Step %d/%d:", index, total)),
+		t.Accent(prompt),
+	)
+}
+
+// PrintRouteStopped reports why remaining steps were not executed.
+func PrintRouteStopped(w io.Writer, index int, reason string) {
+	t := themeFor(w)
+	fmt.Fprintf(
+		w,
+		"%s step %d: %s\n",
+		t.Warn("Route stopped at"),
+		index,
+		reason,
+	)
 }
 
 // colorizeDiffLine tints unified-diff-style lines (+ green, - red).

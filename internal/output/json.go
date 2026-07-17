@@ -14,9 +14,10 @@ import (
 )
 
 const (
-	APIVersion     = "kprompt.io/v1"
-	KindPlanResult = "PlanResult"
-	SchemaVersion  = "1"
+	APIVersion      = "kprompt.io/v1"
+	KindPlanResult  = "PlanResult"
+	KindRouteResult = "RouteResult"
+	SchemaVersion   = "1"
 )
 
 // PlanResult is the stable CI-facing JSON document.
@@ -29,6 +30,18 @@ type PlanResult struct {
 	Risk          RiskPayload     `json:"risk"`
 	Applied       bool            `json:"applied"`
 	Result        json.RawMessage `json:"result,omitempty"`
+}
+
+// RouteResult is a stable CI-facing sequence of per-step plan results.
+type RouteResult struct {
+	APIVersion    string       `json:"apiVersion"`
+	Kind          string       `json:"kind"`
+	SchemaVersion string       `json:"schemaVersion"`
+	Prompt        string       `json:"prompt"`
+	Applied       bool         `json:"applied"`
+	StoppedAt     int          `json:"stoppedAt,omitempty"`
+	StopReason    string       `json:"stopReason,omitempty"`
+	Steps         []PlanResult `json:"steps"`
 }
 
 // PlanPayload is the reviewable plan without manifests/secrets.
@@ -44,6 +57,7 @@ type PlanPayload struct {
 // ActionPayload is one planned step (no YAML manifests).
 type ActionPayload struct {
 	Op        string `json:"op"`
+	Backend   string `json:"backend"`
 	Kind      string `json:"kind"`
 	Name      string `json:"name"`
 	Namespace string `json:"namespace,omitempty"`
@@ -69,6 +83,7 @@ func FromPlan(prompt, kubeContext string, plan planner.ExecutionPlan, risk safet
 		}
 		actions = append(actions, ActionPayload{
 			Op:        string(a.Op),
+			Backend:   actionBackend(a),
 			Kind:      a.Object.Kind,
 			Name:      a.Object.Name,
 			Namespace: a.Object.Namespace,
@@ -97,6 +112,13 @@ func FromPlan(prompt, kubeContext string, plan planner.ExecutionPlan, risk safet
 		},
 		Applied: applied,
 	}
+}
+
+func actionBackend(action planner.Action) string {
+	if action.Backend != "" {
+		return action.Backend
+	}
+	return "kubernetes"
 }
 
 // WithQueryResult attaches a tabular get/list payload.
@@ -253,6 +275,13 @@ func (r PlanResult) WithDashboardResult(result toolgrafana.ShowResult) PlanResul
 
 // Encode writes compact JSON plus a trailing newline.
 func Encode(w io.Writer, r PlanResult) error {
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	return enc.Encode(r)
+}
+
+// EncodeRoute writes compact route JSON plus a trailing newline.
+func EncodeRoute(w io.Writer, r RouteResult) error {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	return enc.Encode(r)
