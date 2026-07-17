@@ -19,6 +19,7 @@ const (
 	OpWorkflowCreate Op = "workflow-create"
 	OpPromQuery      Op = "prom-query"
 	OpTraceQuery     Op = "trace-query"
+	OpGrafanaQuery   Op = "grafana-query"
 )
 
 // ObjectRef is a Kubernetes object identity.

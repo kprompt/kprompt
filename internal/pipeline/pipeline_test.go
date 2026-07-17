@@ -19,6 +19,7 @@ import (
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/llm"
+	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
@@ -134,6 +135,90 @@ func TestTraceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 		!bytes.Contains(out.Bytes(), []byte("postgres")) {
 		t.Fatalf("output=%s", out.String())
 	}
+}
+
+func TestDashboardRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "show payments dashboard",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"dashboard","target":{"name":"payments","kind":"Dashboard"},"confidence":1}`,
+		)},
+		Grafana: &grafanaQuerierStub{
+			dashboards: []toolgrafana.DashboardSummary{{
+				UID:   "payments",
+				Title: "Payments Overview",
+			}},
+			dashboard: toolgrafana.Dashboard{
+				UID:   "payments",
+				Title: "Payments Overview",
+				URL:   "https://grafana.example/d/payments",
+				Panels: []toolgrafana.Panel{{
+					ID:    1,
+					Title: "Request rate",
+					Type:  "timeseries",
+					Datasource: toolgrafana.Datasource{
+						UID: "prom-main",
+					},
+				}},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("Dashboard: Payments Overview")) ||
+		!bytes.Contains(out.Bytes(), []byte("https://grafana.example/d/payments")) ||
+		!bytes.Contains(out.Bytes(), []byte("Request rate")) {
+		t.Fatalf("output=%s", out.String())
+	}
+}
+
+func TestDashboardJSONOutput(t *testing.T) {
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "show dashboards",
+		Output: "json",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"dashboard","target":{"kind":"Dashboard"},"confidence":1}`,
+		)},
+		Grafana: &grafanaQuerierStub{
+			dashboards: []toolgrafana.DashboardSummary{{
+				UID:   "payments",
+				Title: "Payments Overview",
+				URL:   "https://grafana.example/d/payments",
+			}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !json.Valid(out.Bytes()) ||
+		!bytes.Contains(out.Bytes(), []byte(`"type":"dashboard"`)) ||
+		!bytes.Contains(out.Bytes(), []byte(`"uid":"payments"`)) {
+		t.Fatalf("output=%s", out.String())
+	}
+}
+
+type grafanaQuerierStub struct {
+	dashboards []toolgrafana.DashboardSummary
+	dashboard  toolgrafana.Dashboard
+}
+
+func (f *grafanaQuerierStub) ListDashboards(
+	context.Context,
+	toolgrafana.SearchRequest,
+) ([]toolgrafana.DashboardSummary, error) {
+	return f.dashboards, nil
+}
+
+func (f *grafanaQuerierStub) GetDashboard(
+	context.Context,
+	string,
+) (toolgrafana.Dashboard, error) {
+	return f.dashboard, nil
 }
 
 type traceQuerierFunc func(

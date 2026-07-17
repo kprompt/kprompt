@@ -170,6 +170,11 @@ func (i Intent) Operation() (string, bool) {
 	return i.StringParam("operation")
 }
 
+// DashboardUID returns an explicitly supplied Grafana dashboard UID.
+func (i Intent) DashboardUID() (string, bool) {
+	return i.StringParam("uid")
+}
+
 // Task returns params.task when set (e.g. train, infer).
 func (i Intent) Task() (string, bool) {
 	return i.StringParam("task")

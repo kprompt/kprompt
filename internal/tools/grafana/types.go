@@ -15,6 +15,20 @@ type SearchRequest struct {
 	Limit int
 }
 
+// ShowRequest identifies a dashboard by UID or search text.
+type ShowRequest struct {
+	UID   string
+	Query string
+	Limit int
+}
+
+// ShowResult is either one detailed dashboard or a list of search matches.
+type ShowResult struct {
+	Query      string             `json:"query,omitempty"`
+	Dashboard  *Dashboard         `json:"dashboard,omitempty"`
+	Dashboards []DashboardSummary `json:"dashboards,omitempty"`
+}
+
 // DashboardSummary is one dashboard returned by Grafana search.
 type DashboardSummary struct {
 	UID         string   `json:"uid"`

@@ -11,6 +11,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
@@ -192,6 +193,81 @@ func PrintTrace(w io.Writer, report toolotel.TraceReport) {
 	fmt.Fprintln(w, t.Heading("Bottlenecks:"))
 	for _, item := range report.Bottlenecks {
 		fmt.Fprintf(w, "  - %s\n", t.Warn(item.Message))
+	}
+}
+
+// PrintDashboardResult prints Grafana matches or one dashboard panel summary.
+func PrintDashboardResult(w io.Writer, result toolgrafana.ShowResult) {
+	t := themeFor(w)
+	if result.Dashboard != nil {
+		dashboard := result.Dashboard
+		fmt.Fprintf(
+			w,
+			"%s %s\n",
+			t.Heading("Dashboard:"),
+			t.Accent(dashboard.Title),
+		)
+		fmt.Fprintf(w, "%s %s\n", t.Heading("UID:      "), dashboard.UID)
+		if dashboard.URL != "" {
+			fmt.Fprintf(w, "%s %s\n", t.Heading("URL:      "), dashboard.URL)
+		}
+		if len(dashboard.Panels) == 0 {
+			fmt.Fprintln(w, t.Muted("No panels found."))
+			return
+		}
+		fmt.Fprintln(w, t.Heading("Panels:"))
+		tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+		fmt.Fprintln(tw, t.tabHeading("ID\tTITLE\tTYPE\tDATASOURCE"))
+		for _, panel := range dashboard.Panels {
+			fmt.Fprintf(
+				tw,
+				"%d\t%s\t%s\t%s\n",
+				panel.ID,
+				panel.Title,
+				panel.Type,
+				grafanaDatasourceLabel(panel.Datasource),
+			)
+		}
+		_ = tw.Flush()
+		return
+	}
+
+	if len(result.Dashboards) == 0 {
+		if result.Query == "" {
+			fmt.Fprintln(w, t.Muted("No Grafana dashboards found."))
+		} else {
+			fmt.Fprintf(
+				w,
+				"%s\n",
+				t.Muted(fmt.Sprintf("No Grafana dashboards found for %q.", result.Query)),
+			)
+		}
+		return
+	}
+	fmt.Fprintln(w, t.Heading("Grafana dashboards:"))
+	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
+	fmt.Fprintln(tw, t.tabHeading("TITLE\tFOLDER\tUID\tURL"))
+	for _, dashboard := range result.Dashboards {
+		fmt.Fprintf(
+			tw,
+			"%s\t%s\t%s\t%s\n",
+			dashboard.Title,
+			dashboard.FolderTitle,
+			dashboard.UID,
+			dashboard.URL,
+		)
+	}
+	_ = tw.Flush()
+}
+
+func grafanaDatasourceLabel(source toolgrafana.Datasource) string {
+	switch {
+	case source.Name != "":
+		return source.Name
+	case source.UID != "":
+		return source.UID
+	default:
+		return source.Type
 	}
 }
 

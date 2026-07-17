@@ -23,6 +23,7 @@ import (
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 	"github.com/kprompt/kprompt/internal/ui"
@@ -37,6 +38,7 @@ type Deps struct {
 	Client     kubernetes.Interface
 	Prometheus toolprometheus.Querier
 	OTel       toolotel.Querier
+	Grafana    toolgrafana.Querier
 	Confirm    ConfirmFunc // if set, used instead of TTY prompt
 	IsTerminal *bool       // override ui.StdinIsTerminal when non-nil
 }
@@ -124,7 +126,8 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	var restCfg *rest.Config
 	if client == nil &&
 		plan.Intent.Kind != intent.KindPerformance &&
-		plan.Intent.Kind != intent.KindTrace {
+		plan.Intent.Kind != intent.KindTrace &&
+		plan.Intent.Kind != intent.KindDashboard {
 		if cfg.Context != "" {
 			if err := cluster.EnsureContext(cfg.Context); err != nil {
 				return err
@@ -164,6 +167,31 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	// Read-only paths run immediately (no --approve).
 	if isReadOnly(plan) {
 		switch plan.Intent.Kind {
+		case intent.KindDashboard:
+			querier := deps.Grafana
+			if querier == nil {
+				settings := tools.LoadSettings(config.File{Tools: cfg.Tools})
+				grafanaClient, err := tools.NewGrafanaClient(settings)
+				if err != nil {
+					return err
+				}
+				querier = grafanaClient
+			}
+			uid, _ := plan.Intent.DashboardUID()
+			result, err := toolgrafana.ShowDashboard(ctx, querier, toolgrafana.ShowRequest{
+				UID:   uid,
+				Query: plan.Intent.Target.Name,
+				Limit: 20,
+			})
+			if err != nil {
+				return fmt.Errorf("show dashboard: %w", err)
+			}
+			doc = doc.WithDashboardResult(result)
+			if !jsonMode {
+				ui.PrintDashboardResult(out, result)
+			}
+			applied = true
+			return nil
 		case intent.KindTrace:
 			querier := deps.OTel
 			if querier == nil {
@@ -481,7 +509,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard:
 		return true
 	default:
 		return false

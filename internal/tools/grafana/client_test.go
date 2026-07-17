@@ -59,6 +59,9 @@ func TestListDashboards(t *testing.T) {
 	if got.UID != "payments" || got.FolderUID != "services" || !got.Starred {
 		t.Fatalf("dashboard=%+v", got)
 	}
+	if got.URL != server.URL+"/d/payments/payments-overview" {
+		t.Fatalf("URL=%q", got.URL)
+	}
 }
 
 func TestGetDashboardPanelMetadata(t *testing.T) {
@@ -114,6 +117,9 @@ func TestGetDashboardPanelMetadata(t *testing.T) {
 	}
 	if dashboard.Title != "Payments Overview" || len(dashboard.Panels) != 2 {
 		t.Fatalf("dashboard=%+v", dashboard)
+	}
+	if dashboard.URL != server.URL+"/d/payments/payments-overview" {
+		t.Fatalf("URL=%q", dashboard.URL)
 	}
 	if dashboard.Panels[0].Datasource.UID != "prom-main" ||
 		dashboard.Panels[0].Targets[0].Expression != "rate(http_requests_total[5m])" {

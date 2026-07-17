@@ -8,6 +8,7 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
@@ -231,6 +232,19 @@ func (r PlanResult) WithTraceResult(report toolotel.TraceReport) PlanResult {
 		"summary":       report.Summary,
 		"spans":         report.Spans,
 		"bottlenecks":   bottlenecks,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithDashboardResult attaches Grafana dashboard matches or panel metadata.
+func (r PlanResult) WithDashboardResult(result toolgrafana.ShowResult) PlanResult {
+	payload := map[string]any{
+		"type":       "dashboard",
+		"query":      result.Query,
+		"dashboard":  result.Dashboard,
+		"dashboards": result.Dashboards,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

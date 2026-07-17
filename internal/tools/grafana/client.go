@@ -131,7 +131,7 @@ func (c *Client) ListDashboards(
 		out = append(out, DashboardSummary{
 			UID:         item.UID,
 			Title:       item.Title,
-			URL:         item.URL,
+			URL:         c.absoluteURL(item.URL),
 			Tags:        append([]string(nil), item.Tags...),
 			FolderUID:   item.FolderUID,
 			FolderTitle: item.FolderTitle,
@@ -158,7 +158,7 @@ func (c *Client) GetDashboard(ctx context.Context, uid string) (Dashboard, error
 	return Dashboard{
 		UID:    first(envelope.Dashboard.UID, uid),
 		Title:  envelope.Dashboard.Title,
-		URL:    envelope.Meta.URL,
+		URL:    c.absoluteURL(envelope.Meta.URL),
 		Tags:   append([]string(nil), envelope.Dashboard.Tags...),
 		Panels: flattenPanels(envelope.Dashboard.Panels),
 	}, nil
@@ -305,6 +305,22 @@ func normalizeDatasource(raw json.RawMessage) Datasource {
 func datasourceLabel(raw json.RawMessage) string {
 	source := normalizeDatasource(raw)
 	return first(source.UID, source.Name, source.Type)
+}
+
+func (c *Client) absoluteURL(raw string) string {
+	raw = strings.TrimSpace(raw)
+	if raw == "" || c == nil || c.baseURL == nil {
+		return raw
+	}
+	reference, err := url.Parse(raw)
+	if err != nil {
+		return raw
+	}
+	base := *c.baseURL
+	if !strings.HasSuffix(base.Path, "/") {
+		base.Path += "/"
+	}
+	return base.ResolveReference(reference).String()
 }
 
 func first(values ...string) string {
