@@ -29,6 +29,7 @@ type Settings struct {
 	OTelEnabled       bool
 	PrometheusURL     string
 	GrafanaURL        string
+	GrafanaAPIKey     string
 	OTelEndpoint      string
 	OTelBackend       string
 }
@@ -43,6 +44,7 @@ func LoadSettings(file config.File) Settings {
 		OTelEnabled:       toolEnabled(file.Tools.OTel.Enabled, EnvOTelOn, true),
 		PrometheusURL:     firstNonEmpty(os.Getenv(EnvPrometheusURL), file.Tools.Prometheus.URL),
 		GrafanaURL:        firstNonEmpty(os.Getenv(EnvGrafanaURL), file.Tools.Grafana.URL),
+		GrafanaAPIKey:     strings.TrimSpace(os.Getenv(EnvGrafanaAPIKey)),
 		OTelEndpoint:      firstNonEmpty(os.Getenv(EnvOTelEndpoint), file.Tools.OTel.Endpoint),
 		OTelBackend:       firstNonEmpty(os.Getenv(EnvOTelBackend), file.Tools.OTel.Backend, "auto"),
 	}
