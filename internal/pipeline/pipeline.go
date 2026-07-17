@@ -194,9 +194,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return fmt.Errorf("trace walk: %w", err)
 			}
-			doc = doc.WithTraceResult(trace)
+			report := toolotel.AnalyzeTrace(trace)
+			doc = doc.WithTraceResult(report)
 			if !jsonMode {
-				ui.PrintTrace(out, trace)
+				ui.PrintTrace(out, report)
 			}
 			applied = true
 			return nil

@@ -85,6 +85,7 @@ func TestPerformanceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 
 func TestTraceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 	var out bytes.Buffer
+	start := time.Unix(1, 0)
 	err := RunWith(context.Background(), config.Resolved{
 		Prompt: "trace payment request",
 	}, &out, Deps{
@@ -102,13 +103,25 @@ func TestTraceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 				TraceID:       "trace-1",
 				RootService:   "payment",
 				RootOperation: "POST /charge",
-				Duration:      120 * time.Millisecond,
-				Spans: []toolotel.Span{{
-					SpanID:    "root",
-					Service:   "payment",
-					Operation: "POST /charge",
-					Duration:  120 * time.Millisecond,
-				}},
+				StartTime:     start,
+				Duration:      4 * time.Second,
+				Spans: []toolotel.Span{
+					{
+						SpanID:    "root",
+						Service:   "payment",
+						Operation: "POST /charge",
+						StartTime: start,
+						Duration:  4 * time.Second,
+					},
+					{
+						SpanID:       "db",
+						ParentSpanID: "root",
+						Service:      "postgres",
+						Operation:    "SELECT users",
+						StartTime:    start.Add(200 * time.Millisecond),
+						Duration:     3200 * time.Millisecond,
+					},
+				},
 			}}, nil
 		}),
 	})
@@ -116,7 +129,9 @@ func TestTraceRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !bytes.Contains(out.Bytes(), []byte("Trace: trace-1")) ||
-		!bytes.Contains(out.Bytes(), []byte("payment: POST /charge")) {
+		!bytes.Contains(out.Bytes(), []byte("payment: POST /charge")) ||
+		!bytes.Contains(out.Bytes(), []byte("Bottlenecks:")) ||
+		!bytes.Contains(out.Bytes(), []byte("postgres")) {
 		t.Fatalf("output=%s", out.String())
 	}
 }

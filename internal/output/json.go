@@ -207,16 +207,30 @@ func (r PlanResult) WithPerformanceResult(report toolprometheus.PerformanceRepor
 	return r
 }
 
-// WithTraceResult attaches a backend-neutral distributed span tree.
-func (r PlanResult) WithTraceResult(trace toolotel.Trace) PlanResult {
+// WithTraceResult attaches a backend-neutral distributed span tree and bottlenecks.
+func (r PlanResult) WithTraceResult(report toolotel.TraceReport) PlanResult {
+	bottlenecks := make([]map[string]any, 0, len(report.Bottlenecks))
+	for _, item := range report.Bottlenecks {
+		bottlenecks = append(bottlenecks, map[string]any{
+			"spanId":    item.SpanID,
+			"service":   item.Service,
+			"operation": item.Operation,
+			"duration":  item.Duration.String(),
+			"share":     item.Share,
+			"status":    item.Status,
+			"message":   item.Message,
+		})
+	}
 	payload := map[string]any{
 		"type":          "trace",
-		"traceId":       trace.TraceID,
-		"rootService":   trace.RootService,
-		"rootOperation": trace.RootOperation,
-		"startTime":     trace.StartTime,
-		"duration":      trace.Duration.String(),
-		"spans":         toolotel.WalkSpans(trace),
+		"traceId":       report.Trace.TraceID,
+		"rootService":   report.Trace.RootService,
+		"rootOperation": report.Trace.RootOperation,
+		"startTime":     report.Trace.StartTime,
+		"duration":      report.Trace.Duration.String(),
+		"summary":       report.Summary,
+		"spans":         report.Spans,
+		"bottlenecks":   bottlenecks,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

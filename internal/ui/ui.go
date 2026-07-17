@@ -142,9 +142,10 @@ func PrintPerformanceReport(w io.Writer, report toolprometheus.PerformanceReport
 	}
 }
 
-// PrintTrace prints a parent-before-child distributed span tree.
-func PrintTrace(w io.Writer, trace toolotel.Trace) {
+// PrintTrace prints a parent-before-child distributed span tree and bottlenecks.
+func PrintTrace(w io.Writer, report toolotel.TraceReport) {
 	t := themeFor(w)
+	trace := report.Trace
 	fmt.Fprintf(w, "%s %s\n", t.Heading("Trace:"), t.Accent(trace.TraceID))
 	root := trace.RootService
 	if trace.RootService != "" && trace.RootOperation != "" {
@@ -154,30 +155,43 @@ func PrintTrace(w io.Writer, trace toolotel.Trace) {
 	if root != "" {
 		fmt.Fprintf(w, "%s %s (%s)\n", t.Heading("Root: "), root, trace.Duration)
 	}
+	if report.Summary != "" {
+		fmt.Fprintf(w, "%s %s\n", t.Heading("Summary:"), report.Summary)
+	}
 	fmt.Fprintln(w, t.Heading("Spans:"))
-	rows := toolotel.WalkSpans(trace)
+	rows := report.Spans
+	if len(rows) == 0 {
+		rows = toolotel.WalkSpans(trace)
+	}
 	if len(rows) == 0 {
 		fmt.Fprintln(w, "  "+t.Muted("(no spans)"))
+	} else {
+		for _, row := range rows {
+			span := row.Span
+			label := span.Operation
+			if span.Service != "" {
+				label = span.Service + ": " + label
+			}
+			status := ""
+			if span.Status != "" {
+				status = " [" + span.Status + "]"
+			}
+			fmt.Fprintf(
+				w,
+				"  %s└─ %s (%s)%s\n",
+				strings.Repeat("  ", row.Depth),
+				label,
+				span.Duration,
+				status,
+			)
+		}
+	}
+	if len(report.Bottlenecks) == 0 {
 		return
 	}
-	for _, row := range rows {
-		span := row.Span
-		label := span.Operation
-		if span.Service != "" {
-			label = span.Service + ": " + label
-		}
-		status := ""
-		if span.Status != "" {
-			status = " [" + span.Status + "]"
-		}
-		fmt.Fprintf(
-			w,
-			"  %s└─ %s (%s)%s\n",
-			strings.Repeat("  ", row.Depth),
-			label,
-			span.Duration,
-			status,
-		)
+	fmt.Fprintln(w, t.Heading("Bottlenecks:"))
+	for _, item := range report.Bottlenecks {
+		fmt.Fprintf(w, "  - %s\n", t.Warn(item.Message))
 	}
 }
 
