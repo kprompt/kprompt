@@ -243,7 +243,7 @@ func (r PlanResult) WithPerformanceResult(report toolprometheus.PerformanceRepor
 	return r
 }
 
-// WithOptimizeResult attaches a read-only cluster optimize report (T-052).
+// WithOptimizeResult attaches a read-only cluster optimize report (T-052+).
 func (r PlanResult) WithOptimizeResult(report optimize.Report) PlanResult {
 	payload := map[string]any{
 		"type":        report.Type,
@@ -253,6 +253,7 @@ func (r PlanResult) WithOptimizeResult(report optimize.Report) PlanResult {
 		"summary":     report.Summary,
 		"findings":    report.Findings,
 		"suggestions": report.Suggestions,
+		"workloads":   report.Workloads,
 		"sections":    report.Sections,
 	}
 	raw, _ := json.Marshal(payload)

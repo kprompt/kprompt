@@ -176,7 +176,28 @@ func TestDashboardRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 	}
 }
 
-func TestOptimizeRunsReadOnlyScaffold(t *testing.T) {
+func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
+	replicas := int32(2)
+	client := fake.NewSimpleClientset(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "default"},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Template: corev1.PodTemplateSpec{
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name: "api",
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("50m"),
+								corev1.ResourceMemory: resource.MustParse("64Mi"),
+							},
+						},
+					}},
+				},
+			},
+		},
+		Status: appsv1.DeploymentStatus{ReadyReplicas: 2},
+	})
 	var out bytes.Buffer
 	err := RunWith(context.Background(), config.Resolved{
 		Prompt: "optimize my cluster",
@@ -184,14 +205,19 @@ func TestOptimizeRunsReadOnlyScaffold(t *testing.T) {
 		Provider: &llm.Stub{Structured: []byte(
 			`{"kind":"optimize","target":{"kind":"Cluster"},"params":{"scope":"cluster"},"confidence":1}`,
 		)},
+		Client: client,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Contains(out.Bytes(), []byte("Optimize:")) ||
-		!bytes.Contains(out.Bytes(), []byte("inventory")) ||
-		!bytes.Contains(out.Bytes(), []byte("pending")) {
+		!bytes.Contains(out.Bytes(), []byte("Inventory:")) ||
+		!bytes.Contains(out.Bytes(), []byte("api")) ||
+		!bytes.Contains(out.Bytes(), []byte("ready")) {
 		t.Fatalf("output=%s", out.String())
+	}
+	if bytes.Contains(out.Bytes(), []byte("inventory: pending")) {
+		t.Fatalf("inventory should be ready, output=%s", out.String())
 	}
 }
 

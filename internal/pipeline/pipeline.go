@@ -158,8 +158,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if client == nil &&
 		plan.Intent.Kind != intent.KindPerformance &&
 		plan.Intent.Kind != intent.KindTrace &&
-		plan.Intent.Kind != intent.KindDashboard &&
-		plan.Intent.Kind != intent.KindOptimize {
+		plan.Intent.Kind != intent.KindDashboard {
 		if cfg.Context != "" {
 			if err := cluster.EnsureContext(cfg.Context); err != nil {
 				return err
@@ -309,6 +308,14 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				Namespace: plan.Intent.Target.Namespace,
 				Window:    window,
 			})
+			inv, err := optimize.CollectInventory(ctx, client, optimize.Request{
+				Namespace: plan.Intent.Target.Namespace,
+				Window:    window,
+			})
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("optimize inventory: %w", err))
+			}
+			optimize.ApplyInventory(&report, inv)
 			doc = doc.WithOptimizeResult(report)
 			if !jsonMode {
 				ui.PrintOptimizeReport(out, report)

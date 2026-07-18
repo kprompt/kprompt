@@ -55,7 +55,7 @@ type Sections struct {
 	HPA         SectionStatus `json:"hpa"`
 }
 
-// Report is the stable human + JSON contract for `optimize my cluster` (T-052).
+// Report is the stable human + JSON contract for `optimize my cluster` (T-052+).
 type Report struct {
 	Type        string       `json:"type"`
 	Scope       string       `json:"scope"`
@@ -64,6 +64,7 @@ type Report struct {
 	Summary     string       `json:"summary"`
 	Findings    []Finding    `json:"findings"`
 	Suggestions []Suggestion `json:"suggestions"`
+	Workloads   []Workload   `json:"workloads,omitempty"` // T-053 inventory
 	Sections    Sections     `json:"sections"`
 }
 
@@ -81,10 +82,10 @@ func BuildScaffold(req Request) Report {
 	}
 	windowLabel := formatWindow(window)
 
-	summary := "Optimize report scaffold (read-only). Workload inventory, idle detection, rightsizing, and HPA hints will fill in as those signals ship — no mutations in this pass."
+	summary := "Optimize report (read-only). Collecting workload inventory; idle, rightsizing, and HPA hints fill in as those signals ship — no mutations."
 	if scope == ScopeNamespace {
 		summary = fmt.Sprintf(
-			"Optimize report scaffold for namespace %q (read-only). Inventory and Prometheus-backed sections land in follow-up tasks — no mutations in this pass.",
+			"Optimize report for namespace %q (read-only). Collecting workload inventory; Prometheus-backed sections land in follow-up tasks — no mutations.",
 			ns,
 		)
 	}
@@ -105,7 +106,7 @@ func BuildScaffold(req Request) Report {
 		Sections: Sections{
 			Inventory: SectionStatus{
 				Status:  SectionPending,
-				Message: "Workload inventory (replicas, requests/limits) — T-053",
+				Message: "Workload inventory (replicas, requests/limits) pending collection",
 			},
 			Idle: SectionStatus{
 				Status:  SectionPending,

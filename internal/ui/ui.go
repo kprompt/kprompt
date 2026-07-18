@@ -179,7 +179,7 @@ func PrintPerformanceReport(w io.Writer, report toolprometheus.PerformanceReport
 	}
 }
 
-// PrintOptimizeReport prints a read-only cluster optimize report (T-052).
+// PrintOptimizeReport prints a read-only cluster optimize report (T-052+).
 func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 	t := themeFor(w)
 	scope := report.Scope
@@ -198,6 +198,19 @@ func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 			fmt.Fprintf(w, "  - [%s] %s: %s\n", t.Severity(f.Severity), t.Accent(f.Title), f.Message)
 		}
 	}
+	if len(report.Workloads) > 0 {
+		fmt.Fprintln(w, t.Heading("Inventory:"))
+		const maxRows = 40
+		for i, wl := range report.Workloads {
+			if i >= maxRows {
+				fmt.Fprintf(w, "  … %d more workloads\n", len(report.Workloads)-maxRows)
+				break
+			}
+			res := formatWorkloadResources(wl)
+			fmt.Fprintf(w, "  - %s/%s %s  replicas %d/%d  %s\n",
+				wl.Namespace, wl.Name, t.Muted(wl.Kind), wl.ReadyReplicas, wl.Replicas, res)
+		}
+	}
 	if len(report.Suggestions) > 0 {
 		fmt.Fprintln(w, t.Heading("Suggestions:"))
 		for _, s := range report.Suggestions {
@@ -213,6 +226,29 @@ func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 	printOptimizeSection(w, t, "idle", report.Sections.Idle)
 	printOptimizeSection(w, t, "rightsizing", report.Sections.Rightsizing)
 	printOptimizeSection(w, t, "hpa", report.Sections.HPA)
+}
+
+func formatWorkloadResources(wl optimize.Workload) string {
+	parts := make([]string, 0, 4)
+	if wl.CPURequest != "" {
+		parts = append(parts, "cpuReq="+wl.CPURequest)
+	}
+	if wl.MemoryRequest != "" {
+		parts = append(parts, "memReq="+wl.MemoryRequest)
+	}
+	if wl.CPULimit != "" {
+		parts = append(parts, "cpuLim="+wl.CPULimit)
+	}
+	if wl.MemoryLimit != "" {
+		parts = append(parts, "memLim="+wl.MemoryLimit)
+	}
+	if len(parts) == 0 {
+		if wl.MissingReq {
+			return "no requests/limits"
+		}
+		return "-"
+	}
+	return strings.Join(parts, " ")
 }
 
 func printOptimizeSection(w io.Writer, t Theme, name string, sec optimize.SectionStatus) {

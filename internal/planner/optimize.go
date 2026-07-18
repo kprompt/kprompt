@@ -40,9 +40,9 @@ func buildOptimize(in intent.Intent) (ExecutionPlan, error) {
 		in.Target.Namespace = ""
 	}
 
-	summary := "Optimize cluster (read-only report scaffold)"
+	summary := "Optimize cluster (read-only inventory report)"
 	if scopeNS != "" {
-		summary = fmt.Sprintf("Optimize namespace %s (read-only report scaffold)", scopeNS)
+		summary = fmt.Sprintf("Optimize namespace %s (read-only inventory report)", scopeNS)
 	}
 	summary += " over " + windowLabel
 
@@ -59,7 +59,7 @@ func buildOptimize(in intent.Intent) (ExecutionPlan, error) {
 				Kind:      in.Target.Kind,
 				Namespace: scopeNS,
 			},
-			Diff: "collect inventory / idle / rightsizing / HPA signals (scaffold in T-052)",
+			Diff: "collect workload inventory (replicas, requests/limits); idle/rightsizing/HPA pending",
 		}},
 		Summary:          summary,
 		RequiresApproval: false,
