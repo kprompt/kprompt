@@ -10,7 +10,7 @@ import (
 
 const systemPrompt = `You convert Kubernetes ops requests into a single Intent JSON object.
 Rules:
-- kind must be one of: deploy, install, scale, rollback, get, explain, logs, describe, workflow, performance, trace, dashboard, optimize, delete, deny, unknown
+- kind must be one of: deploy, install, scale, rollback, get, explain, logs, describe, workflow, performance, trace, dashboard, optimize, graph, delete, deny, unknown
 - For scale: set target.name, target.kind (usually Deployment), target.namespace if mentioned, params.replicas as a number
 - For rollback / undo rollout / revert: kind=rollback; set target.name to the Deployment; target.kind Deployment; target.namespace if mentioned; optional params.revision (number) to roll back to a specific revision (omit for previous revision)
 - For install (helm chart): kind=install; set target.name to the app or release name (e.g. redis); target.namespace if mentioned; optional params.release, params.chart, params.repo, params.repo_url, params.replicas
@@ -20,6 +20,7 @@ Rules:
 - For explain/why crashing/failing: kind=explain; set target.name to the workload; target.kind Deployment or Pod; target.namespace if mentioned
 - For slow/performance/latency requests (e.g. "why is my api slow"): kind=performance; set target.name to the workload; target.kind Deployment; target.namespace if mentioned; optional params.window such as "15m" or "1h"
 - For cluster optimize / rightsizing / idle workload asks (e.g. "optimize my cluster"): kind=optimize; omit target.name; set params.scope=cluster for whole-cluster; set target.namespace only when a namespace is named; optional params.window (default 1h). Optimize is read-only — never emit scale/patch/delete for this kind
+- For service dependency graph asks (e.g. "show service dependency graph"): kind=graph; omit target.name; set params.scope=cluster unless a namespace is named; optional params.includeNetworkPolicy=true (default true). Graph is read-only
 - For distributed tracing requests (e.g. "trace payment request"): kind=trace; set target.name to the service name (e.g. payment); target.kind Service; optional params.operation for an explicitly named span/route; optional params.window up to 24h
 - For Grafana dashboard requests (e.g. "show dashboard" or "show payments dashboard"): kind=dashboard; set target.name to the dashboard search text when named; target.kind Dashboard; optional params.uid only when the user gives an explicit Grafana dashboard UID
 - For logs / tail logs / show logs: kind=logs; set target.name (Pod or Deployment); optional target.kind; optional params.tail (lines, default 100); optional params.container

@@ -16,6 +16,7 @@ import (
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/executor"
+	"github.com/kprompt/kprompt/internal/graph"
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/llm"
@@ -121,6 +122,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	})
 	in = intent.NormalizeVerb(in, cfg.Prompt)
 	in = intent.ApplyOptimizeScope(in, cfg.Prompt, intent.ScopePrefs{
+		DefaultNamespace: cfg.Namespace,
+		ForceNamespace:   cfg.NamespaceFromCLI,
+	})
+	in = intent.ApplyGraphScope(in, cfg.Prompt, intent.ScopePrefs{
 		DefaultNamespace: cfg.Namespace,
 		ForceNamespace:   cfg.NamespaceFromCLI,
 	})
@@ -376,6 +381,29 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return cluster.Friendlier(fmt.Errorf("apply optimize suggestion: %w", err))
 			}
 			ui.PrintApplied(out, fix)
+			applied = true
+			return nil
+		case intent.KindGraph:
+			includeNP := true
+			if v, ok := plan.Intent.Params["includeNetworkPolicy"]; ok {
+				switch t := v.(type) {
+				case bool:
+					includeNP = t
+				case string:
+					includeNP = strings.EqualFold(t, "true") || t == "1"
+				}
+			}
+			report, err := graph.Build(ctx, client, graph.Request{
+				Namespace:            plan.Intent.Target.Namespace,
+				IncludeNetworkPolicy: includeNP,
+			})
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("service graph: %w", err))
+			}
+			doc = doc.WithGraphResult(report)
+			if !jsonMode {
+				ui.PrintGraphReport(out, report)
+			}
 			applied = true
 			return nil
 		case intent.KindExplain:
@@ -638,7 +666,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph:
 		return true
 	default:
 		return false

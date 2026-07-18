@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/kprompt/kprompt/internal/cluster"
+	"github.com/kprompt/kprompt/internal/graph"
 	"github.com/kprompt/kprompt/internal/optimize"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
@@ -244,6 +245,51 @@ func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 	printOptimizeSection(w, t, "idle", report.Sections.Idle)
 	printOptimizeSection(w, t, "rightsizing", report.Sections.Rightsizing)
 	printOptimizeSection(w, t, "hpa", report.Sections.HPA)
+}
+
+// PrintGraphReport prints a terminal-friendly service dependency adjacency list (T-059).
+func PrintGraphReport(w io.Writer, report graph.Report) {
+	t := themeFor(w)
+	scope := report.Scope
+	if report.Namespace != "" {
+		scope = fmt.Sprintf("%s/%s", report.Scope, report.Namespace)
+	}
+	fmt.Fprintf(w, "%s %s\n", t.Heading("Service graph:"), t.Accent(scope))
+	fmt.Fprintf(w, "%s %s\n", t.Heading("Summary: "), report.Summary)
+	if len(report.Notes) > 0 {
+		fmt.Fprintln(w, t.Heading("Notes:"))
+		for _, n := range report.Notes {
+			fmt.Fprintf(w, "  - %s\n", t.Muted(n))
+		}
+	}
+	if len(report.Nodes) > 0 {
+		fmt.Fprintln(w, t.Heading("Nodes:"))
+		const maxNodes = 50
+		for i, n := range report.Nodes {
+			if i >= maxNodes {
+				fmt.Fprintf(w, "  … %d more nodes\n", len(report.Nodes)-maxNodes)
+				break
+			}
+			fmt.Fprintf(w, "  - %s %s\n", t.Muted(n.Kind), t.Accent(n.ID))
+		}
+	}
+	if len(report.Edges) > 0 {
+		fmt.Fprintln(w, t.Heading("Edges:"))
+		const maxEdges = 80
+		for i, e := range report.Edges {
+			if i >= maxEdges {
+				fmt.Fprintf(w, "  … %d more edges\n", len(report.Edges)-maxEdges)
+				break
+			}
+			line := fmt.Sprintf("  - %s -[%s]→ %s", e.From, e.Type, e.To)
+			if e.Detail != "" {
+				line += " " + t.Muted("("+e.Detail+")")
+			}
+			fmt.Fprintln(w, line)
+		}
+	} else {
+		fmt.Fprintln(w, t.Muted("No edges found in scope."))
+	}
 }
 
 func formatWorkloadResources(wl optimize.Workload) string {

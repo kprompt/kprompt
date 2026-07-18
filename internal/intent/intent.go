@@ -20,6 +20,7 @@ const (
 	KindTrace       Kind = "trace"
 	KindDashboard   Kind = "dashboard"
 	KindOptimize    Kind = "optimize"
+	KindGraph       Kind = "graph"
 	KindDelete      Kind = "delete"
 	KindPatch       Kind = "patch"
 	KindDeny        Kind = "deny"
@@ -51,7 +52,7 @@ const SchemaJSON = `{
   "properties": {
     "kind": {
       "type": "string",
-      "enum": ["deploy", "install", "upgrade", "scale", "rollback", "get", "explain", "logs", "describe", "workflow", "performance", "trace", "dashboard", "optimize", "delete", "deny", "unknown"]
+      "enum": ["deploy", "install", "upgrade", "scale", "rollback", "get", "explain", "logs", "describe", "workflow", "performance", "trace", "dashboard", "optimize", "graph", "delete", "deny", "unknown"]
     },
     "target": {
       "type": "object",

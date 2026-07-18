@@ -21,6 +21,7 @@ const (
 	OpTraceQuery     Op = "trace-query"
 	OpGrafanaQuery   Op = "grafana-query"
 	OpOptimize       Op = "optimize"
+	OpGraph          Op = "graph"
 )
 
 // ObjectRef is a Kubernetes object identity.

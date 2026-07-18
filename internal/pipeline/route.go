@@ -94,6 +94,9 @@ func prepareRoute(
 		in = intent.ApplyOptimizeScope(in, prompt, intent.ScopePrefs{
 			ForceNamespace: cfg.NamespaceFromCLI,
 		})
+		in = intent.ApplyGraphScope(in, prompt, intent.ScopePrefs{
+			ForceNamespace: cfg.NamespaceFromCLI,
+		})
 		plan, err := planner.Build(in)
 		if err != nil {
 			return nil, fmt.Errorf("route step %d: %w", index+1, err)

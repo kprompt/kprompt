@@ -110,7 +110,7 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
 	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph:
 		// Generic Kubernetes reads and optimize reports (including Secret) are RiskLow.
 		// Authorization is the caller's kubeconfig RBAC — no special Secret redaction or deny.
 		// Mutating unknown kinds remains denied above; generic mutate is out of scope (T-048).

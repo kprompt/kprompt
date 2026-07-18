@@ -16,7 +16,8 @@ func NormalizeVerb(in Intent, prompt string) Intent {
 	in = NormalizePerformance(in, prompt)
 	in = NormalizeTrace(in, prompt)
 	in = NormalizeDashboard(in, prompt)
-	return NormalizeOptimize(in, prompt)
+	in = NormalizeOptimize(in, prompt)
+	return NormalizeGraph(in, prompt)
 }
 
 // NormalizeWorkflow maps workflow-shaped prompts to workflow intent and fills params.

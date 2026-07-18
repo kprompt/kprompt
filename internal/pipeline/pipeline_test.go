@@ -14,6 +14,7 @@ import (
 	appsv1 "k8s.io/api/apps/v1"
 	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
+	discoveryv1 "k8s.io/api/discovery/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -378,6 +379,44 @@ func TestOptimizeApproveFlagDoesNotAutoApplyFix(t *testing.T) {
 	}
 	if !bytes.Contains(out.Bytes(), []byte("does not auto-apply")) {
 		t.Fatalf("expected no-auto-apply notice, got %s", out.String())
+	}
+}
+
+func TestGraphRunsReadOnly(t *testing.T) {
+	port := int32(8080)
+	client := fake.NewSimpleClientset(
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "default"},
+			Spec:       corev1.ServiceSpec{Selector: map[string]string{"app": "api"}},
+		},
+		&discoveryv1.EndpointSlice{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:      "api-xyz",
+				Namespace: "default",
+				Labels:    map[string]string{discoveryv1.LabelServiceName: "api"},
+			},
+			Ports: []discoveryv1.EndpointPort{{Port: &port}},
+			Endpoints: []discoveryv1.Endpoint{{
+				TargetRef: &corev1.ObjectReference{Kind: "Pod", Name: "api-0", Namespace: "default"},
+			}},
+		},
+	)
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "show service dependency graph",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"graph","target":{"kind":"ServiceGraph"},"params":{"scope":"cluster","includeNetworkPolicy":false},"confidence":1}`,
+		)},
+		Client: client,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("Service graph:")) ||
+		!bytes.Contains(out.Bytes(), []byte("Edges:")) ||
+		!bytes.Contains(out.Bytes(), []byte("routes")) {
+		t.Fatalf("output=%s", out.String())
 	}
 }
 

@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/kprompt/kprompt/internal/cluster"
+	"github.com/kprompt/kprompt/internal/graph"
 	"github.com/kprompt/kprompt/internal/optimize"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
@@ -258,6 +259,22 @@ func (r PlanResult) WithOptimizeResult(report optimize.Report) PlanResult {
 		"rightsizing": report.Rightsizing,
 		"hpa":         report.HPA,
 		"sections":    report.Sections,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithGraphResult attaches a read-only service dependency graph (T-059).
+func (r PlanResult) WithGraphResult(report graph.Report) PlanResult {
+	payload := map[string]any{
+		"type":      report.Type,
+		"scope":     report.Scope,
+		"namespace": report.Namespace,
+		"summary":   report.Summary,
+		"nodes":     report.Nodes,
+		"edges":     report.Edges,
+		"notes":     report.Notes,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw
