@@ -325,6 +325,8 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			}
 			idle := optimize.DetectIdle(ctx, querier, report.Workloads, window)
 			optimize.ApplyIdle(&report, idle)
+			rs := optimize.SuggestRightsizing(ctx, querier, report.Workloads, window)
+			optimize.ApplyRightsizing(&report, rs)
 			doc = doc.WithOptimizeResult(report)
 			if !jsonMode {
 				ui.PrintOptimizeReport(out, report)

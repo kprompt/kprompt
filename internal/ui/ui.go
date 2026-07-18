@@ -217,6 +217,12 @@ func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 			fmt.Fprintf(w, "  - %s\n", idle.Message)
 		}
 	}
+	if len(report.Rightsizing) > 0 {
+		fmt.Fprintln(w, t.Heading("Rightsizing:"))
+		for _, d := range report.Rightsizing {
+			fmt.Fprintf(w, "  - %s\n", d.Message)
+		}
+	}
 	if len(report.Suggestions) > 0 {
 		fmt.Fprintln(w, t.Heading("Suggestions:"))
 		for _, s := range report.Suggestions {

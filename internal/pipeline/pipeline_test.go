@@ -217,25 +217,39 @@ func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
 							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "0.01"}},
 						}},
 					}, nil
-				case strings.Contains(promQL, `resource="cpu"`):
+				case strings.Contains(promQL, `resource="cpu"`) && strings.Contains(promQL, "requests"):
 					return toolprometheus.Result{
 						Type: "vector",
 						Series: []toolprometheus.Series{{
 							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "1"}},
 						}},
 					}, nil
-				case strings.Contains(promQL, "container_memory_working_set_bytes"):
+				case strings.Contains(promQL, `resource="cpu"`) && strings.Contains(promQL, "limits"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "2"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, "quantile_over_time") || strings.Contains(promQL, "container_memory_working_set_bytes"):
 					return toolprometheus.Result{
 						Type: "vector",
 						Series: []toolprometheus.Series{{
 							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "10000000"}},
 						}},
 					}, nil
-				case strings.Contains(promQL, `resource="memory"`):
+				case strings.Contains(promQL, `resource="memory"`) && strings.Contains(promQL, "requests"):
 					return toolprometheus.Result{
 						Type: "vector",
 						Series: []toolprometheus.Series{{
 							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "1000000000"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, `resource="memory"`) && strings.Contains(promQL, "limits"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "2000000000"}},
 						}},
 					}, nil
 				default:
@@ -251,7 +265,8 @@ func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
 		!bytes.Contains(out.Bytes(), []byte("Inventory:")) ||
 		!bytes.Contains(out.Bytes(), []byte("api")) ||
 		!bytes.Contains(out.Bytes(), []byte("Idle:")) ||
-		!bytes.Contains(out.Bytes(), []byte("CPU of request")) {
+		!bytes.Contains(out.Bytes(), []byte("CPU of request")) ||
+		!bytes.Contains(out.Bytes(), []byte("Rightsizing:")) {
 		t.Fatalf("output=%s", out.String())
 	}
 	if bytes.Contains(out.Bytes(), []byte("inventory: pending")) {

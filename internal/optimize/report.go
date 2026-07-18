@@ -64,9 +64,10 @@ type Report struct {
 	Summary     string       `json:"summary"`
 	Findings    []Finding    `json:"findings"`
 	Suggestions []Suggestion `json:"suggestions"`
-	Workloads   []Workload     `json:"workloads,omitempty"` // T-053 inventory
-	Idle        []IdleWorkload `json:"idle,omitempty"`      // T-054 underutilized
-	Sections    Sections       `json:"sections"`
+	Workloads    []Workload          `json:"workloads,omitempty"`    // T-053 inventory
+	Idle         []IdleWorkload      `json:"idle,omitempty"`         // T-054 underutilized
+	Rightsizing  []RightsizingDelta  `json:"rightsizing,omitempty"`  // T-055 deltas
+	Sections     Sections            `json:"sections"`
 }
 
 // BuildScaffold returns a read-only optimize report shell.
@@ -115,7 +116,7 @@ func BuildScaffold(req Request) Report {
 			},
 			Rightsizing: SectionStatus{
 				Status:  SectionPending,
-				Message: "CPU/memory rightsizing suggestions — T-055",
+				Message: "CPU/memory rightsizing suggestions pending",
 			},
 			HPA: SectionStatus{
 				Status:  SectionPending,
