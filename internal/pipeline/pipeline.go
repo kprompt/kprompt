@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
@@ -546,14 +547,42 @@ func queryFromPlan(plan planner.ExecutionPlan) (cluster.Query, error) {
 		return cluster.Query{}, fmt.Errorf("get plan has no actions")
 	}
 	a := plan.Actions[0]
-	q := cluster.Query{
-		Kind:      a.Object.Kind,
+	rawKind := a.Object.Kind
+	if rawKind == "" {
+		rawKind = plan.Intent.Target.Kind
+	}
+	ref, err := cluster.ParseResourceRef(firstNonEmpty(rawKind, "Pod"))
+	if err != nil {
+		return cluster.Query{}, err
+	}
+	if g, ok := plan.Intent.StringParam("group"); ok && ref.Group == "" {
+		ref.Group = g
+	}
+	if r, ok := plan.Intent.StringParam("resource"); ok {
+		// Prefer planner-normalized qualified resource when present.
+		if parsed, perr := cluster.ParseResourceRef(r); perr == nil && parsed.Resource != "" {
+			ref = parsed
+		}
+	}
+	req := cluster.ReadRequest{
+		Resource:  ref,
 		Namespace: a.Object.Namespace,
 		Name:      a.Object.Name,
 	}
 	if sel, ok := plan.Intent.LabelSelector(); ok {
-		q.LabelSelector = sel
+		req.LabelSelector = sel
 	}
+	if limit, ok := plan.Intent.Limit(); ok {
+		req.Limit = limit
+	}
+	if timeout, ok := plan.Intent.Timeout(); ok {
+		req.Timeout = timeout
+	}
+	req, err = cluster.NormalizeReadRequest(req)
+	if err != nil {
+		return cluster.Query{}, err
+	}
+	q := cluster.QueryFromReadRequest(req)
 	if mem, ok := plan.Intent.MinMemory(); ok {
 		qty, err := resource.ParseQuantity(mem)
 		if err != nil {
@@ -562,6 +591,15 @@ func queryFromPlan(plan planner.ExecutionPlan) (cluster.Query, error) {
 		q.MinMemory = qty
 	}
 	return q, nil
+}
+
+func firstNonEmpty(vals ...string) string {
+	for _, v := range vals {
+		if strings.TrimSpace(v) != "" {
+			return v
+		}
+	}
+	return ""
 }
 
 func explainFromPlan(plan planner.ExecutionPlan) (cluster.ExplainRequest, error) {

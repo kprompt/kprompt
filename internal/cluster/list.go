@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -14,11 +15,16 @@ import (
 
 // Query describes a read-only list/get against the cluster.
 type Query struct {
-	Kind          string // Pod, Deployment, Service
+	Kind          string // Pod, Deployment, Service, or other Kind
 	Namespace     string
 	Name          string // optional exact name
 	LabelSelector string
 	MinMemory     resource.Quantity // optional pod memory filter (requests sum)
+	Group         string
+	Resource      string // plural API resource name
+	Limit         int64
+	Continue      string
+	Timeout       time.Duration
 }
 
 // Row is one printable result line.
@@ -56,9 +62,64 @@ func (r *Reader) List(ctx context.Context, q Query) (Result, error) {
 		return r.listDeployments(ctx, ns, q)
 	case "Service":
 		return r.listServices(ctx, ns, q)
+	case "Node", "ConfigMap", "Secret", "Workflow":
+		return Result{}, fmt.Errorf(
+			"read of %q is accepted by the generic read contract but not executed yet — waiting on discovery/dynamic client (T-050); currently listed: Pod, Deployment, Service",
+			kind,
+		)
 	default:
-		return Result{}, fmt.Errorf("unsupported get kind %q (supported: Pod, Deployment, Service)", q.Kind)
+		return Result{}, fmt.Errorf(
+			"unsupported get kind %q — use a discoverable kind/plural/short name or group-qualified form (e.g. deployments.apps); currently listed: Pod, Deployment, Service (T-050 expands this)",
+			q.Kind,
+		)
 	}
+}
+
+// ToReadTable maps a legacy Result into the stable ReadTable contract.
+func (res Result) ToReadTable(req ReadRequest) ReadTable {
+	table := ReadTable{
+		Kind:      firstNonEmpty(res.Kind, req.Resource.Kind, req.Resource.Resource),
+		Group:     req.Resource.Group,
+		Resource:  req.Resource.Resource,
+		Namespace: req.Namespace,
+		Scope:     req.Resource.Scope,
+		Headers:   append([]string(nil), res.Headers...),
+		Continue:  req.Continue,
+	}
+	if req.Resource.Version != "" {
+		if req.Resource.Group == "" {
+			table.APIVersion = req.Resource.Version
+		} else {
+			table.APIVersion = req.Resource.Group + "/" + req.Resource.Version
+		}
+	}
+	for _, row := range res.Rows {
+		m := map[string]string{}
+		for _, h := range res.Headers {
+			switch strings.ToUpper(h) {
+			case "NAMESPACE":
+				m[h] = row.Namespace
+			case "NAME":
+				m[h] = row.Name
+			case "READY":
+				m[h] = row.Ready
+			case "STATUS":
+				m[h] = row.Status
+			default:
+				if row.Extra != "" {
+					m[h] = row.Extra
+				}
+			}
+		}
+		if len(m) == 0 {
+			m["NAMESPACE"] = row.Namespace
+			m["NAME"] = row.Name
+			m["READY"] = row.Ready
+			m["STATUS"] = row.Status
+		}
+		table.Rows = append(table.Rows, m)
+	}
+	return table
 }
 
 // NormalizeKind maps common aliases to canonical kinds.
@@ -66,12 +127,18 @@ func NormalizeKind(k string) string {
 	switch strings.ToLower(strings.TrimSpace(k)) {
 	case "", "pod", "pods", "po":
 		return "Pod"
-	case "deployment", "deployments", "deploy", "deploy.apps":
+	case "deployment", "deployments", "deploy", "deploy.apps", "deployments.apps":
 		return "Deployment"
 	case "service", "services", "svc":
 		return "Service"
 	case "workflow", "workflows", "wf":
 		return "Workflow"
+	case "node", "nodes", "no":
+		return "Node"
+	case "configmap", "configmaps", "cm":
+		return "ConfigMap"
+	case "secret", "secrets":
+		return "Secret"
 	default:
 		return strings.TrimSpace(k)
 	}

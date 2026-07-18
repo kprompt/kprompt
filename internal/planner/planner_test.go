@@ -88,6 +88,59 @@ func TestBuildGetPods(t *testing.T) {
 	}
 }
 
+func TestBuildGetGenericResources(t *testing.T) {
+	cases := []struct {
+		kind      string
+		ns        string
+		wantKind  string
+		wantNS    string
+		wantGroup string
+	}{
+		{"Node", "default", "Node", "", ""},
+		{"ConfigMap", "demo", "ConfigMap", "demo", ""},
+		{"Secret", "demo", "Secret", "demo", ""},
+		{"deployments.apps", "prod", "Deployment", "prod", "apps"},
+		{"widgets.example.com", "demo", "Widget", "demo", "example.com"},
+	}
+	for _, tc := range cases {
+		plan, err := Build(intent.Intent{
+			Kind:   intent.KindGet,
+			Target: intent.Target{Kind: tc.kind, Namespace: tc.ns},
+		})
+		if err != nil {
+			t.Fatalf("%s: %v", tc.kind, err)
+		}
+		if plan.RequiresApproval {
+			t.Fatalf("%s: get must not require approval", tc.kind)
+		}
+		if plan.Actions[0].Object.Kind != tc.wantKind {
+			t.Fatalf("%s: kind=%s want %s", tc.kind, plan.Actions[0].Object.Kind, tc.wantKind)
+		}
+		if plan.Actions[0].Object.Namespace != tc.wantNS {
+			t.Fatalf("%s: ns=%q want %q", tc.kind, plan.Actions[0].Object.Namespace, tc.wantNS)
+		}
+		if tc.wantGroup != "" {
+			g, _ := plan.Intent.StringParam("group")
+			if g != tc.wantGroup {
+				t.Fatalf("%s: group=%q", tc.kind, g)
+			}
+		}
+		if plan.Actions[0].Backend != "kubernetes" {
+			t.Fatalf("%s: backend=%s", tc.kind, plan.Actions[0].Backend)
+		}
+	}
+}
+
+func TestBuildGetRejectsClusterScopedNamespace(t *testing.T) {
+	_, err := Build(intent.Intent{
+		Kind:   intent.KindGet,
+		Target: intent.Target{Kind: "Node", Namespace: "kube-system"},
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+}
+
 func TestBuildExplainRequiresName(t *testing.T) {
 	_, err := Build(intent.Intent{Kind: intent.KindExplain, Target: intent.Target{}})
 	if err == nil {

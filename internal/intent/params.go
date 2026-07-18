@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strings"
+	"time"
 )
 
 // StringParam returns a string params value when present.
@@ -86,6 +87,43 @@ func (i Intent) MinMemory() (string, bool) {
 // LabelSelector returns params.labelSelector when set.
 func (i Intent) LabelSelector() (string, bool) {
 	return i.StringParam("labelSelector")
+}
+
+// Limit returns params.limit for list pagination when set.
+func (i Intent) Limit() (int64, bool) {
+	v, ok := i.Params["limit"]
+	if !ok {
+		return 0, false
+	}
+	switch n := v.(type) {
+	case float64:
+		return int64(n), true
+	case int:
+		return int64(n), true
+	case int64:
+		return n, true
+	case json.Number:
+		i64, err := n.Int64()
+		if err != nil {
+			return 0, false
+		}
+		return i64, true
+	default:
+		return 0, false
+	}
+}
+
+// Timeout returns params.timeout duration when set (e.g. "30s").
+func (i Intent) Timeout() (time.Duration, bool) {
+	raw, ok := i.StringParam("timeout")
+	if !ok {
+		return 0, false
+	}
+	d, err := time.ParseDuration(raw)
+	if err != nil {
+		return 0, false
+	}
+	return d, true
 }
 
 // WantService is true when params.createService is true, or a port is set.

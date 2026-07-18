@@ -80,3 +80,25 @@ func TestEvaluatePlanDelete(t *testing.T) {
 		t.Fatal("expected unscoped denied")
 	}
 }
+
+func TestEvaluatePlanAllowsSecretGet(t *testing.T) {
+	r := EvaluatePlan(planner.ExecutionPlan{
+		Intent: intent.Intent{Kind: intent.KindGet},
+		Actions: []planner.Action{{
+			Op: planner.OpGet,
+			Object: planner.ObjectRef{
+				Kind: "Secret", Name: "db", Namespace: "default",
+			},
+		}},
+	})
+	if r.Denied || r.Risk != RiskLow {
+		t.Fatalf("secret get should be RiskLow, got %+v", r)
+	}
+}
+
+func TestCheckPromptAllowsShowSecrets(t *testing.T) {
+	r := CheckPrompt(`show secrets in prod`)
+	if r.Denied {
+		t.Fatal("listing secrets must not be hard-denied")
+	}
+}

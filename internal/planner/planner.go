@@ -57,41 +57,106 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 }
 
 func buildGet(in intent.Intent, ns string) (ExecutionPlan, error) {
-	kind := cluster.NormalizeKind(first(in.Target.Kind, "Pod"))
-	switch kind {
-	case "Pod", "Deployment", "Service", "Workflow":
-	default:
-		return ExecutionPlan{}, fmt.Errorf("get kind %q not supported (Pod, Deployment, Service, Workflow)", in.Target.Kind)
+	raw := first(in.Target.Kind, "Pod")
+	ref, err := cluster.ParseResourceRef(raw)
+	if err != nil {
+		return ExecutionPlan{}, err
 	}
 	name := strings.TrimSpace(in.Target.Name)
-	if kind == "Workflow" && name == "" {
+	if ref.Kind == "Workflow" && name == "" {
 		return ExecutionPlan{}, fmt.Errorf("get Workflow requires target.name")
 	}
-	summary := fmt.Sprintf("List %ss in %s", kind, ns)
-	if name != "" {
-		summary = fmt.Sprintf("Get %s/%s in %s", kind, name, ns)
+
+	req := cluster.ReadRequest{
+		Resource:  ref,
+		Namespace: ns,
+		Name:      name,
 	}
 	if sel, ok := in.LabelSelector(); ok {
-		summary += fmt.Sprintf(" selector=%s", sel)
+		req.LabelSelector = sel
+	}
+	if limit, ok := in.Limit(); ok {
+		req.Limit = limit
+	}
+	if timeout, ok := in.Timeout(); ok {
+		req.Timeout = timeout
+	}
+	req, err = cluster.NormalizeReadRequest(req)
+	if err != nil {
+		return ExecutionPlan{}, err
+	}
+
+	kind := req.Resource.Kind
+	if kind == "" {
+		kind = req.Resource.Resource
+	}
+	actionNS := req.Namespace
+	summary := fmt.Sprintf("List %s", req.Resource.Display())
+	if actionNS != "" {
+		summary += " in " + actionNS
+	} else if req.Resource.Scope == cluster.ScopeCluster {
+		summary += " (cluster scope)"
+	}
+	if name != "" {
+		summary = fmt.Sprintf("Get %s/%s", req.Resource.Display(), name)
+		if actionNS != "" {
+			summary += " in " + actionNS
+		}
+	}
+	if req.LabelSelector != "" {
+		summary += fmt.Sprintf(" selector=%s", req.LabelSelector)
 	}
 	if mem, ok := in.MinMemory(); ok {
 		summary += fmt.Sprintf(" minMemory=%s", mem)
 	}
+	if in.Params == nil {
+		in.Params = map[string]any{}
+	}
+	in.Params["resource"] = req.Resource.Qualified()
+	if req.Resource.Group != "" {
+		in.Params["group"] = req.Resource.Group
+	}
+	in.Params["limit"] = req.Limit
+	in.Params["timeout"] = req.Timeout.String()
+	in.Target.Kind = kind
+	in.Target.Namespace = actionNS
+
 	return ExecutionPlan{
 		Intent: in,
 		Actions: []Action{{
-			Op: OpGet,
+			Op:      OpGet,
+			Backend: "kubernetes",
 			Object: ObjectRef{
-				APIVersion: apiVersionForKind(kind),
+				APIVersion: apiVersionForResource(req.Resource),
 				Kind:       kind,
 				Name:       name,
-				Namespace:  ns,
+				Namespace:  actionNS,
 			},
 			Diff: summary,
 		}},
 		Summary:          summary,
 		RequiresApproval: false,
 	}, nil
+}
+
+func apiVersionForResource(ref cluster.ResourceRef) string {
+	switch {
+	case ref.Group == "apps":
+		return "apps/v1"
+	case ref.Group == "argoproj.io":
+		return "argoproj.io/v1alpha1"
+	case ref.Group != "":
+		if ref.Version != "" {
+			return ref.Group + "/" + ref.Version
+		}
+		return ref.Group
+	case ref.Kind == "Deployment":
+		return "apps/v1"
+	case ref.Kind == "Workflow":
+		return "argoproj.io/v1alpha1"
+	default:
+		return "v1"
+	}
 }
 
 func buildExplain(in intent.Intent, ns string) (ExecutionPlan, error) {

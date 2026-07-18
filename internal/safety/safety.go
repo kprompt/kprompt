@@ -111,6 +111,9 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
 	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard:
+		// Generic Kubernetes reads (including Secret/ConfigMap/Node/CRDs) are RiskLow.
+		// Authorization is the caller's kubeconfig RBAC — no special Secret redaction or deny.
+		// Mutating unknown kinds remains denied above; generic mutate is out of scope (T-048).
 		return Result{Risk: RiskLow}
 	default:
 		return Result{Risk: RiskHigh, Message: fmt.Sprintf("Unknown or unsupported intent %q", plan.Intent.Kind)}

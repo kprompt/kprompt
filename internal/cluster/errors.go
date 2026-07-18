@@ -105,6 +105,20 @@ func classifyConfig(err error) string {
 }
 
 func classifyAPI(err error) string {
+	var ambiguous AmbiguousResourceError
+	if errors.As(err, &ambiguous) {
+		return ambiguous.Error()
+	}
+	var unknown UnknownResourceError
+	if errors.As(err, &unknown) {
+		return unknown.Error()
+	}
+	if errors.Is(err, ErrAmbiguousResource) {
+		return err.Error()
+	}
+	if errors.Is(err, ErrUnknownResource) {
+		return err.Error()
+	}
 	if apierrors.IsUnauthorized(err) {
 		return fmt.Sprintf(
 			"not authorized for this cluster — refresh credentials (kubectl auth whoami / re-login). See %s",
