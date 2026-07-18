@@ -327,6 +327,8 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			optimize.ApplyIdle(&report, idle)
 			rs := optimize.SuggestRightsizing(ctx, querier, report.Workloads, window)
 			optimize.ApplyRightsizing(&report, rs)
+			hpa := optimize.CollectHPAHints(ctx, client, querier, report.Workloads, plan.Intent.Target.Namespace)
+			optimize.ApplyHPA(&report, hpa)
 			doc = doc.WithOptimizeResult(report)
 			if !jsonMode {
 				ui.PrintOptimizeReport(out, report)

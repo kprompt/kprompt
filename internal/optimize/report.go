@@ -64,10 +64,11 @@ type Report struct {
 	Summary     string       `json:"summary"`
 	Findings    []Finding    `json:"findings"`
 	Suggestions []Suggestion `json:"suggestions"`
-	Workloads    []Workload          `json:"workloads,omitempty"`    // T-053 inventory
-	Idle         []IdleWorkload      `json:"idle,omitempty"`         // T-054 underutilized
-	Rightsizing  []RightsizingDelta  `json:"rightsizing,omitempty"`  // T-055 deltas
-	Sections     Sections            `json:"sections"`
+	Workloads   []Workload         `json:"workloads,omitempty"`   // T-053 inventory
+	Idle        []IdleWorkload     `json:"idle,omitempty"`        // T-054 underutilized
+	Rightsizing []RightsizingDelta `json:"rightsizing,omitempty"` // T-055 deltas
+	HPA         []HPAHint          `json:"hpa,omitempty"`         // T-056 hints
+	Sections    Sections           `json:"sections"`
 }
 
 // BuildScaffold returns a read-only optimize report shell.
@@ -120,7 +121,7 @@ func BuildScaffold(req Request) Report {
 			},
 			HPA: SectionStatus{
 				Status:  SectionPending,
-				Message: "HPA / replica hint narration — T-056",
+				Message: "HPA / replica hint narration pending",
 			},
 		},
 	}

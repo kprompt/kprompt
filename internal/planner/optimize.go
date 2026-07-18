@@ -59,7 +59,7 @@ func buildOptimize(in intent.Intent) (ExecutionPlan, error) {
 				Kind:      in.Target.Kind,
 				Namespace: scopeNS,
 			},
-			Diff: "collect inventory, idle, and rightsizing signals; HPA pending",
+			Diff: "collect inventory, idle, rightsizing, and HPA / replica hints (read-only)",
 		}},
 		Summary:          summary,
 		RequiresApproval: false,

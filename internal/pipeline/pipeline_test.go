@@ -12,6 +12,7 @@ import (
 	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
+	autoscalingv2 "k8s.io/api/autoscaling/v2"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -179,26 +180,42 @@ func TestDashboardRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 
 func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
 	replicas := int32(2)
-	client := fake.NewSimpleClientset(&appsv1.Deployment{
-		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "default"},
-		Spec: appsv1.DeploymentSpec{
-			Replicas: &replicas,
-			Template: corev1.PodTemplateSpec{
-				Spec: corev1.PodSpec{
-					Containers: []corev1.Container{{
-						Name: "api",
-						Resources: corev1.ResourceRequirements{
-							Requests: corev1.ResourceList{
-								corev1.ResourceCPU:    resource.MustParse("50m"),
-								corev1.ResourceMemory: resource.MustParse("64Mi"),
+	client := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "default"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: &replicas,
+				Template: corev1.PodTemplateSpec{
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Name: "api",
+							Resources: corev1.ResourceRequirements{
+								Requests: corev1.ResourceList{
+									corev1.ResourceCPU:    resource.MustParse("50m"),
+									corev1.ResourceMemory: resource.MustParse("64Mi"),
+								},
 							},
-						},
-					}},
+						}},
+					},
 				},
 			},
+			Status: appsv1.DeploymentStatus{ReadyReplicas: 2},
 		},
-		Status: appsv1.DeploymentStatus{ReadyReplicas: 2},
-	})
+		&autoscalingv2.HorizontalPodAutoscaler{
+			ObjectMeta: metav1.ObjectMeta{Name: "api-hpa", Namespace: "default"},
+			Spec: autoscalingv2.HorizontalPodAutoscalerSpec{
+				ScaleTargetRef: autoscalingv2.CrossVersionObjectReference{
+					Kind: "Deployment",
+					Name: "api",
+				},
+				MaxReplicas: 2,
+			},
+			Status: autoscalingv2.HorizontalPodAutoscalerStatus{
+				CurrentReplicas: 2,
+				DesiredReplicas: 2,
+			},
+		},
+	)
 	var out bytes.Buffer
 	err := RunWith(context.Background(), config.Resolved{
 		Prompt: "optimize my cluster",
@@ -266,7 +283,9 @@ func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
 		!bytes.Contains(out.Bytes(), []byte("api")) ||
 		!bytes.Contains(out.Bytes(), []byte("Idle:")) ||
 		!bytes.Contains(out.Bytes(), []byte("CPU of request")) ||
-		!bytes.Contains(out.Bytes(), []byte("Rightsizing:")) {
+		!bytes.Contains(out.Bytes(), []byte("Rightsizing:")) ||
+		!bytes.Contains(out.Bytes(), []byte("HPA:")) ||
+		!bytes.Contains(out.Bytes(), []byte("at max")) {
 		t.Fatalf("output=%s", out.String())
 	}
 	if bytes.Contains(out.Bytes(), []byte("inventory: pending")) {
