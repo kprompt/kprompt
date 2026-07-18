@@ -28,7 +28,7 @@ Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Sec
 
 ## Status
 
-**v0.3.0 (experimental)** — Kubernetes plan → safety → apply for deploy, scale, rollback, and named delete; deep explain, logs, describe, history, JSON CI output, and terminal themes. Integration support includes Helm install/upgrade previews, Argo Workflow generation/submit/status, Prometheus performance diagnosis, and Jaeger/Tempo trace query adapters.
+**v0.3.0 (experimental)** — Kubernetes plan → safety → apply for deploy, scale, rollback, and named delete; deep explain, logs, describe, history, JSON CI output, and terminal themes. Integrations: Helm install/upgrade, Argo Workflows, Prometheus performance, OpenTelemetry trace walk, Grafana dashboards, discovery-backed generic get/list, and multi-tool route chaining. See [docs/integration-matrix.md](./docs/integration-matrix.md) and [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
 ## Install
 
 ### From releases (recommended)

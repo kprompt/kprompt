@@ -24,4 +24,5 @@ Notes:
 - Uses stub LLM providers so no real API key is required.
 - Exercises: Intent → Planner → Safety → Executor against a live APIserver.
 - Generic read matrix covers Node (EN/TR prompts), ConfigMap, Secret, a sample CRD (`widgets.example.com`), JSON output, unknown resources, list limits, and RBAC denial (limited ServiceAccount — no elevated product RBAC).
+- Integration family matrix: `TestIntegrationMatrix` ([integration-matrix.md](./integration-matrix.md)).
 - Product codepaths use client-go only; helpers may call `kind`/`kubectl` for cluster lifecycle.
