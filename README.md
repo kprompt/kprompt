@@ -18,8 +18,13 @@ kprompt "describe payment-api"
 kprompt "delete deployment redis" --approve
 kprompt "list deployments"
 kprompt "show pods" -n default
+kprompt "how many nodes are in the cluster"
+kprompt "list configmaps" -n default
+kprompt "get secret db-creds" -n prod
 kprompt "explain why payment-api is crashing"
 ```
+
+Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Secret, …). See [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
 
 ## Status
 

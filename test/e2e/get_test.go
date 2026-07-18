@@ -28,6 +28,9 @@ func TestListDeploymentsOnKind(t *testing.T) {
 	ensureNamespace(t, ctx, client)
 	ensureDeployment(t, ctx, client, 1)
 
+	deps := pipelineKubeDeps(t, kubeconfig)
+	deps.Provider = llm.GetStub("Deployment", "", ns, "")
+
 	var out bytes.Buffer
 	cfg := config.Resolved{
 		Provider:  "stub",
@@ -35,10 +38,7 @@ func TestListDeploymentsOnKind(t *testing.T) {
 		Approve:   false, // read-only must work without --approve
 		Prompt:    "list deployments",
 	}
-	err := pipeline.RunWith(ctx, cfg, &out, pipeline.Deps{
-		Provider: llm.GetStub("Deployment", "", ns, ""),
-		Client:   client,
-	})
+	err := pipeline.RunWith(ctx, cfg, &out, deps)
 	if err != nil {
 		t.Fatalf("pipeline: %v\noutput:\n%s", err, out.String())
 	}

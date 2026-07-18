@@ -106,6 +106,14 @@ func GetStub(resourceKind, name, namespace, minMemory string) *Stub {
 	if minMemory != "" {
 		params["minMemory"] = minMemory
 	}
+	return GetStubWith(resourceKind, name, namespace, params)
+}
+
+// GetStubWith returns a get/list stub with arbitrary params (limit, timeout, …).
+func GetStubWith(resourceKind, name, namespace string, params map[string]any) *Stub {
+	if params == nil {
+		params = map[string]any{}
+	}
 	payload, _ := json.Marshal(map[string]any{
 		"kind": "get",
 		"target": map[string]any{
