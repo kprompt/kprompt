@@ -59,7 +59,7 @@ func buildOptimize(in intent.Intent) (ExecutionPlan, error) {
 				Kind:      in.Target.Kind,
 				Namespace: scopeNS,
 			},
-			Diff: "collect inventory, idle, rightsizing, and HPA / replica hints (read-only)",
+			Diff: "collect optimize signals; optional scale/patch follow-ups require separate approval",
 		}},
 		Summary:          summary,
 		RequiresApproval: false,

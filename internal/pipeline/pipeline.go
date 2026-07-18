@@ -333,6 +333,49 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if !jsonMode {
 				ui.PrintOptimizeReport(out, report)
 			}
+			suggestions, err := suggest.FromOptimize(ctx, client, report)
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("optimize suggest: %w", err))
+			}
+			if !jsonMode {
+				ui.PrintSuggestions(out, suggestions)
+			}
+			actionable := suggest.ActionablePlans(suggestions)
+			if len(actionable) == 0 {
+				applied = true
+				return nil
+			}
+			fix := *actionable[0].Plan
+			fixRisk := safety.EvaluatePlan(fix)
+			if fixRisk.Denied {
+				if !jsonMode {
+					ui.PrintDenied(out, fixRisk.Message)
+				}
+				applied = true
+				return nil
+			}
+			if jsonMode {
+				// Read-only optimize remains the JSON result; mutations need a separate approved prompt.
+				applied = true
+				return nil
+			}
+			fmt.Fprintln(out, "Optional fix (requires approval; optimize --approve does not auto-apply):")
+			planner.EnrichDiffs(ctx, client, &fix)
+			ui.PrintPlan(out, fix, fixRisk)
+			// Never treat the parent optimize --approve flag as consent to mutate.
+			approved, err := resolveApproval(false, out, deps)
+			if err != nil {
+				return err
+			}
+			if !approved {
+				applied = true
+				return nil
+			}
+			runner := &executor.Runner{Client: client}
+			if err := runner.Apply(ctx, fix); err != nil {
+				return cluster.Friendlier(fmt.Errorf("apply optimize suggestion: %w", err))
+			}
+			ui.PrintApplied(out, fix)
 			applied = true
 			return nil
 		case intent.KindExplain:

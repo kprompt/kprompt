@@ -285,11 +285,99 @@ func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
 		!bytes.Contains(out.Bytes(), []byte("CPU of request")) ||
 		!bytes.Contains(out.Bytes(), []byte("Rightsizing:")) ||
 		!bytes.Contains(out.Bytes(), []byte("HPA:")) ||
-		!bytes.Contains(out.Bytes(), []byte("at max")) {
+		!bytes.Contains(out.Bytes(), []byte("at max")) ||
+		!bytes.Contains(out.Bytes(), []byte("Optional fix")) {
 		t.Fatalf("output=%s", out.String())
 	}
 	if bytes.Contains(out.Bytes(), []byte("inventory: pending")) {
 		t.Fatalf("inventory should be ready, output=%s", out.String())
+	}
+}
+
+func TestOptimizeApproveFlagDoesNotAutoApplyFix(t *testing.T) {
+	replicas := int32(2)
+	client := fake.NewSimpleClientset(&appsv1.Deployment{
+		ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "default"},
+		Spec: appsv1.DeploymentSpec{
+			Replicas: &replicas,
+			Selector: &metav1.LabelSelector{MatchLabels: map[string]string{"app": "api"}},
+			Template: corev1.PodTemplateSpec{
+				ObjectMeta: metav1.ObjectMeta{Labels: map[string]string{"app": "api"}},
+				Spec: corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "api",
+						Image: "api:1",
+						Resources: corev1.ResourceRequirements{
+							Requests: corev1.ResourceList{
+								corev1.ResourceCPU:    resource.MustParse("1"),
+								corev1.ResourceMemory: resource.MustParse("1Gi"),
+							},
+						},
+					}},
+				},
+			},
+		},
+	})
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt:  "optimize my cluster",
+		Approve: true, // must NOT auto-apply optimize follow-up patches
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"optimize","target":{"kind":"Cluster"},"params":{"scope":"cluster"},"confidence":1}`,
+		)},
+		Client:     client,
+		IsTerminal: boolPtr(false),
+		Prometheus: performanceQuerierFunc(
+			func(_ context.Context, promQL string, _ time.Time) (toolprometheus.Result, error) {
+				switch {
+				case strings.Contains(promQL, "container_cpu_usage_seconds_total"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "0.01"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, `resource="cpu"`) && strings.Contains(promQL, "requests"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "1"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, "quantile_over_time") || strings.Contains(promQL, "container_memory_working_set_bytes"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "10000000"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, `resource="memory"`) && strings.Contains(promQL, "requests"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "1000000000"}},
+						}},
+					}, nil
+				default:
+					return toolprometheus.Result{}, nil
+				}
+			},
+		),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	dep, err := client.AppsV1().Deployments("default").Get(context.Background(), "api", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	mem := dep.Spec.Template.Spec.Containers[0].Resources.Requests[corev1.ResourceMemory]
+	if mem.Cmp(resource.MustParse("1Gi")) != 0 {
+		t.Fatalf("optimize --approve must not patch resources, got %s", mem.String())
+	}
+	if !bytes.Contains(out.Bytes(), []byte("does not auto-apply")) {
+		t.Fatalf("expected no-auto-apply notice, got %s", out.String())
 	}
 }
 

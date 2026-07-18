@@ -114,7 +114,8 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 		// Generic Kubernetes reads and optimize reports (including Secret) are RiskLow.
 		// Authorization is the caller's kubeconfig RBAC — no special Secret redaction or deny.
 		// Mutating unknown kinds remains denied above; generic mutate is out of scope (T-048).
-		// Optimize is read-only scaffold/report (T-052); optional fix plans are T-057.
+		// Optimize reports are RiskLow. Optional follow-up scale/patch plans from T-057
+		// are evaluated as their own KindScale/KindPatch plans (RiskMedium) when offered.
 		return Result{Risk: RiskLow}
 	default:
 		return Result{Risk: RiskHigh, Message: fmt.Sprintf("Unknown or unsupported intent %q", plan.Intent.Kind)}
