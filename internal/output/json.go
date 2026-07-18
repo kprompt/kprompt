@@ -129,6 +129,18 @@ func (r PlanResult) WithQueryResult(res cluster.Result) PlanResult {
 		"headers": res.Headers,
 		"rows":    queryRows(res),
 	}
+	if res.Group != "" {
+		payload["group"] = res.Group
+	}
+	if res.Resource != "" {
+		payload["resource"] = res.Resource
+	}
+	if res.Continue != "" {
+		payload["continue"] = res.Continue
+	}
+	if res.Truncated {
+		payload["truncated"] = true
+	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw
 	return r

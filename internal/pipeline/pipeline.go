@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/api/resource"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 	"k8s.io/client-go/rest"
 
@@ -37,7 +38,8 @@ type ConfirmFunc func(out io.Writer) (bool, error)
 type Deps struct {
 	Provider   llm.Provider
 	Client     kubernetes.Interface
-	Resolver   *cluster.Resolver // optional discovery resolver (T-049); built from rest config when unset
+	Dynamic    dynamic.Interface       // optional; built from rest config when unset (T-050)
+	Resolver   *cluster.Resolver       // optional discovery resolver (T-049); built from rest config when unset
 	Prometheus toolprometheus.Querier
 	OTel       toolotel.Querier
 	Grafana    toolgrafana.Querier
@@ -370,7 +372,8 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			applied = true
 			return nil
 		case intent.KindGet:
-			if isWorkflowGetPlan(plan) {
+			// Named Workflow get keeps specialized Argo status; list/other kinds use dynamic/typed Reader.
+			if isWorkflowGetPlan(plan) && strings.TrimSpace(plan.Actions[0].Object.Name) != "" {
 				if err := tools.RequireArgoWorkflows(ctx, cfg.Context, nil); err != nil {
 					return err
 				}
@@ -397,7 +400,14 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(err)
 			}
-			res, err := (&cluster.Reader{Client: client}).List(ctx, q)
+			dyn := deps.Dynamic
+			if dyn == nil && restCfg != nil {
+				dyn, err = cluster.DynamicForConfig(restCfg)
+				if err != nil {
+					return cluster.Friendlier(fmt.Errorf("dynamic client: %w", err))
+				}
+			}
+			res, err := (&cluster.Reader{Client: client, Dynamic: dyn}).List(ctx, q)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("query: %w", err))
 			}

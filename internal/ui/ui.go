@@ -351,13 +351,65 @@ func PrintQueryResult(w io.Writer, res cluster.Result) {
 	tw := tabwriter.NewWriter(w, 0, 4, 2, ' ', 0)
 	fmt.Fprintln(tw, t.tabHeading(strings.Join(res.Headers, "\t")))
 	for _, row := range res.Rows {
+		fmt.Fprintln(tw, strings.Join(queryRowCells(res.Headers, row), "\t"))
+	}
+	_ = tw.Flush()
+	if res.Truncated || res.Continue != "" {
+		fmt.Fprintf(w, "%s\n", t.Muted("(truncated — more results available)"))
+	}
+}
+
+func queryRowCells(headers []string, row cluster.Row) []string {
+	if len(headers) == 0 {
 		cols := []string{row.Namespace, row.Name, row.Ready, row.Status}
 		if row.Extra != "" {
 			cols = append(cols, strings.Split(row.Extra, "\t")...)
 		}
-		fmt.Fprintln(tw, strings.Join(cols, "\t"))
+		return cols
 	}
-	_ = tw.Flush()
+	extras := []string{}
+	if row.Extra != "" {
+		extras = strings.Split(row.Extra, "\t")
+	}
+	ei := 0
+	cols := make([]string, 0, len(headers))
+	for _, h := range headers {
+		switch strings.ToUpper(h) {
+		case "NAMESPACE":
+			cols = append(cols, row.Namespace)
+		case "NAME":
+			cols = append(cols, row.Name)
+		case "READY":
+			cols = append(cols, row.Ready)
+		case "STATUS", "TYPE", "CLUSTER-IP", "UP-TO-DATE":
+			if strings.EqualFold(h, "TYPE") {
+				cols = append(cols, row.Ready)
+			} else if strings.EqualFold(h, "STATUS") {
+				cols = append(cols, row.Status)
+			} else if strings.EqualFold(h, "CLUSTER-IP") || strings.EqualFold(h, "UP-TO-DATE") {
+				cols = append(cols, row.Status)
+			} else {
+				cols = append(cols, row.Status)
+			}
+		case "AGE":
+			if len(extras) == 1 {
+				cols = append(cols, extras[0])
+			} else if ei < len(extras) {
+				cols = append(cols, extras[ei])
+				ei++
+			} else {
+				cols = append(cols, row.Extra)
+			}
+		default:
+			if ei < len(extras) {
+				cols = append(cols, extras[ei])
+				ei++
+			} else {
+				cols = append(cols, "")
+			}
+		}
+	}
+	return cols
 }
 
 // PrintExplain prints an investigation report.

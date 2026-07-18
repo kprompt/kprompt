@@ -10,6 +10,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -21,7 +22,9 @@ type Query struct {
 	LabelSelector string
 	MinMemory     resource.Quantity // optional pod memory filter (requests sum)
 	Group         string
+	Version       string
 	Resource      string // plural API resource name
+	Scope         ResourceScope
 	Limit         int64
 	Continue      string
 	Timeout       time.Duration
@@ -38,41 +41,109 @@ type Row struct {
 
 // Result is a tabular query outcome.
 type Result struct {
-	Kind    string
-	Headers []string
-	Rows    []Row
+	Kind      string
+	Group     string
+	Resource  string
+	Headers   []string
+	Rows      []Row
+	Continue  string
+	Truncated bool
 }
 
-// Reader performs get/list queries.
+// Reader performs get/list queries via typed clients and/or dynamic.Interface.
 type Reader struct {
-	Client kubernetes.Interface
+	Client  kubernetes.Interface
+	Dynamic dynamic.Interface
 }
 
 // List runs a Query and returns tabular rows.
 func (r *Reader) List(ctx context.Context, q Query) (Result, error) {
-	ns := q.Namespace
-	if ns == "" {
-		ns = "default"
+	if q.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, q.Timeout)
+		defer cancel()
 	}
+
 	kind := NormalizeKind(q.Kind)
-	switch kind {
-	case "Pod":
-		return r.listPods(ctx, ns, q)
-	case "Deployment":
-		return r.listDeployments(ctx, ns, q)
-	case "Service":
-		return r.listServices(ctx, ns, q)
-	case "Node", "ConfigMap", "Secret", "Workflow":
-		return Result{}, fmt.Errorf(
-			"read of %q is accepted by the generic read contract but not executed yet — waiting on discovery/dynamic client (T-050); currently listed: Pod, Deployment, Service",
-			kind,
-		)
-	default:
-		return Result{}, fmt.Errorf(
-			"unsupported get kind %q — use a discoverable kind/plural/short name or group-qualified form (e.g. deployments.apps); currently listed: Pod, Deployment, Service (T-050 expands this)",
-			q.Kind,
-		)
+	// Preserve rich typed tables for common workloads when a typed client is available.
+	if r.Client != nil {
+		ns := q.Namespace
+		if ns == "" {
+			ns = "default"
+		}
+		switch kind {
+		case "Pod":
+			res, err := r.listPods(ctx, ns, q)
+			return applyListCap(res, err, q)
+		case "Deployment":
+			res, err := r.listDeployments(ctx, ns, q)
+			return applyListCap(res, err, q)
+		case "Service":
+			res, err := r.listServices(ctx, ns, q)
+			return applyListCap(res, err, q)
+		}
 	}
+
+	if r.Dynamic != nil {
+		q = ensureQueryGVR(q)
+		if q.Resource != "" && q.Version != "" {
+			return r.listDynamic(ctx, q)
+		}
+	}
+
+	if r.Client == nil && r.Dynamic == nil {
+		return Result{}, fmt.Errorf("no kubernetes or dynamic client configured for get/list")
+	}
+	return Result{}, fmt.Errorf(
+		"cannot list %q — need discovery-resolved GVR and a dynamic client (or a typed client for Pod/Deployment/Service)",
+		q.Kind,
+	)
+}
+
+func applyListCap(res Result, err error, q Query) (Result, error) {
+	if err != nil {
+		return res, err
+	}
+	if q.Limit > 0 && int64(len(res.Rows)) > q.Limit {
+		res.Rows = res.Rows[:q.Limit]
+		res.Truncated = true
+	}
+	return res, nil
+}
+
+func ensureQueryGVR(q Query) Query {
+	if q.Resource != "" && q.Version != "" {
+		return q
+	}
+	ref, err := ParseResourceRef(firstNonEmpty(q.Kind, q.Resource))
+	if err != nil {
+		return q
+	}
+	if q.Resource == "" {
+		q.Resource = ref.Resource
+	}
+	if q.Group == "" {
+		q.Group = ref.Group
+	}
+	if q.Scope == "" || q.Scope == ScopeScopeUnknown {
+		q.Scope = ref.Scope
+	}
+	if q.Version == "" {
+		switch {
+		case q.Group == "apps":
+			q.Version = "v1"
+		case q.Group == "argoproj.io":
+			q.Version = "v1alpha1"
+		case q.Group == "":
+			q.Version = "v1"
+		default:
+			q.Version = "v1"
+		}
+	}
+	if q.Kind == "" {
+		q.Kind = ref.Kind
+	}
+	return q
 }
 
 // ToReadTable maps a legacy Result into the stable ReadTable contract.

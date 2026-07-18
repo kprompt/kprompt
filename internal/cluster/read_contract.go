@@ -247,7 +247,9 @@ func QueryFromReadRequest(req ReadRequest) Query {
 		Continue:      req.Continue,
 		Timeout:       req.Timeout,
 		Group:         req.Resource.Group,
+		Version:       req.Resource.Version,
 		Resource:      req.Resource.Resource,
+		Scope:         req.Resource.Scope,
 	}
 }
 
