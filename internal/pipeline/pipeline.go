@@ -37,6 +37,7 @@ type ConfirmFunc func(out io.Writer) (bool, error)
 type Deps struct {
 	Provider   llm.Provider
 	Client     kubernetes.Interface
+	Resolver   *cluster.Resolver // optional discovery resolver (T-049); built from rest config when unset
 	Prometheus toolprometheus.Querier
 	OTel       toolotel.Querier
 	Grafana    toolgrafana.Querier
@@ -392,6 +393,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return err
 			}
+			q, err = enrichQueryWithDiscovery(ctx, deps.Resolver, restCfg, q)
+			if err != nil {
+				return cluster.Friendlier(err)
+			}
 			res, err := (&cluster.Reader{Client: client}).List(ctx, q)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("query: %w", err))
@@ -591,6 +596,48 @@ func queryFromPlan(plan planner.ExecutionPlan) (cluster.Query, error) {
 		q.MinMemory = qty
 	}
 	return q, nil
+}
+
+// enrichQueryWithDiscovery resolves kind/plural/shortName against cluster discovery when available.
+// When neither an injected Resolver nor rest.Config is present (unit tests), returns q unchanged.
+func enrichQueryWithDiscovery(ctx context.Context, resolver *cluster.Resolver, restCfg *rest.Config, q cluster.Query) (cluster.Query, error) {
+	if resolver == nil && restCfg != nil {
+		var err error
+		resolver, err = cluster.NewResolverForConfig(restCfg)
+		if err != nil {
+			return cluster.Query{}, fmt.Errorf("discovery: %w", err)
+		}
+	}
+	if resolver == nil {
+		return q, nil
+	}
+	query := q.Resource
+	if q.Group != "" && q.Resource != "" {
+		query = q.Resource + "." + q.Group
+	}
+	if query == "" {
+		query = q.Kind
+	}
+	ref, err := resolver.Resolve(ctx, query)
+	if err != nil {
+		return cluster.Query{}, err
+	}
+	req := cluster.ReadRequest{
+		Resource:      ref,
+		Namespace:     q.Namespace,
+		Name:          q.Name,
+		LabelSelector: q.LabelSelector,
+		Limit:         q.Limit,
+		Continue:      q.Continue,
+		Timeout:       q.Timeout,
+	}
+	req, err = cluster.NormalizeReadRequest(req)
+	if err != nil {
+		return cluster.Query{}, err
+	}
+	out := cluster.QueryFromReadRequest(req)
+	out.MinMemory = q.MinMemory
+	return out, nil
 }
 
 func firstNonEmpty(vals ...string) string {
