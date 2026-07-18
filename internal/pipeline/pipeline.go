@@ -19,6 +19,7 @@ import (
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/llm"
+	"github.com/kprompt/kprompt/internal/optimize"
 	"github.com/kprompt/kprompt/internal/output"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
@@ -119,6 +120,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		ForceContext:     cfg.ContextFromCLI,
 	})
 	in = intent.NormalizeVerb(in, cfg.Prompt)
+	in = intent.ApplyOptimizeScope(in, cfg.Prompt, intent.ScopePrefs{
+		DefaultNamespace: cfg.Namespace,
+		ForceNamespace:   cfg.NamespaceFromCLI,
+	})
 	cfg.Namespace = in.Target.Namespace
 	if in.Context != "" {
 		cfg.Context = in.Context
@@ -153,7 +158,8 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if client == nil &&
 		plan.Intent.Kind != intent.KindPerformance &&
 		plan.Intent.Kind != intent.KindTrace &&
-		plan.Intent.Kind != intent.KindDashboard {
+		plan.Intent.Kind != intent.KindDashboard &&
+		plan.Intent.Kind != intent.KindOptimize {
 		if cfg.Context != "" {
 			if err := cluster.EnsureContext(cfg.Context); err != nil {
 				return err
@@ -287,6 +293,25 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			doc = doc.WithPerformanceResult(report)
 			if !jsonMode {
 				ui.PrintPerformanceReport(out, report)
+			}
+			applied = true
+			return nil
+		case intent.KindOptimize:
+			window := time.Hour
+			if raw, ok := plan.Intent.Window(); ok {
+				parsed, err := time.ParseDuration(raw)
+				if err != nil {
+					return fmt.Errorf("params.window: %w", err)
+				}
+				window = parsed
+			}
+			report := optimize.BuildScaffold(optimize.Request{
+				Namespace: plan.Intent.Target.Namespace,
+				Window:    window,
+			})
+			doc = doc.WithOptimizeResult(report)
+			if !jsonMode {
+				ui.PrintOptimizeReport(out, report)
 			}
 			applied = true
 			return nil
@@ -550,7 +575,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize:
 		return true
 	default:
 		return false

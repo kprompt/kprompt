@@ -5,6 +5,7 @@ import (
 	"io"
 
 	"github.com/kprompt/kprompt/internal/cluster"
+	"github.com/kprompt/kprompt/internal/optimize"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
@@ -236,6 +237,23 @@ func (r PlanResult) WithPerformanceResult(report toolprometheus.PerformanceRepor
 		"metrics":    report.Metrics,
 		"findings":   report.Findings,
 		"suggestion": report.Suggestion,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithOptimizeResult attaches a read-only cluster optimize report (T-052).
+func (r PlanResult) WithOptimizeResult(report optimize.Report) PlanResult {
+	payload := map[string]any{
+		"type":        report.Type,
+		"scope":       report.Scope,
+		"namespace":   report.Namespace,
+		"window":      report.Window,
+		"summary":     report.Summary,
+		"findings":    report.Findings,
+		"suggestions": report.Suggestions,
+		"sections":    report.Sections,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

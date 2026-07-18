@@ -7,6 +7,7 @@ import (
 	"text/tabwriter"
 
 	"github.com/kprompt/kprompt/internal/cluster"
+	"github.com/kprompt/kprompt/internal/optimize"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
@@ -176,6 +177,50 @@ func PrintPerformanceReport(w io.Writer, report toolprometheus.PerformanceReport
 			report.Suggestion.Reason,
 		)
 	}
+}
+
+// PrintOptimizeReport prints a read-only cluster optimize report (T-052).
+func PrintOptimizeReport(w io.Writer, report optimize.Report) {
+	t := themeFor(w)
+	scope := report.Scope
+	if report.Namespace != "" {
+		scope = fmt.Sprintf("%s/%s", report.Scope, report.Namespace)
+	}
+	fmt.Fprintf(w, "%s %s", t.Heading("Optimize:"), t.Accent(scope))
+	if report.Window != "" {
+		fmt.Fprintf(w, " (%s)", report.Window)
+	}
+	fmt.Fprintln(w)
+	fmt.Fprintf(w, "%s %s\n", t.Heading("Summary: "), report.Summary)
+	if len(report.Findings) > 0 {
+		fmt.Fprintln(w, t.Heading("Findings:"))
+		for _, f := range report.Findings {
+			fmt.Fprintf(w, "  - [%s] %s: %s\n", t.Severity(f.Severity), t.Accent(f.Title), f.Message)
+		}
+	}
+	if len(report.Suggestions) > 0 {
+		fmt.Fprintln(w, t.Heading("Suggestions:"))
+		for _, s := range report.Suggestions {
+			line := fmt.Sprintf("  - %s: %s", t.Accent(s.Title), s.Message)
+			if s.ActionHint != "" {
+				line += fmt.Sprintf(" (%s)", t.Muted(s.ActionHint))
+			}
+			fmt.Fprintln(w, line)
+		}
+	}
+	fmt.Fprintln(w, t.Heading("Sections:"))
+	printOptimizeSection(w, t, "inventory", report.Sections.Inventory)
+	printOptimizeSection(w, t, "idle", report.Sections.Idle)
+	printOptimizeSection(w, t, "rightsizing", report.Sections.Rightsizing)
+	printOptimizeSection(w, t, "hpa", report.Sections.HPA)
+}
+
+func printOptimizeSection(w io.Writer, t Theme, name string, sec optimize.SectionStatus) {
+	msg := sec.Message
+	if msg == "" {
+		msg = sec.Status
+	}
+	fmt.Fprintf(w, "  - %s: %s — %s\n", name, t.Muted(sec.Status), msg)
 }
 
 // PrintTrace prints a parent-before-child distributed span tree and bottlenecks.

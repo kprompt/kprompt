@@ -91,6 +91,9 @@ func prepareRoute(
 			ForceContext:     cfg.ContextFromCLI,
 		})
 		in = intent.NormalizeVerb(in, prompt)
+		in = intent.ApplyOptimizeScope(in, prompt, intent.ScopePrefs{
+			ForceNamespace: cfg.NamespaceFromCLI,
+		})
 		plan, err := planner.Build(in)
 		if err != nil {
 			return nil, fmt.Errorf("route step %d: %w", index+1, err)

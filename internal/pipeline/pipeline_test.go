@@ -176,6 +176,25 @@ func TestDashboardRunsReadOnlyWithoutKubernetesClient(t *testing.T) {
 	}
 }
 
+func TestOptimizeRunsReadOnlyScaffold(t *testing.T) {
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "optimize my cluster",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"optimize","target":{"kind":"Cluster"},"params":{"scope":"cluster"},"confidence":1}`,
+		)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("Optimize:")) ||
+		!bytes.Contains(out.Bytes(), []byte("inventory")) ||
+		!bytes.Contains(out.Bytes(), []byte("pending")) {
+		t.Fatalf("output=%s", out.String())
+	}
+}
+
 func TestDashboardJSONOutput(t *testing.T) {
 	var out bytes.Buffer
 	err := RunWith(context.Background(), config.Resolved{
