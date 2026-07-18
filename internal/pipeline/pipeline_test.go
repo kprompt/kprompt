@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -206,6 +207,42 @@ func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
 			`{"kind":"optimize","target":{"kind":"Cluster"},"params":{"scope":"cluster"},"confidence":1}`,
 		)},
 		Client: client,
+		Prometheus: performanceQuerierFunc(
+			func(_ context.Context, promQL string, _ time.Time) (toolprometheus.Result, error) {
+				switch {
+				case strings.Contains(promQL, "container_cpu_usage_seconds_total"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "0.01"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, `resource="cpu"`):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "1"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, "container_memory_working_set_bytes"):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "10000000"}},
+						}},
+					}, nil
+				case strings.Contains(promQL, `resource="memory"`):
+					return toolprometheus.Result{
+						Type: "vector",
+						Series: []toolprometheus.Series{{
+							Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "1000000000"}},
+						}},
+					}, nil
+				default:
+					return toolprometheus.Result{}, nil
+				}
+			},
+		),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -213,7 +250,8 @@ func TestOptimizeRunsReadOnlyInventory(t *testing.T) {
 	if !bytes.Contains(out.Bytes(), []byte("Optimize:")) ||
 		!bytes.Contains(out.Bytes(), []byte("Inventory:")) ||
 		!bytes.Contains(out.Bytes(), []byte("api")) ||
-		!bytes.Contains(out.Bytes(), []byte("ready")) {
+		!bytes.Contains(out.Bytes(), []byte("Idle:")) ||
+		!bytes.Contains(out.Bytes(), []byte("CPU of request")) {
 		t.Fatalf("output=%s", out.String())
 	}
 	if bytes.Contains(out.Bytes(), []byte("inventory: pending")) {

@@ -211,6 +211,12 @@ func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 				wl.Namespace, wl.Name, t.Muted(wl.Kind), wl.ReadyReplicas, wl.Replicas, res)
 		}
 	}
+	if len(report.Idle) > 0 {
+		fmt.Fprintln(w, t.Heading("Idle:"))
+		for _, idle := range report.Idle {
+			fmt.Fprintf(w, "  - %s\n", idle.Message)
+		}
+	}
 	if len(report.Suggestions) > 0 {
 		fmt.Fprintln(w, t.Heading("Suggestions:"))
 		for _, s := range report.Suggestions {

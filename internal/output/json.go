@@ -254,6 +254,7 @@ func (r PlanResult) WithOptimizeResult(report optimize.Report) PlanResult {
 		"findings":    report.Findings,
 		"suggestions": report.Suggestions,
 		"workloads":   report.Workloads,
+		"idle":        report.Idle,
 		"sections":    report.Sections,
 	}
 	raw, _ := json.Marshal(payload)

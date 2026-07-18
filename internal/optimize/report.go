@@ -64,8 +64,9 @@ type Report struct {
 	Summary     string       `json:"summary"`
 	Findings    []Finding    `json:"findings"`
 	Suggestions []Suggestion `json:"suggestions"`
-	Workloads   []Workload   `json:"workloads,omitempty"` // T-053 inventory
-	Sections    Sections     `json:"sections"`
+	Workloads   []Workload     `json:"workloads,omitempty"` // T-053 inventory
+	Idle        []IdleWorkload `json:"idle,omitempty"`      // T-054 underutilized
+	Sections    Sections       `json:"sections"`
 }
 
 // BuildScaffold returns a read-only optimize report shell.
@@ -110,7 +111,7 @@ func BuildScaffold(req Request) Report {
 			},
 			Idle: SectionStatus{
 				Status:  SectionPending,
-				Message: "Idle / underutilized detection via Prometheus — T-054",
+				Message: "Idle / underutilized detection via Prometheus pending",
 			},
 			Rightsizing: SectionStatus{
 				Status:  SectionPending,

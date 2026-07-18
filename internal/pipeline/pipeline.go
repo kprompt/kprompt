@@ -316,6 +316,15 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return cluster.Friendlier(fmt.Errorf("optimize inventory: %w", err))
 			}
 			optimize.ApplyInventory(&report, inv)
+			querier := deps.Prometheus
+			if querier == nil {
+				settings := tools.LoadSettings(config.File{Tools: cfg.Tools})
+				if promClient, err := tools.NewPrometheusClient(settings); err == nil {
+					querier = promClient
+				}
+			}
+			idle := optimize.DetectIdle(ctx, querier, report.Workloads, window)
+			optimize.ApplyIdle(&report, idle)
 			doc = doc.WithOptimizeResult(report)
 			if !jsonMode {
 				ui.PrintOptimizeReport(out, report)
