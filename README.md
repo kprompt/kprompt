@@ -22,13 +22,20 @@ kprompt "how many nodes are in the cluster"
 kprompt "list configmaps" -n default
 kprompt "get secret db-creds" -n prod
 kprompt "explain why payment-api is crashing"
+kprompt "why is my api slow?" -n production
+kprompt "optimize my cluster"
+kprompt "show service dependency graph"
+kprompt "show gitops sync status"
+kprompt "why is api slow then scale api to 4"
+kprompt login
 ```
 
 Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Secret, …). See [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
 
 ## Status
 
-**v0.3.0 (experimental)** — Kubernetes plan → safety → apply for deploy, scale, rollback, and named delete; deep explain, logs, describe, history, JSON CI output, and terminal themes. Integrations: Helm install/upgrade, Argo Workflows, Prometheus performance, OpenTelemetry trace walk, Grafana dashboards, discovery-backed generic get/list, and multi-tool route chaining. See [docs/integration-matrix.md](./docs/integration-matrix.md) and [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
+**v0.4.0 (experimental)** — Kubernetes plan → safety → apply for deploy, scale, rollback, and named delete; deep explain, logs, describe, history, JSON CI output, and terminal themes. Integrations: Helm, Argo Workflows, Prometheus, OpenTelemetry, Grafana, Tekton, KEDA, Istio (read-first), Crossplane, Flux/Argo CD GitOps, optimize reports, service graphs, multi-tool routes with one approval, Homebrew install, and optional Team login/policy/audit. See [docs/integration-matrix.md](./docs/integration-matrix.md) and [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
+
 ## Install
 
 ### From releases (recommended)
@@ -46,7 +53,7 @@ brew install kprompt/tap/kprompt
 Fallback (pinned release script on jsDelivr):
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.3.0/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.4.0/install/install.sh | bash
 ```
 
 ### From source (dev)
