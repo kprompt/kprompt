@@ -82,6 +82,7 @@ func main() {
 	root.AddCommand(newLogoutCmd())
 	root.AddCommand(newWhoamiCmd())
 	root.AddCommand(newPolicyCmd())
+	root.AddCommand(newSecretsCmd())
 
 	ctx := context.Background()
 	if err := root.ExecuteContext(ctx); err != nil {

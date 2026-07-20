@@ -132,7 +132,9 @@ func Dir() (string, error) {
 	return filepath.Join(home, ".kprompt"), nil
 }
 
-// APIKeyFor returns the env-sourced API key for a provider preset.
+// APIKeyFor returns the API key for a provider preset.
+// Order: process env → Team-pulled ~/.kprompt/provider-secrets.yaml → empty
+// (or "ollama" when AllowEmptyKey). Env always wins over pulled secrets (ADR-0005).
 func APIKeyFor(provider string) string {
 	preset, ok := llm.LookupPreset(provider)
 	if !ok {
@@ -142,6 +144,9 @@ func APIKeyFor(provider string) string {
 		if v := os.Getenv(k); v != "" {
 			return v
 		}
+	}
+	if v := PulledAPIKey(provider); v != "" {
+		return v
 	}
 	if preset.AllowEmptyKey {
 		return "ollama"

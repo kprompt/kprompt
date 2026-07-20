@@ -6,7 +6,7 @@ API keys are **environment variables only** (never stored in the config file).
 
 | Provider | `--provider` | Env key(s) | Default model | Notes |
 |----------|--------------|------------|---------------|-------|
-| OpenAI | `openai` | `KPROMPT_OPENAI_API_KEY` / `OPENAI_API_KEY` | `gpt-4o-mini` | Also `KPROMPT_OPENAI_BASE_URL` for proxies |
+| OpenAI | `openai` | `KPROMPT_OPENAI_API_KEY` / `OPENAI_API_KEY` | `gpt-4o-mini` | Also `KPROMPT_OPENAI_BASE_URL` for proxies; Team orgs can store keys in app `/secrets` and `kprompt secrets pull` |
 | Anthropic | `anthropic` | `KPROMPT_ANTHROPIC_API_KEY` / `ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` | Messages API |
 | Google Gemini | `gemini` | `KPROMPT_GEMINI_API_KEY` / `GEMINI_API_KEY` / `GOOGLE_API_KEY` | `gemini-2.0-flash` | AI Studio key |
 | Groq | `groq` | `KPROMPT_GROQ_API_KEY` / `GROQ_API_KEY` | `llama-3.3-70b-versatile` | OpenAI-compatible |

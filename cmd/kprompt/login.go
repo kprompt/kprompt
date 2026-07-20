@@ -52,6 +52,11 @@ func newLoginCmd() *cobra.Command {
 			} else {
 				fmt.Fprintf(cmd.OutOrStdout(), "Org policy cached (version %d).\n", pol.Version)
 			}
+			if secrets, err := team.PullSecrets(cmd.Context()); err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "warning: secrets pull failed: %v\n", err)
+			} else if len(secrets) > 0 {
+				fmt.Fprintf(cmd.OutOrStdout(), "Org provider keys cached (%d).\n", len(secrets))
+			}
 			return nil
 		},
 	}
@@ -80,6 +85,7 @@ func newLogoutCmd() *cobra.Command {
 				return err
 			}
 			_ = team.ClearPolicy()
+			_ = team.ClearProviderSecrets()
 			fmt.Fprintln(cmd.OutOrStdout(), "Logged out (credentials cleared).")
 			return nil
 		},
