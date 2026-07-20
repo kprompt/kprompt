@@ -598,20 +598,116 @@ func TestMultiToolRouteStopsAfterUnapprovedMutation(t *testing.T) {
 			`{"kind":"dashboard","target":{"kind":"Dashboard"}}`,
 		),
 	}}
+	client := fake.NewSimpleClientset(deployment("api", "default", 1))
 	var out bytes.Buffer
 	err := RunWith(context.Background(), config.Resolved{
 		Prompt: "scale api to 3 then show dashboards",
 	}, &out, Deps{
 		Provider:   provider,
-		Client:     fake.NewSimpleClientset(deployment("api", "default", 1)),
+		Client:     client,
 		IsTerminal: boolPtr(false),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if provider.index != 2 ||
-		!bytes.Contains(out.Bytes(), []byte("Route stopped at")) {
+		!bytes.Contains(out.Bytes(), []byte("Aggregate plan:")) ||
+		!bytes.Contains(out.Bytes(), []byte("route was not approved")) {
 		t.Fatalf("calls=%d output=%s", provider.index, out.String())
+	}
+	dep, getErr := client.AppsV1().Deployments("default").Get(
+		context.Background(),
+		"api",
+		metav1.GetOptions{},
+	)
+	if getErr != nil {
+		t.Fatal(getErr)
+	}
+	if dep.Spec.Replicas == nil || *dep.Spec.Replicas != 1 {
+		t.Fatalf("unapproved route must not mutate, replicas=%v", dep.Spec.Replicas)
+	}
+}
+
+func TestMultiToolRouteSingleApprovalCoversMutatingChain(t *testing.T) {
+	provider := &sequenceProvider{structured: []json.RawMessage{
+		json.RawMessage(
+			`{"kind":"performance","target":{"name":"api","kind":"Deployment"},"params":{"window":"15m"}}`,
+		),
+		json.RawMessage(
+			`{"kind":"scale","target":{"name":"api","kind":"Deployment"},"params":{"replicas":4}}`,
+		),
+	}}
+	client := fake.NewSimpleClientset(deployment("api", "default", 1))
+	confirms := 0
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt: "why is api slow then scale api to 4",
+	}, io.Discard, Deps{
+		Provider: provider,
+		Client:   client,
+		Prometheus: performanceQuerierFunc(
+			func(context.Context, string, time.Time) (toolprometheus.Result, error) {
+				return toolprometheus.Result{
+					Type: "vector",
+					Series: []toolprometheus.Series{{
+						Samples: []toolprometheus.Sample{{Timestamp: 1, Value: "0.5"}},
+					}},
+				}, nil
+			},
+		),
+		Confirm: func(io.Writer) (bool, error) {
+			confirms++
+			return true, nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if confirms != 1 {
+		t.Fatalf("expected one aggregate approval, got %d", confirms)
+	}
+	dep, getErr := client.AppsV1().Deployments("default").Get(
+		context.Background(),
+		"api",
+		metav1.GetOptions{},
+	)
+	if getErr != nil {
+		t.Fatal(getErr)
+	}
+	if dep.Spec.Replicas == nil || *dep.Spec.Replicas != 4 {
+		t.Fatalf("replicas=%v", dep.Spec.Replicas)
+	}
+}
+
+func TestMultiToolRouteJSONIncludesAggregateApproval(t *testing.T) {
+	provider := &sequenceProvider{structured: []json.RawMessage{
+		json.RawMessage(
+			`{"kind":"scale","target":{"name":"api","kind":"Deployment"},"params":{"replicas":2}}`,
+		),
+		json.RawMessage(
+			`{"kind":"dashboard","target":{"kind":"Dashboard"}}`,
+		),
+	}}
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Approve: true,
+		Prompt:  "scale api to 2 then show dashboards",
+		Output:  "json",
+	}, &out, Deps{
+		Provider: provider,
+		Client:   fake.NewSimpleClientset(deployment("api", "default", 1)),
+		Grafana: &grafanaQuerierStub{
+			dashboards: []toolgrafana.DashboardSummary{{UID: "d1", Title: "D"}},
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var result output.RouteResult
+	if err := json.Unmarshal(out.Bytes(), &result); err != nil {
+		t.Fatalf("invalid route JSON: %v\n%s", err, out.String())
+	}
+	if !result.RequiresApproval || result.Risk.Level == "" || !result.Applied || len(result.Steps) != 2 {
+		t.Fatalf("result=%+v", result)
 	}
 }
 

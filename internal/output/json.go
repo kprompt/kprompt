@@ -41,14 +41,16 @@ type PlanResult struct {
 
 // RouteResult is a stable CI-facing sequence of per-step plan results.
 type RouteResult struct {
-	APIVersion    string       `json:"apiVersion"`
-	Kind          string       `json:"kind"`
-	SchemaVersion string       `json:"schemaVersion"`
-	Prompt        string       `json:"prompt"`
-	Applied       bool         `json:"applied"`
-	StoppedAt     int          `json:"stoppedAt,omitempty"`
-	StopReason    string       `json:"stopReason,omitempty"`
-	Steps         []PlanResult `json:"steps"`
+	APIVersion       string       `json:"apiVersion"`
+	Kind             string       `json:"kind"`
+	SchemaVersion    string       `json:"schemaVersion"`
+	Prompt           string       `json:"prompt"`
+	RequiresApproval bool         `json:"requiresApproval,omitempty"`
+	Risk             RiskPayload  `json:"risk,omitempty"`
+	Applied          bool         `json:"applied"`
+	StoppedAt        int          `json:"stoppedAt,omitempty"`
+	StopReason       string       `json:"stopReason,omitempty"`
+	Steps            []PlanResult `json:"steps"`
 }
 
 // PlanPayload is the reviewable plan without manifests/secrets.

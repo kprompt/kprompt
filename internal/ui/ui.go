@@ -87,6 +87,39 @@ func PrintRoute(w io.Writer, steps []string) {
 	}
 }
 
+// PrintRoutePlan prints the aggregate preflighted plans for single-approval review (T-058).
+func PrintRoutePlan(w io.Writer, steps []string, plans []planner.ExecutionPlan, risks []safety.Result) {
+	t := themeFor(w)
+	fmt.Fprintln(w, t.Heading("Aggregate plan:"))
+	for i := range plans {
+		prompt := ""
+		if i < len(steps) {
+			prompt = steps[i]
+		}
+		risk := safety.Result{Risk: safety.RiskLow}
+		if i < len(risks) {
+			risk = risks[i]
+		}
+		approval := ""
+		if plans[i].RequiresApproval {
+			approval = " [needs approval]"
+		}
+		summary := plans[i].Summary
+		if summary == "" {
+			summary = string(plans[i].Intent.Kind)
+		}
+		fmt.Fprintf(
+			w,
+			"  %d. %s — %s · risk=%s%s\n",
+			i+1,
+			prompt,
+			summary,
+			t.Risk(risk.Risk),
+			approval,
+		)
+	}
+}
+
 // PrintRouteStep separates one routed plan from the next.
 func PrintRouteStep(w io.Writer, index, total int, prompt string) {
 	t := themeFor(w)
