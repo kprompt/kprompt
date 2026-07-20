@@ -53,6 +53,8 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 			return fmt.Errorf("executor: use ApplyKEDA for keda actions")
 		case planner.OpClaimCreate:
 			return fmt.Errorf("executor: use ApplyCrossplane for crossplane actions")
+		case planner.OpGitOpsSync:
+			return fmt.Errorf("executor: use ApplyGitOpsSync for gitops sync actions")
 		default:
 			return fmt.Errorf("executor: unsupported op %q", a.Op)
 		}

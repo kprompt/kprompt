@@ -11,6 +11,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	"github.com/kprompt/kprompt/internal/tools/crossplane"
+	"github.com/kprompt/kprompt/internal/tools/gitops"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
@@ -285,6 +286,37 @@ func (r PlanResult) WithClaimResult(st crossplane.ClaimStatus) PlanResult {
 		"phase":     st.Phase,
 		"synced":    st.Synced,
 		"ready":     st.Ready,
+		"message":   st.Message,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithGitOpsStatusResult attaches a read-only GitOps sync/health summary (T-043).
+func (r PlanResult) WithGitOpsStatusResult(report gitops.StatusReport) PlanResult {
+	payload := map[string]any{
+		"type":      report.Type,
+		"scope":     report.Scope,
+		"namespace": report.Namespace,
+		"summary":   report.Summary,
+		"apps":      report.Apps,
+		"notes":     report.Notes,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithGitOpsSyncResult attaches a GitOps sync/promote/rollback outcome (T-043).
+func (r PlanResult) WithGitOpsSyncResult(st gitops.SyncResult) PlanResult {
+	payload := map[string]any{
+		"type":      "gitops-sync",
+		"engine":    st.Engine,
+		"kind":      st.Kind,
+		"name":      st.Name,
+		"namespace": st.Namespace,
+		"action":    st.Action,
 		"message":   st.Message,
 	}
 	raw, _ := json.Marshal(payload)

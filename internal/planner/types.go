@@ -21,6 +21,8 @@ const (
 	OpScaledObjectCreate Op = "scaledobject-create"
 	OpIstioTraffic       Op = "istio-traffic"
 	OpClaimCreate        Op = "claim-create"
+	OpGitOpsStatus       Op = "gitops-status"
+	OpGitOpsSync         Op = "gitops-sync"
 	OpPromQuery          Op = "prom-query"
 	OpTraceQuery         Op = "trace-query"
 	OpGrafanaQuery       Op = "grafana-query"

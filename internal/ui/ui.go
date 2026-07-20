@@ -14,6 +14,7 @@ import (
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	"github.com/kprompt/kprompt/internal/tools/crossplane"
+	"github.com/kprompt/kprompt/internal/tools/gitops"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
@@ -162,6 +163,53 @@ func PrintScaledObjectApplied(w io.Writer, plan planner.ExecutionPlan, st keda.S
 func PrintClaimApplied(w io.Writer, plan planner.ExecutionPlan, st crossplane.ClaimStatus) {
 	t := themeFor(w)
 	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Claimed:"), plan.Summary)
+	fmt.Fprintf(w, "  %s\n", st.Label())
+}
+
+// PrintGitOpsStatusReport prints a read-only Flux/Argo CD sync and health summary (T-043).
+func PrintGitOpsStatusReport(w io.Writer, report gitops.StatusReport) {
+	t := themeFor(w)
+	scope := report.Scope
+	if report.Namespace != "" {
+		scope = fmt.Sprintf("%s/%s", report.Scope, report.Namespace)
+	}
+	fmt.Fprintf(w, "%s %s\n", t.Heading("GitOps status:"), t.Accent(scope))
+	fmt.Fprintf(w, "%s %s\n", t.Heading("Summary: "), report.Summary)
+	if len(report.Notes) > 0 {
+		fmt.Fprintln(w, t.Heading("Notes:"))
+		for _, n := range report.Notes {
+			fmt.Fprintf(w, "  - %s\n", t.Muted(n))
+		}
+	}
+	for _, app := range report.Apps {
+		label := fmt.Sprintf("%s %s/%s", app.Engine, app.Kind, app.Name)
+		if app.Namespace != "" {
+			label += " -n " + app.Namespace
+		}
+		fmt.Fprintf(w, "%s %s\n", t.Heading("•"), t.Accent(label))
+		parts := make([]string, 0, 3)
+		if app.Sync != "" {
+			parts = append(parts, "sync="+app.Sync)
+		}
+		if app.Health != "" {
+			parts = append(parts, "health="+app.Health)
+		}
+		if app.Revision != "" {
+			parts = append(parts, "rev="+app.Revision)
+		}
+		if len(parts) > 0 {
+			fmt.Fprintf(w, "    %s\n", strings.Join(parts, " "))
+		}
+		if app.Message != "" {
+			fmt.Fprintf(w, "    %s\n", t.Muted(app.Message))
+		}
+	}
+}
+
+// PrintGitOpsSyncApplied confirms a requested Flux reconcile or Argo CD sync.
+func PrintGitOpsSyncApplied(w io.Writer, plan planner.ExecutionPlan, st gitops.SyncResult) {
+	t := themeFor(w)
+	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Synced:"), plan.Summary)
 	fmt.Fprintf(w, "  %s\n", st.Label())
 }
 

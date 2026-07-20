@@ -65,6 +65,9 @@ func CheckPrompt(prompt string) Result {
 	if xpDenied := CheckCrossplanePrompt(p); xpDenied.Denied {
 		return xpDenied
 	}
+	if gitopsDenied := CheckGitOpsPrompt(p); gitopsDenied.Denied {
+		return gitopsDenied
+	}
 	return Result{Risk: RiskLow}
 }
 
@@ -129,11 +132,19 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 	if xpDenied := evaluateCrossplanePlan(plan); xpDenied.Denied {
 		return xpDenied
 	}
+	if gitopsDenied := evaluateGitOpsPlan(plan); gitopsDenied.Denied {
+		return gitopsDenied
+	}
 	switch plan.Intent.Kind {
 	case intent.KindDelete:
 		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
 	case intent.KindCrossplane:
 		return Result{Risk: RiskHigh, Message: "Cloud claim requires strong approval"}
+	case intent.KindGitOps:
+		if plan.RequiresApproval {
+			return Result{Risk: RiskMedium, Message: "GitOps sync requires approval"}
+		}
+		return Result{Risk: RiskLow}
 	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow, intent.KindTekton, intent.KindKEDA:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
 	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph, intent.KindIstio:

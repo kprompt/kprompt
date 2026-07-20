@@ -105,6 +105,50 @@ func HasVirtualServiceCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
 	return st.Found, nil
 }
 
+// KustomizationCRDStatus reports Flux Kustomization API availability in the cluster.
+func KustomizationCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
+	_ = ctx
+	st := CRDStatus{Group: "kustomize.toolkit.fluxcd.io", Kind: "Kustomization"}
+	versions, found, err := servedKindVersions(cfg, st.Group, st.Kind)
+	if err != nil {
+		return st, err
+	}
+	st.Found = found
+	st.Versions = versions
+	return st, nil
+}
+
+// HasKustomizationCRD reports whether the Flux Kustomization API is served.
+func HasKustomizationCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
+	st, err := KustomizationCRDStatus(ctx, cfg)
+	if err != nil {
+		return false, err
+	}
+	return st.Found, nil
+}
+
+// ApplicationCRDStatus reports Argo CD Application API availability (not Workflow).
+func ApplicationCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
+	_ = ctx
+	st := CRDStatus{Group: "argoproj.io", Kind: "Application"}
+	versions, found, err := servedKindVersions(cfg, st.Group, st.Kind)
+	if err != nil {
+		return st, err
+	}
+	st.Found = found
+	st.Versions = versions
+	return st, nil
+}
+
+// HasApplicationCRD reports whether the Argo CD Application API is served.
+func HasApplicationCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
+	st, err := ApplicationCRDStatus(ctx, cfg)
+	if err != nil {
+		return false, err
+	}
+	return st.Found, nil
+}
+
 // WorkflowCRDStatus reports Argo Workflows API availability in the cluster.
 func WorkflowCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
 	_ = ctx

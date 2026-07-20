@@ -27,6 +27,7 @@ import (
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	toolgitops "github.com/kprompt/kprompt/internal/tools/gitops"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolistio "github.com/kprompt/kprompt/internal/tools/istio"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
@@ -160,6 +161,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			return err
 		}
 	}
+	if intent.LooksLikeGitOpsPrompt(cfg.Prompt) || in.Kind == intent.KindGitOps {
+		if err := tools.RequireGitOps(ctx, cfg.Context, nil); err != nil {
+			return err
+		}
+	}
 
 	plan, err := planner.Build(in)
 	if err != nil {
@@ -201,7 +207,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if plan.RequiresApproval {
 		if executor.IsHelmPlan(plan) {
 			planner.EnrichHelmPlan(ctx, &plan)
-		} else if !executor.IsArgoWorkflowPlan(plan) && !executor.IsTektonPlan(plan) && !executor.IsKEDAPlan(plan) && !executor.IsCrossplanePlan(plan) {
+		} else if !executor.IsArgoWorkflowPlan(plan) && !executor.IsTektonPlan(plan) && !executor.IsKEDAPlan(plan) && !executor.IsCrossplanePlan(plan) && !executor.IsGitOpsSyncPlan(plan) {
 			planner.EnrichDiffs(ctx, client, &plan)
 		}
 	}
@@ -459,6 +465,26 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			}
 			applied = true
 			return nil
+		case intent.KindGitOps:
+			cfgREST, err := restConfigForArgo(cfg.Context, restCfg)
+			if err != nil {
+				return err
+			}
+			engine, _ := plan.Intent.StringParam("engine")
+			status, err := toolgitops.SummarizeStatus(ctx, cfgREST, toolgitops.StatusRequest{
+				Namespace: plan.Intent.Target.Namespace,
+				Name:      plan.Intent.Target.Name,
+				Engine:    engine,
+			})
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("gitops status: %w", err))
+			}
+			doc = doc.WithGitOpsStatusResult(status)
+			if !jsonMode {
+				ui.PrintGitOpsStatusReport(out, status)
+			}
+			applied = true
+			return nil
 		case intent.KindExplain:
 			req, err := explainFromPlan(plan)
 			if err != nil {
@@ -675,6 +701,22 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		applied = true
 		return nil
 	}
+	if executor.IsGitOpsSyncPlan(plan) {
+		cfgREST, err := restConfigForArgo(cfg.Context, restCfg)
+		if err != nil {
+			return err
+		}
+		st, err := executor.ApplyGitOpsSync(ctx, cfgREST, plan)
+		if err != nil {
+			return cluster.Friendlier(fmt.Errorf("apply: %w", err))
+		}
+		doc = doc.WithGitOpsSyncResult(st)
+		if !jsonMode {
+			ui.PrintGitOpsSyncApplied(human, plan, st)
+		}
+		applied = true
+		return nil
+	}
 	if executor.IsHelmPlan(plan) {
 		if err := executor.ApplyHelm(ctx, plan); err != nil {
 			return cluster.Friendlier(fmt.Errorf("apply: %w", err))
@@ -767,7 +809,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph, intent.KindIstio:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph, intent.KindIstio, intent.KindGitOps:
 		return true
 	default:
 		return false

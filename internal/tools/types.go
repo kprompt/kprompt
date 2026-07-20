@@ -11,6 +11,7 @@ const (
 	IDKEDA          ID = "keda"
 	IDIstio         ID = "istio"
 	IDCrossplane    ID = "crossplane"
+	IDGitOps        ID = "gitops"
 	IDPrometheus    ID = "prometheus"
 	IDGrafana       ID = "grafana"
 	IDOpenTelemetry ID = "opentelemetry"

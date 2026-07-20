@@ -3,6 +3,7 @@ package tools
 import (
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	"github.com/kprompt/kprompt/internal/tools/crossplane"
+	"github.com/kprompt/kprompt/internal/tools/gitops"
 	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
 	"github.com/kprompt/kprompt/internal/tools/tekton"
@@ -23,6 +24,8 @@ func MissingHint(id ID) string {
 		return istio.InstallHint()
 	case IDCrossplane:
 		return crossplane.InstallHint()
+	case IDGitOps:
+		return gitops.InstallHint()
 	case IDPrometheus:
 		return "Prometheus is not configured. Set KPROMPT_PROMETHEUS_URL or tools.prometheus.url in ~/.kprompt/config.yaml"
 	case IDGrafana:

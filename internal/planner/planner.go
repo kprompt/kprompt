@@ -49,6 +49,8 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 		return buildIstio(in)
 	case intent.KindCrossplane:
 		return buildCrossplane(in, ns)
+	case intent.KindGitOps:
+		return buildGitOps(in, ns)
 	case intent.KindPerformance:
 		return buildPerformance(in, ns)
 	case intent.KindTrace:

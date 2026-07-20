@@ -7,6 +7,7 @@ import (
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	"github.com/kprompt/kprompt/internal/tools/crossplane"
+	"github.com/kprompt/kprompt/internal/tools/gitops"
 	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
 	"github.com/kprompt/kprompt/internal/tools/tekton"
@@ -287,4 +288,53 @@ func RequireCrossplane(ctx context.Context, kubeCtx string, k kubeConnector) err
 		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
 	}
 	return crossplane.Require(ctx, cl.Config)
+}
+
+func detectGitOps(ctx context.Context, settings Settings, kubeCtx string, k kubeConnector) Result {
+	r := Result{
+		ID:           IDGitOps,
+		Name:         "GitOps (Flux/Argo CD)",
+		Capabilities: []Capability{CapQuery, CapMutate},
+	}
+	if !settings.GitOpsEnabled {
+		r.Status = StatusDisabled
+		r.Detail = "disabled in config or KPROMPT_GITOPS_ENABLED=0"
+		r.Hint = gitops.InstallHint()
+		return r
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = MissingHint(IDKubernetes)
+		return r
+	}
+	av, err := gitops.Detect(ctx, cl.Config)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = gitops.InstallHint()
+		return r
+	}
+	if !av.Installed {
+		r.Status = StatusUnavailable
+		r.Detail = gitops.DetailLabel(av)
+		r.Hint = gitops.InstallHint()
+		return r
+	}
+	r.Status = StatusAvailable
+	r.Detail = gitops.DetailLabel(av)
+	return r
+}
+
+// RequireGitOps ensures Flux Kustomization and/or Argo CD Application APIs are served.
+func RequireGitOps(ctx context.Context, kubeCtx string, k kubeConnector) error {
+	if k == nil {
+		k = defaultKube{}
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
+	}
+	return gitops.Require(ctx, cl.Config)
 }
