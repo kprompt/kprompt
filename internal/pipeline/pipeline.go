@@ -81,6 +81,14 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				Message: denied.Message,
 			},
 		}
+		team.PushAuditBestEffort(ctx, team.AuditEventInput{
+			Prompt:         cfg.Prompt,
+			PlanSummary:    "prompt denied by local safety",
+			Risk:           string(safety.RiskDenied),
+			Decision:       "denied",
+			ClusterContext: cfg.Context,
+			Namespace:      cfg.Namespace,
+		})
 		if deps.OnResult != nil {
 			deps.OnResult(doc)
 		}
@@ -176,6 +184,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	risk := safety.EvaluatePlanWithOrg(plan, loadOrgPolicy())
 	if risk.Denied {
 		doc := output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false)
+		team.PushAuditBestEffort(ctx, auditFromPlan(cfg, plan, risk, "denied"))
 		if deps.OnResult != nil {
 			deps.OnResult(doc)
 		}
@@ -219,10 +228,15 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 
 	applied := false
+	decision := "planned"
 	defer func() {
 		_ = history.Append(history.FromPlan(cfg.Prompt, cfg.Context, plan, risk, applied))
 		_ = history.Truncate()
 		doc.Applied = applied
+		if decision == "planned" && applied && plan.RequiresApproval {
+			decision = "applied"
+		}
+		team.PushAuditBestEffort(ctx, auditFromPlan(cfg, plan, risk, decision))
 		if deps.OnResult != nil {
 			deps.OnResult(doc)
 		}
@@ -621,8 +635,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		return err
 	}
 	if !approved {
+		decision = "denied"
 		return nil
 	}
+	decision = "approved"
 
 	runner := &executor.Runner{Client: client}
 	if executor.IsArgoWorkflowPlan(plan) {
@@ -729,6 +745,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		ui.PrintApplied(out, plan)
 	}
 	applied = true
+	decision = "applied"
 
 	if cfg.Wait {
 		targets := deploymentWaitTargets(plan)
@@ -1004,6 +1021,29 @@ func loadOrgPolicy() *safety.OrgPolicy {
 		AllowNamespaces: pol.AllowNamespaces,
 		DenyNamespaces:  pol.DenyNamespaces,
 		RequireApprove:  pol.RequireApprove,
+	}
+}
+
+func auditFromPlan(cfg config.Resolved, plan planner.ExecutionPlan, risk safety.Result, decision string) team.AuditEventInput {
+	ns := plan.Intent.Target.Namespace
+	if ns == "" {
+		for _, a := range plan.Actions {
+			if a.Object.Namespace != "" {
+				ns = a.Object.Namespace
+				break
+			}
+		}
+	}
+	if ns == "" {
+		ns = cfg.Namespace
+	}
+	return team.AuditEventInput{
+		Prompt:         cfg.Prompt,
+		PlanSummary:    plan.Summary,
+		Risk:           string(risk.Risk),
+		Decision:       decision,
+		ClusterContext: cfg.Context,
+		Namespace:      ns,
 	}
 }
 
