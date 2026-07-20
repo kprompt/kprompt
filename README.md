@@ -108,6 +108,19 @@ kprompt history rerun 3 --approve
 
 History stores prompt, kind, summary, and action refs — never manifests or API keys.
 
+## Team enrollment (optional)
+
+Opt-in control-plane login for org policy / audit (does not change Free CLI behavior until you enroll):
+
+```bash
+kprompt login            # device code → approve at app.kprompt.ai/connect
+kprompt login --open     # also open the browser
+kprompt whoami           # org + member
+kprompt logout           # revoke token + clear ~/.kprompt/credentials.yaml
+```
+
+Override API with `KPROMPT_API_URL` / `KPROMPT_API_TOKEN` if needed. The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config.yaml`.
+
 ## CI
 
 Use `--output json` for a versioned PlanResult (see [docs/ci.md](./docs/ci.md)).

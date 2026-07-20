@@ -36,6 +36,7 @@ type ToolsFile struct {
 	KEDA          ToolToggle     `yaml:"keda,omitempty"`
 	Istio         ToolToggle     `yaml:"istio,omitempty"`
 	Crossplane    ToolToggle     `yaml:"crossplane,omitempty"`
+	GitOps        ToolToggle     `yaml:"gitops,omitempty"`
 	Prometheus    PrometheusTool `yaml:"prometheus,omitempty"`
 	Grafana       GrafanaTool    `yaml:"grafana,omitempty"`
 	OTel          OTelTool       `yaml:"otel,omitempty"`
@@ -110,13 +111,25 @@ func LoadFile() (File, error) {
 	return f, nil
 }
 
-// DefaultPath returns ~/.kprompt/config.yaml.
+// DefaultPath returns ~/.kprompt/config.yaml (or $KPROMPT_HOME/config.yaml).
 func DefaultPath() (string, error) {
+	dir, err := Dir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(dir, "config.yaml"), nil
+}
+
+// Dir returns the kprompt config directory (~/.kprompt or $KPROMPT_HOME).
+func Dir() (string, error) {
+	if v := strings.TrimSpace(os.Getenv("KPROMPT_HOME")); v != "" {
+		return filepath.Clean(v), nil
+	}
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	return filepath.Join(home, ".kprompt", "config.yaml"), nil
+	return filepath.Join(home, ".kprompt"), nil
 }
 
 // APIKeyFor returns the env-sourced API key for a provider preset.

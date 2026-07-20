@@ -78,6 +78,9 @@ func main() {
 	root.AddCommand(newConfigCmd())
 	root.AddCommand(newHistoryCmd())
 	root.AddCommand(newToolsCmd())
+	root.AddCommand(newLoginCmd())
+	root.AddCommand(newLogoutCmd())
+	root.AddCommand(newWhoamiCmd())
 
 	ctx := context.Background()
 	if err := root.ExecuteContext(ctx); err != nil {
