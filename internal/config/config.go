@@ -34,6 +34,7 @@ type ToolsFile struct {
 	ArgoWorkflows ToolToggle     `yaml:"argo_workflows,omitempty"`
 	Tekton        ToolToggle     `yaml:"tekton,omitempty"`
 	KEDA          ToolToggle     `yaml:"keda,omitempty"`
+	Istio         ToolToggle     `yaml:"istio,omitempty"`
 	Prometheus    PrometheusTool `yaml:"prometheus,omitempty"`
 	Grafana       GrafanaTool    `yaml:"grafana,omitempty"`
 	OTel          OTelTool       `yaml:"otel,omitempty"`

@@ -19,6 +19,7 @@ const (
 	OpWorkflowCreate     Op = "workflow-create"
 	OpPipelineRunCreate  Op = "pipelinerun-create"
 	OpScaledObjectCreate Op = "scaledobject-create"
+	OpIstioTraffic       Op = "istio-traffic"
 	OpPromQuery          Op = "prom-query"
 	OpTraceQuery         Op = "trace-query"
 	OpGrafanaQuery       Op = "grafana-query"

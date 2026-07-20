@@ -59,6 +59,9 @@ func CheckPrompt(prompt string) Result {
 	if kedaDenied := CheckKEDAPrompt(p); kedaDenied.Denied {
 		return kedaDenied
 	}
+	if istioDenied := CheckIstioPrompt(p); istioDenied.Denied {
+		return istioDenied
+	}
 	return Result{Risk: RiskLow}
 }
 
@@ -117,12 +120,15 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 	if kedaDenied := evaluateKEDAPlan(plan); kedaDenied.Denied {
 		return kedaDenied
 	}
+	if istioDenied := evaluateIstioPlan(plan); istioDenied.Denied {
+		return istioDenied
+	}
 	switch plan.Intent.Kind {
 	case intent.KindDelete:
 		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
 	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow, intent.KindTekton, intent.KindKEDA:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph, intent.KindIstio:
 		// Generic Kubernetes reads and optimize reports (including Secret) are RiskLow.
 		// Authorization is the caller's kubeconfig RBAC — no special Secret redaction or deny.
 		// Mutating unknown kinds remains denied above; generic mutate is out of scope (T-048).

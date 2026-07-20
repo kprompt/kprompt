@@ -14,6 +14,7 @@ import (
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
+	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
@@ -154,6 +155,54 @@ func PrintScaledObjectApplied(w io.Writer, plan planner.ExecutionPlan, st keda.S
 	t := themeFor(w)
 	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Applied:"), plan.Summary)
 	fmt.Fprintf(w, "  %s\n", st.Label())
+}
+
+// PrintIstioTrafficReport prints a read-only VirtualService traffic / canary summary (T-041).
+func PrintIstioTrafficReport(w io.Writer, report istio.TrafficReport) {
+	t := themeFor(w)
+	scope := report.Scope
+	if report.Namespace != "" {
+		scope = fmt.Sprintf("%s/%s", report.Scope, report.Namespace)
+	}
+	fmt.Fprintf(w, "%s %s\n", t.Heading("Istio traffic:"), t.Accent(scope))
+	fmt.Fprintf(w, "%s %s\n", t.Heading("Summary: "), report.Summary)
+	if len(report.Notes) > 0 {
+		fmt.Fprintln(w, t.Heading("Notes:"))
+		for _, n := range report.Notes {
+			fmt.Fprintf(w, "  - %s\n", t.Muted(n))
+		}
+	}
+	for _, vs := range report.VirtualServices {
+		label := fmt.Sprintf("VirtualService/%s", vs.Name)
+		if vs.Namespace != "" {
+			label += " -n " + vs.Namespace
+		}
+		if vs.Canary {
+			label += " (canary)"
+		}
+		fmt.Fprintf(w, "%s %s\n", t.Heading("•"), t.Accent(label))
+		if len(vs.Hosts) > 0 {
+			fmt.Fprintf(w, "    hosts: %s\n", strings.Join(vs.Hosts, ", "))
+		}
+		if len(vs.Gateways) > 0 {
+			fmt.Fprintf(w, "    gateways: %s\n", strings.Join(vs.Gateways, ", "))
+		}
+		for _, route := range vs.Routes {
+			prefix := "    route"
+			if route.Match != "" {
+				prefix = "    route [" + route.Match + "]"
+			}
+			parts := make([]string, 0, len(route.Splits))
+			for _, s := range route.Splits {
+				dest := s.Host
+				if s.Subset != "" {
+					dest += "/" + s.Subset
+				}
+				parts = append(parts, fmt.Sprintf("%s %d%%", dest, s.Weight))
+			}
+			fmt.Fprintf(w, "%s: %s\n", prefix, strings.Join(parts, " | "))
+		}
+	}
 }
 
 // PrintPerformanceReport prints a Prometheus-backed workload diagnosis.

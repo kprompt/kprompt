@@ -11,6 +11,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
+	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
@@ -252,6 +253,21 @@ func (r PlanResult) WithScaledObjectResult(st keda.ScaledObjectStatus) PlanResul
 		"phase":     st.Phase,
 		"message":   st.Message,
 		"hpaName":   st.HPAName,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithIstioTrafficResult attaches a read-only Istio VirtualService traffic summary (T-041).
+func (r PlanResult) WithIstioTrafficResult(report istio.TrafficReport) PlanResult {
+	payload := map[string]any{
+		"type":            report.Type,
+		"scope":           report.Scope,
+		"namespace":       report.Namespace,
+		"summary":         report.Summary,
+		"virtualServices": report.VirtualServices,
+		"notes":           report.Notes,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

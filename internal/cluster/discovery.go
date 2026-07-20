@@ -61,6 +61,28 @@ func HasPipelineRunCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
 	return st.Found, nil
 }
 
+// VirtualServiceCRDStatus reports Istio VirtualService API availability in the cluster.
+func VirtualServiceCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
+	_ = ctx
+	st := CRDStatus{Group: "networking.istio.io", Kind: "VirtualService"}
+	versions, found, err := servedKindVersions(cfg, st.Group, st.Kind)
+	if err != nil {
+		return st, err
+	}
+	st.Found = found
+	st.Versions = versions
+	return st, nil
+}
+
+// HasVirtualServiceCRD reports whether the Istio VirtualService API is served.
+func HasVirtualServiceCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
+	st, err := VirtualServiceCRDStatus(ctx, cfg)
+	if err != nil {
+		return false, err
+	}
+	return st.Found, nil
+}
+
 // WorkflowCRDStatus reports Argo Workflows API availability in the cluster.
 func WorkflowCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
 	_ = ctx

@@ -9,6 +9,7 @@ const (
 	IDArgoWorkflows ID = "argo-workflows"
 	IDTekton        ID = "tekton"
 	IDKEDA          ID = "keda"
+	IDIstio         ID = "istio"
 	IDPrometheus    ID = "prometheus"
 	IDGrafana       ID = "grafana"
 	IDOpenTelemetry ID = "opentelemetry"

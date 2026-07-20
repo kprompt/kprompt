@@ -28,6 +28,7 @@ import (
 	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
+	toolistio "github.com/kprompt/kprompt/internal/tools/istio"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 	"github.com/kprompt/kprompt/internal/ui"
@@ -146,6 +147,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 	if intent.LooksLikeKEDAPrompt(cfg.Prompt) || in.Kind == intent.KindKEDA {
 		if err := tools.RequireKeda(ctx, cfg.Context, nil); err != nil {
+			return err
+		}
+	}
+	if intent.LooksLikeIstioPrompt(cfg.Prompt) || in.Kind == intent.KindIstio {
+		if err := tools.RequireIstio(ctx, cfg.Context, nil); err != nil {
 			return err
 		}
 	}
@@ -427,6 +433,24 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			doc = doc.WithGraphResult(report)
 			if !jsonMode {
 				ui.PrintGraphReport(out, report)
+			}
+			applied = true
+			return nil
+		case intent.KindIstio:
+			cfgREST, err := restConfigForArgo(cfg.Context, restCfg)
+			if err != nil {
+				return err
+			}
+			traffic, err := toolistio.SummarizeTraffic(ctx, cfgREST, toolistio.TrafficRequest{
+				Namespace: plan.Intent.Target.Namespace,
+				Name:      plan.Intent.Target.Name,
+			})
+			if err != nil {
+				return cluster.Friendlier(fmt.Errorf("istio traffic: %w", err))
+			}
+			doc = doc.WithIstioTrafficResult(traffic)
+			if !jsonMode {
+				ui.PrintIstioTrafficReport(out, traffic)
 			}
 			applied = true
 			return nil
@@ -722,7 +746,7 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	switch plan.Intent.Kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph, intent.KindIstio:
 		return true
 	default:
 		return false

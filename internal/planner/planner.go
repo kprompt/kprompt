@@ -45,6 +45,8 @@ func Build(in intent.Intent) (ExecutionPlan, error) {
 		return buildTekton(in, ns)
 	case intent.KindKEDA:
 		return buildKEDA(in, ns)
+	case intent.KindIstio:
+		return buildIstio(in)
 	case intent.KindPerformance:
 		return buildPerformance(in, ns)
 	case intent.KindTrace:
