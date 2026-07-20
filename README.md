@@ -135,4 +135,4 @@ Package layout matches the private architecture ADRs (`cmd/kprompt`, `internal/{
 
 ## License
 
-[MIT](./LICENSE) © 2026 Muhtalip Dede
+[Apache-2.0](./LICENSE) © 2026 Muhtalip Dede
