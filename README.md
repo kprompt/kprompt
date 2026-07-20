@@ -116,10 +116,12 @@ Opt-in control-plane login for org policy / audit (does not change Free CLI beha
 kprompt login            # device code → approve at app.kprompt.ai/connect
 kprompt login --open     # also open the browser
 kprompt whoami           # org + member
-kprompt logout           # revoke token + clear ~/.kprompt/credentials.yaml
+kprompt policy pull      # fetch org policy → ~/.kprompt/policy.yaml
+kprompt policy           # show cached policy
+kprompt logout           # revoke token + clear credentials/policy
 ```
 
-Override API with `KPROMPT_API_URL` / `KPROMPT_API_TOKEN` if needed. The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config.yaml`.
+Override API with `KPROMPT_API_URL` / `KPROMPT_API_TOKEN` if needed. The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config.yaml`. Cached org policy only **tightens** local hard-denies.
 
 ## CI
 

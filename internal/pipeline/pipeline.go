@@ -25,6 +25,7 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
+	"github.com/kprompt/kprompt/internal/team"
 	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	toolgitops "github.com/kprompt/kprompt/internal/tools/gitops"
@@ -172,7 +173,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		return err
 	}
 
-	risk := safety.EvaluatePlan(plan)
+	risk := safety.EvaluatePlanWithOrg(plan, loadOrgPolicy())
 	if risk.Denied {
 		doc := output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false)
 		if deps.OnResult != nil {
@@ -378,7 +379,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return nil
 			}
 			fix := *actionable[0].Plan
-			fixRisk := safety.EvaluatePlan(fix)
+			fixRisk := safety.EvaluatePlanWithOrg(fix, loadOrgPolicy())
 			if fixRisk.Denied {
 				if !jsonMode {
 					ui.PrintDenied(out, fixRisk.Message)
@@ -513,7 +514,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return nil
 			}
 			patch := *actionable[0].Plan
-			patchRisk := safety.EvaluatePlan(patch)
+			patchRisk := safety.EvaluatePlanWithOrg(patch, loadOrgPolicy())
 			if patchRisk.Denied {
 				ui.PrintDenied(out, patchRisk.Message)
 				applied = true
@@ -987,6 +988,23 @@ func isWorkflowGetPlan(plan planner.ExecutionPlan) bool {
 		return false
 	}
 	return plan.Actions[0].Object.Kind == "Workflow"
+}
+
+// loadOrgPolicy returns cached Team org policy when enrolled; nil otherwise (Free CLI path).
+func loadOrgPolicy() *safety.OrgPolicy {
+	pol, ok, err := team.LoadPolicy()
+	if err != nil || !ok {
+		return nil
+	}
+	return &safety.OrgPolicy{
+		OrgID:           pol.OrgID,
+		Version:         pol.Version,
+		MaxRisk:         pol.MaxRisk,
+		DenyIntents:     pol.DenyIntents,
+		AllowNamespaces: pol.AllowNamespaces,
+		DenyNamespaces:  pol.DenyNamespaces,
+		RequireApprove:  pol.RequireApprove,
+	}
 }
 
 func workflowStatusFromPlan(ctx context.Context, cfg *rest.Config, plan planner.ExecutionPlan) (argo.WorkflowStatus, error) {

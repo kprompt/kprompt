@@ -47,6 +47,11 @@ func newLoginCmd() *cobra.Command {
 			}
 			fmt.Fprintln(cmd.OutOrStdout())
 			fmt.Fprintf(cmd.OutOrStdout(), "Token saved to credentials file (%s).\n", creds.TokenHint)
+			if pol, err := team.PullPolicy(cmd.Context()); err != nil {
+				fmt.Fprintf(cmd.ErrOrStderr(), "warning: policy pull failed: %v\n", err)
+			} else {
+				fmt.Fprintf(cmd.OutOrStdout(), "Org policy cached (version %d).\n", pol.Version)
+			}
 			return nil
 		},
 	}
@@ -74,6 +79,7 @@ func newLogoutCmd() *cobra.Command {
 			if err := team.ClearCredentials(); err != nil {
 				return err
 			}
+			_ = team.ClearPolicy()
 			fmt.Fprintln(cmd.OutOrStdout(), "Logged out (credentials cleared).")
 			return nil
 		},
