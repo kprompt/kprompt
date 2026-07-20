@@ -51,6 +51,8 @@ func (r *Runner) Apply(ctx context.Context, plan planner.ExecutionPlan) error {
 			return fmt.Errorf("executor: use ApplyTekton for tekton actions")
 		case planner.OpScaledObjectCreate:
 			return fmt.Errorf("executor: use ApplyKEDA for keda actions")
+		case planner.OpClaimCreate:
+			return fmt.Errorf("executor: use ApplyCrossplane for crossplane actions")
 		default:
 			return fmt.Errorf("executor: unsupported op %q", a.Op)
 		}

@@ -20,6 +20,7 @@ const (
 	OpPipelineRunCreate  Op = "pipelinerun-create"
 	OpScaledObjectCreate Op = "scaledobject-create"
 	OpIstioTraffic       Op = "istio-traffic"
+	OpClaimCreate        Op = "claim-create"
 	OpPromQuery          Op = "prom-query"
 	OpTraceQuery         Op = "trace-query"
 	OpGrafanaQuery       Op = "grafana-query"

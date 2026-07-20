@@ -21,6 +21,7 @@ const (
 	EnvTektonOn        = "KPROMPT_TEKTON_ENABLED"
 	EnvKEDAOn          = "KPROMPT_KEDA_ENABLED"
 	EnvIstioOn         = "KPROMPT_ISTIO_ENABLED"
+	EnvCrossplaneOn    = "KPROMPT_CROSSPLANE_ENABLED"
 )
 
 // Settings merges ~/.kprompt/config.yaml tools section with env overrides.
@@ -30,6 +31,7 @@ type Settings struct {
 	TektonEnabled     bool
 	KEDAEnabled       bool
 	IstioEnabled      bool
+	CrossplaneEnabled bool
 	PrometheusEnabled bool
 	GrafanaEnabled    bool
 	OTelEnabled       bool
@@ -48,6 +50,7 @@ func LoadSettings(file config.File) Settings {
 		TektonEnabled:     toolEnabled(file.Tools.Tekton.Enabled, EnvTektonOn, true),
 		KEDAEnabled:       toolEnabled(file.Tools.KEDA.Enabled, EnvKEDAOn, true),
 		IstioEnabled:      toolEnabled(file.Tools.Istio.Enabled, EnvIstioOn, true),
+		CrossplaneEnabled: toolEnabled(file.Tools.Crossplane.Enabled, EnvCrossplaneOn, true),
 		PrometheusEnabled: toolEnabled(file.Tools.Prometheus.Enabled, EnvPrometheusOn, true),
 		GrafanaEnabled:    toolEnabled(file.Tools.Grafana.Enabled, EnvGrafanaOn, true),
 		OTelEnabled:       toolEnabled(file.Tools.OTel.Enabled, EnvOTelOn, true),

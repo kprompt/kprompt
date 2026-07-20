@@ -13,6 +13,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	"github.com/kprompt/kprompt/internal/tools/crossplane"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
@@ -154,6 +155,13 @@ func PrintPipelineRunApplied(w io.Writer, plan planner.ExecutionPlan, st tekton.
 func PrintScaledObjectApplied(w io.Writer, plan planner.ExecutionPlan, st keda.ScaledObjectStatus) {
 	t := themeFor(w)
 	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Applied:"), plan.Summary)
+	fmt.Fprintf(w, "  %s\n", st.Label())
+}
+
+// PrintClaimApplied confirms a submitted Crossplane claim and its phase.
+func PrintClaimApplied(w io.Writer, plan planner.ExecutionPlan, st crossplane.ClaimStatus) {
+	t := themeFor(w)
+	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Claimed:"), plan.Summary)
 	fmt.Fprintf(w, "  %s\n", st.Label())
 }
 

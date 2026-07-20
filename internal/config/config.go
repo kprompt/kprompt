@@ -35,6 +35,7 @@ type ToolsFile struct {
 	Tekton        ToolToggle     `yaml:"tekton,omitempty"`
 	KEDA          ToolToggle     `yaml:"keda,omitempty"`
 	Istio         ToolToggle     `yaml:"istio,omitempty"`
+	Crossplane    ToolToggle     `yaml:"crossplane,omitempty"`
 	Prometheus    PrometheusTool `yaml:"prometheus,omitempty"`
 	Grafana       GrafanaTool    `yaml:"grafana,omitempty"`
 	OTel          OTelTool       `yaml:"otel,omitempty"`

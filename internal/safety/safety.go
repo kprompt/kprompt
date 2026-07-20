@@ -62,6 +62,9 @@ func CheckPrompt(prompt string) Result {
 	if istioDenied := CheckIstioPrompt(p); istioDenied.Denied {
 		return istioDenied
 	}
+	if xpDenied := CheckCrossplanePrompt(p); xpDenied.Denied {
+		return xpDenied
+	}
 	return Result{Risk: RiskLow}
 }
 
@@ -123,9 +126,14 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 	if istioDenied := evaluateIstioPlan(plan); istioDenied.Denied {
 		return istioDenied
 	}
+	if xpDenied := evaluateCrossplanePlan(plan); xpDenied.Denied {
+		return xpDenied
+	}
 	switch plan.Intent.Kind {
 	case intent.KindDelete:
 		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
+	case intent.KindCrossplane:
+		return Result{Risk: RiskHigh, Message: "Cloud claim requires strong approval"}
 	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow, intent.KindTekton, intent.KindKEDA:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
 	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph, intent.KindIstio:

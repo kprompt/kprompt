@@ -10,6 +10,7 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	"github.com/kprompt/kprompt/internal/tools/crossplane"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
@@ -268,6 +269,23 @@ func (r PlanResult) WithIstioTrafficResult(report istio.TrafficReport) PlanResul
 		"summary":         report.Summary,
 		"virtualServices": report.VirtualServices,
 		"notes":           report.Notes,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithClaimResult attaches Crossplane claim submit/status payload.
+func (r PlanResult) WithClaimResult(st crossplane.ClaimStatus) PlanResult {
+	payload := map[string]any{
+		"type":      "claim",
+		"name":      st.Name,
+		"namespace": st.Namespace,
+		"kind":      st.Kind,
+		"phase":     st.Phase,
+		"synced":    st.Synced,
+		"ready":     st.Ready,
+		"message":   st.Message,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

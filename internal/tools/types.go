@@ -10,6 +10,7 @@ const (
 	IDTekton        ID = "tekton"
 	IDKEDA          ID = "keda"
 	IDIstio         ID = "istio"
+	IDCrossplane    ID = "crossplane"
 	IDPrometheus    ID = "prometheus"
 	IDGrafana       ID = "grafana"
 	IDOpenTelemetry ID = "opentelemetry"

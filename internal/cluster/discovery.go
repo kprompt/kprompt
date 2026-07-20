@@ -61,6 +61,28 @@ func HasPipelineRunCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
 	return st.Found, nil
 }
 
+// CompositeResourceDefinitionCRDStatus reports Crossplane XRD API availability.
+func CompositeResourceDefinitionCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
+	_ = ctx
+	st := CRDStatus{Group: "apiextensions.crossplane.io", Kind: "CompositeResourceDefinition"}
+	versions, found, err := servedKindVersions(cfg, st.Group, st.Kind)
+	if err != nil {
+		return st, err
+	}
+	st.Found = found
+	st.Versions = versions
+	return st, nil
+}
+
+// HasCompositeResourceDefinitionCRD reports whether Crossplane XRD API is served.
+func HasCompositeResourceDefinitionCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
+	st, err := CompositeResourceDefinitionCRDStatus(ctx, cfg)
+	if err != nil {
+		return false, err
+	}
+	return st.Found, nil
+}
+
 // VirtualServiceCRDStatus reports Istio VirtualService API availability in the cluster.
 func VirtualServiceCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
 	_ = ctx

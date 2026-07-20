@@ -6,6 +6,7 @@ import (
 
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	"github.com/kprompt/kprompt/internal/tools/crossplane"
 	"github.com/kprompt/kprompt/internal/tools/istio"
 	"github.com/kprompt/kprompt/internal/tools/keda"
 	"github.com/kprompt/kprompt/internal/tools/tekton"
@@ -237,4 +238,53 @@ func RequireIstio(ctx context.Context, kubeCtx string, k kubeConnector) error {
 		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
 	}
 	return istio.Require(ctx, cl.Config)
+}
+
+func detectCrossplane(ctx context.Context, settings Settings, kubeCtx string, k kubeConnector) Result {
+	r := Result{
+		ID:           IDCrossplane,
+		Name:         "Crossplane",
+		Capabilities: []Capability{CapSubmit, CapQuery, CapMutate},
+	}
+	if !settings.CrossplaneEnabled {
+		r.Status = StatusDisabled
+		r.Detail = "disabled in config or KPROMPT_CROSSPLANE_ENABLED=0"
+		r.Hint = crossplane.InstallHint()
+		return r
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = MissingHint(IDKubernetes)
+		return r
+	}
+	av, err := crossplane.Detect(ctx, cl.Config)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = crossplane.InstallHint()
+		return r
+	}
+	if !av.Installed {
+		r.Status = StatusUnavailable
+		r.Detail = crossplane.DetailLabel(av)
+		r.Hint = crossplane.InstallHint()
+		return r
+	}
+	r.Status = StatusAvailable
+	r.Detail = crossplane.DetailLabel(av)
+	return r
+}
+
+// RequireCrossplane ensures the XRD API is served in the active cluster.
+func RequireCrossplane(ctx context.Context, kubeCtx string, k kubeConnector) error {
+	if k == nil {
+		k = defaultKube{}
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
+	}
+	return crossplane.Require(ctx, cl.Config)
 }
