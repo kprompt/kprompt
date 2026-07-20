@@ -10,7 +10,7 @@ import (
 
 const systemPrompt = `You convert Kubernetes ops requests into a single Intent JSON object.
 Rules:
-- kind must be one of: deploy, install, scale, rollback, get, explain, logs, describe, workflow, performance, trace, dashboard, optimize, graph, delete, deny, unknown
+- kind must be one of: deploy, install, scale, rollback, get, explain, logs, describe, workflow, tekton, performance, trace, dashboard, optimize, graph, delete, deny, unknown
 - For scale: set target.name, target.kind (usually Deployment), target.namespace if mentioned, params.replicas as a number
 - For rollback / undo rollout / revert: kind=rollback; set target.name to the Deployment; target.kind Deployment; target.namespace if mentioned; optional params.revision (number) to roll back to a specific revision (omit for previous revision)
 - For install (helm chart): kind=install; set target.name to the app or release name (e.g. redis); target.namespace if mentioned; optional params.release, params.chart, params.repo, params.repo_url, params.replicas
@@ -26,6 +26,7 @@ Rules:
 - For logs / tail logs / show logs: kind=logs; set target.name (Pod or Deployment); optional target.kind; optional params.tail (lines, default 100); optional params.container
 - For describe / status of / show details (not crash-focused): kind=describe; set target.name; target.kind Pod or Deployment
 - For Argo Workflows / train a model / submit a workflow: kind=workflow; set target.name when the user names the workflow (otherwise omit and set params.model); target.namespace if mentioned; params.task (e.g. train, infer); params.model (e.g. yolov11); optional params.image, params.dataset, params.gpu=true, params.command, params.args
+- For Tekton CI / create a CI pipeline / PipelineRun: kind=tekton; set target.name when named; target.kind PipelineRun; optional params.repo_url (git URL), params.image, params.task (ci/build/test). Requires approval to submit
 - For delete / remove a single named resource: kind=delete; MUST set target.name and target.kind (Deployment, Service, or Pod); target.namespace if mentioned. Never delete without a concrete name. Namespace deletes and wipe/all/cluster deletes use kind=deny
 - For clearly destructive wipe/delete-cluster / delete-all / delete namespace requests: kind=deny
 - Namespace from phrases: "in staging", "in the prod namespace", "in production" → set target.namespace (aliases: stage→staging, prod→prod, production→production, dev→dev)

@@ -13,6 +13,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	"github.com/kprompt/kprompt/internal/tools/tekton"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
@@ -138,6 +139,13 @@ func PrintWorkflowStatus(w io.Writer, st argo.WorkflowStatus) {
 	if st.FinishedAt != "" {
 		fmt.Fprintf(w, "  finished: %s\n", st.FinishedAt)
 	}
+}
+
+// PrintPipelineRunApplied confirms a submitted Tekton PipelineRun and its phase.
+func PrintPipelineRunApplied(w io.Writer, plan planner.ExecutionPlan, st tekton.PipelineRunStatus) {
+	t := themeFor(w)
+	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Submitted:"), plan.Summary)
+	fmt.Fprintf(w, "  %s\n", st.Label())
 }
 
 // PrintPerformanceReport prints a Prometheus-backed workload diagnosis.

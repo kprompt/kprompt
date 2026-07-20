@@ -17,6 +17,28 @@ type CRDStatus struct {
 	Versions []string
 }
 
+// PipelineRunCRDStatus reports Tekton PipelineRun API availability in the cluster.
+func PipelineRunCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
+	_ = ctx
+	st := CRDStatus{Group: "tekton.dev", Kind: "PipelineRun"}
+	versions, found, err := servedKindVersions(cfg, st.Group, st.Kind)
+	if err != nil {
+		return st, err
+	}
+	st.Found = found
+	st.Versions = versions
+	return st, nil
+}
+
+// HasPipelineRunCRD reports whether the Tekton PipelineRun API is served.
+func HasPipelineRunCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
+	st, err := PipelineRunCRDStatus(ctx, cfg)
+	if err != nil {
+		return false, err
+	}
+	return st.Found, nil
+}
+
 // WorkflowCRDStatus reports Argo Workflows API availability in the cluster.
 func WorkflowCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
 	_ = ctx

@@ -13,6 +13,7 @@ import (
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
+	"github.com/kprompt/kprompt/internal/tools/tekton"
 )
 
 const (
@@ -221,6 +222,20 @@ func (r PlanResult) WithWorkflowResult(st argo.WorkflowStatus) PlanResult {
 		"message":    st.Message,
 		"startedAt":  st.StartedAt,
 		"finishedAt": st.FinishedAt,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithPipelineRunResult attaches Tekton PipelineRun submit/status payload.
+func (r PlanResult) WithPipelineRunResult(st tekton.PipelineRunStatus) PlanResult {
+	payload := map[string]any{
+		"type":      "pipelinerun",
+		"name":      st.Name,
+		"namespace": st.Namespace,
+		"phase":     st.Phase,
+		"message":   st.Message,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

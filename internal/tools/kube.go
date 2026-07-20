@@ -6,6 +6,7 @@ import (
 
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	"github.com/kprompt/kprompt/internal/tools/tekton"
 )
 
 type kubeConnector interface {
@@ -77,6 +78,43 @@ func detectArgoWorkflows(ctx context.Context, settings Settings, kubeCtx string,
 	return r
 }
 
+func detectTekton(ctx context.Context, settings Settings, kubeCtx string, k kubeConnector) Result {
+	r := Result{
+		ID:           IDTekton,
+		Name:         "Tekton",
+		Capabilities: []Capability{CapSubmit, CapQuery, CapMutate},
+	}
+	if !settings.TektonEnabled {
+		r.Status = StatusDisabled
+		r.Detail = "disabled in config or KPROMPT_TEKTON_ENABLED=0"
+		r.Hint = tekton.InstallHint()
+		return r
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = MissingHint(IDKubernetes)
+		return r
+	}
+	av, err := tekton.Detect(ctx, cl.Config)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = tekton.InstallHint()
+		return r
+	}
+	if !av.Installed {
+		r.Status = StatusUnavailable
+		r.Detail = tekton.DetailLabel(av)
+		r.Hint = tekton.InstallHint()
+		return r
+	}
+	r.Status = StatusAvailable
+	r.Detail = tekton.DetailLabel(av)
+	return r
+}
+
 // RequireArgoWorkflows ensures the Workflow CRD is served in the active cluster.
 func RequireArgoWorkflows(ctx context.Context, kubeCtx string, k kubeConnector) error {
 	if k == nil {
@@ -87,4 +125,16 @@ func RequireArgoWorkflows(ctx context.Context, kubeCtx string, k kubeConnector) 
 		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
 	}
 	return argo.Require(ctx, cl.Config)
+}
+
+// RequireTekton ensures the PipelineRun CRD is served in the active cluster.
+func RequireTekton(ctx context.Context, kubeCtx string, k kubeConnector) error {
+	if k == nil {
+		k = defaultKube{}
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
+	}
+	return tekton.Require(ctx, cl.Config)
 }

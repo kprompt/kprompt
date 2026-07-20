@@ -53,6 +53,9 @@ func CheckPrompt(prompt string) Result {
 	if argoDenied := CheckArgoPrompt(p); argoDenied.Denied {
 		return argoDenied
 	}
+	if tektonDenied := CheckTektonPrompt(p); tektonDenied.Denied {
+		return tektonDenied
+	}
 	return Result{Risk: RiskLow}
 }
 
@@ -105,10 +108,13 @@ func EvaluatePlan(plan planner.ExecutionPlan) Result {
 	if argoDenied := evaluateArgoPlan(plan); argoDenied.Denied {
 		return argoDenied
 	}
+	if tektonDenied := evaluateTektonPlan(plan); tektonDenied.Denied {
+		return tektonDenied
+	}
 	switch plan.Intent.Kind {
 	case intent.KindDelete:
 		return Result{Risk: RiskHigh, Message: "Delete requires approval"}
-	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow:
+	case intent.KindScale, intent.KindDeploy, intent.KindInstall, intent.KindUpgrade, intent.KindRollback, intent.KindPatch, intent.KindWorkflow, intent.KindTekton:
 		return Result{Risk: RiskMedium, Message: "Mutation requires approval"}
 	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindPerformance, intent.KindTrace, intent.KindDashboard, intent.KindOptimize, intent.KindGraph:
 		// Generic Kubernetes reads and optimize reports (including Secret) are RiskLow.

@@ -7,6 +7,7 @@ const (
 	IDKubernetes    ID = "kubernetes"
 	IDHelm          ID = "helm"
 	IDArgoWorkflows ID = "argo-workflows"
+	IDTekton        ID = "tekton"
 	IDPrometheus    ID = "prometheus"
 	IDGrafana       ID = "grafana"
 	IDOpenTelemetry ID = "opentelemetry"

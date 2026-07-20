@@ -13,6 +13,7 @@ func NormalizeVerb(in Intent, prompt string) Intent {
 		in.Kind = KindInstall
 	}
 	in = NormalizeWorkflow(in, prompt)
+	in = NormalizeTekton(in, prompt)
 	in = NormalizePerformance(in, prompt)
 	in = NormalizeTrace(in, prompt)
 	in = NormalizeDashboard(in, prompt)

@@ -139,6 +139,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			return err
 		}
 	}
+	if intent.LooksLikeTektonPrompt(cfg.Prompt) || in.Kind == intent.KindTekton {
+		if err := tools.RequireTekton(ctx, cfg.Context, nil); err != nil {
+			return err
+		}
+	}
 
 	plan, err := planner.Build(in)
 	if err != nil {
@@ -180,7 +185,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if plan.RequiresApproval {
 		if executor.IsHelmPlan(plan) {
 			planner.EnrichHelmPlan(ctx, &plan)
-		} else if !executor.IsArgoWorkflowPlan(plan) {
+		} else if !executor.IsArgoWorkflowPlan(plan) && !executor.IsTektonPlan(plan) {
 			planner.EnrichDiffs(ctx, client, &plan)
 		}
 	}
@@ -586,6 +591,22 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				doc = doc.WithWorkflowResult(st)
 			}
 		}
+		return nil
+	}
+	if executor.IsTektonPlan(plan) {
+		cfgREST, err := restConfigForArgo(cfg.Context, restCfg)
+		if err != nil {
+			return err
+		}
+		st, err := executor.ApplyTekton(ctx, cfgREST, plan)
+		if err != nil {
+			return cluster.Friendlier(fmt.Errorf("apply: %w", err))
+		}
+		doc = doc.WithPipelineRunResult(st)
+		if !jsonMode {
+			ui.PrintPipelineRunApplied(human, plan, st)
+		}
+		applied = true
 		return nil
 	}
 	if executor.IsHelmPlan(plan) {

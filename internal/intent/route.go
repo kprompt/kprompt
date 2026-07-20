@@ -13,7 +13,7 @@ var (
 	)
 	andRouteSeparator = regexp.MustCompile(`(?i)\s+\band\b\s+`)
 	routableClause    = regexp.MustCompile(
-		`(?i)\b(?:deploy|install|upgrade|scale|rollback|undo|list|show|get|explain|logs?|describe|train|workflow|slow|latency|performance|trace|dashboards?|optimize|right\s*siz|dependenc|service\s+graph|graph|delete|remove)\b`,
+		`(?i)\b(?:deploy|install|upgrade|scale|rollback|undo|list|show|get|explain|logs?|describe|train|workflow|tekton|ci\s+pipeline|pipeline|slow|latency|performance|trace|dashboards?|optimize|right\s*siz|dependenc|service\s+graph|graph|delete|remove)\b`,
 	)
 )
 
