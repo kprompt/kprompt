@@ -2,6 +2,7 @@ package tools
 
 import (
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	"github.com/kprompt/kprompt/internal/tools/keda"
 	"github.com/kprompt/kprompt/internal/tools/tekton"
 )
 
@@ -14,6 +15,8 @@ func MissingHint(id ID) string {
 		return argo.InstallHint()
 	case IDTekton:
 		return tekton.InstallHint()
+	case IDKEDA:
+		return keda.InstallHint()
 	case IDPrometheus:
 		return "Prometheus is not configured. Set KPROMPT_PROMETHEUS_URL or tools.prometheus.url in ~/.kprompt/config.yaml"
 	case IDGrafana:

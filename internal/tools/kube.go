@@ -6,6 +6,7 @@ import (
 
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/tools/argo"
+	"github.com/kprompt/kprompt/internal/tools/keda"
 	"github.com/kprompt/kprompt/internal/tools/tekton"
 )
 
@@ -137,4 +138,53 @@ func RequireTekton(ctx context.Context, kubeCtx string, k kubeConnector) error {
 		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
 	}
 	return tekton.Require(ctx, cl.Config)
+}
+
+func detectKeda(ctx context.Context, settings Settings, kubeCtx string, k kubeConnector) Result {
+	r := Result{
+		ID:           IDKEDA,
+		Name:         "KEDA",
+		Capabilities: []Capability{CapSubmit, CapQuery, CapMutate},
+	}
+	if !settings.KEDAEnabled {
+		r.Status = StatusDisabled
+		r.Detail = "disabled in config or KPROMPT_KEDA_ENABLED=0"
+		r.Hint = keda.InstallHint()
+		return r
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = MissingHint(IDKubernetes)
+		return r
+	}
+	av, err := keda.Detect(ctx, cl.Config)
+	if err != nil {
+		r.Status = StatusUnavailable
+		r.Detail = err.Error()
+		r.Hint = keda.InstallHint()
+		return r
+	}
+	if !av.Installed {
+		r.Status = StatusUnavailable
+		r.Detail = keda.DetailLabel(av)
+		r.Hint = keda.InstallHint()
+		return r
+	}
+	r.Status = StatusAvailable
+	r.Detail = keda.DetailLabel(av)
+	return r
+}
+
+// RequireKeda ensures the ScaledObject CRD is served in the active cluster.
+func RequireKeda(ctx context.Context, kubeCtx string, k kubeConnector) error {
+	if k == nil {
+		k = defaultKube{}
+	}
+	cl, err := k.Connect(kubeCtx)
+	if err != nil {
+		return cluster.Friendlier(fmt.Errorf("kubernetes: %w", err))
+	}
+	return keda.Require(ctx, cl.Config)
 }

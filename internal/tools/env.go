@@ -19,6 +19,7 @@ const (
 	EnvOTelOn          = "KPROMPT_OTEL_ENABLED"
 	EnvArgoWorkflowsOn = "KPROMPT_ARGO_WORKFLOWS_ENABLED"
 	EnvTektonOn        = "KPROMPT_TEKTON_ENABLED"
+	EnvKEDAOn          = "KPROMPT_KEDA_ENABLED"
 )
 
 // Settings merges ~/.kprompt/config.yaml tools section with env overrides.
@@ -26,6 +27,7 @@ type Settings struct {
 	HelmEnabled       bool
 	ArgoEnabled       bool
 	TektonEnabled     bool
+	KEDAEnabled       bool
 	PrometheusEnabled bool
 	GrafanaEnabled    bool
 	OTelEnabled       bool
@@ -42,6 +44,7 @@ func LoadSettings(file config.File) Settings {
 		HelmEnabled:       toolEnabled(file.Tools.Helm.Enabled, EnvHelmEnabled, true),
 		ArgoEnabled:       toolEnabled(file.Tools.ArgoWorkflows.Enabled, EnvArgoWorkflowsOn, true),
 		TektonEnabled:     toolEnabled(file.Tools.Tekton.Enabled, EnvTektonOn, true),
+		KEDAEnabled:       toolEnabled(file.Tools.KEDA.Enabled, EnvKEDAOn, true),
 		PrometheusEnabled: toolEnabled(file.Tools.Prometheus.Enabled, EnvPrometheusOn, true),
 		GrafanaEnabled:    toolEnabled(file.Tools.Grafana.Enabled, EnvGrafanaOn, true),
 		OTelEnabled:       toolEnabled(file.Tools.OTel.Enabled, EnvOTelOn, true),

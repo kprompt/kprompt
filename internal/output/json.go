@@ -11,6 +11,7 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/tools/argo"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
+	"github.com/kprompt/kprompt/internal/tools/keda"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 	"github.com/kprompt/kprompt/internal/tools/tekton"
@@ -236,6 +237,21 @@ func (r PlanResult) WithPipelineRunResult(st tekton.PipelineRunStatus) PlanResul
 		"namespace": st.Namespace,
 		"phase":     st.Phase,
 		"message":   st.Message,
+	}
+	raw, _ := json.Marshal(payload)
+	r.Result = raw
+	return r
+}
+
+// WithScaledObjectResult attaches KEDA ScaledObject submit/status payload.
+func (r PlanResult) WithScaledObjectResult(st keda.ScaledObjectStatus) PlanResult {
+	payload := map[string]any{
+		"type":      "scaledobject",
+		"name":      st.Name,
+		"namespace": st.Namespace,
+		"phase":     st.Phase,
+		"message":   st.Message,
+		"hpaName":   st.HPAName,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw

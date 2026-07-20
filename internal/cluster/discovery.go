@@ -17,6 +17,28 @@ type CRDStatus struct {
 	Versions []string
 }
 
+// ScaledObjectCRDStatus reports KEDA ScaledObject API availability in the cluster.
+func ScaledObjectCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
+	_ = ctx
+	st := CRDStatus{Group: "keda.sh", Kind: "ScaledObject"}
+	versions, found, err := servedKindVersions(cfg, st.Group, st.Kind)
+	if err != nil {
+		return st, err
+	}
+	st.Found = found
+	st.Versions = versions
+	return st, nil
+}
+
+// HasScaledObjectCRD reports whether the KEDA ScaledObject API is served.
+func HasScaledObjectCRD(ctx context.Context, cfg *rest.Config) (bool, error) {
+	st, err := ScaledObjectCRDStatus(ctx, cfg)
+	if err != nil {
+		return false, err
+	}
+	return st.Found, nil
+}
+
 // PipelineRunCRDStatus reports Tekton PipelineRun API availability in the cluster.
 func PipelineRunCRDStatus(ctx context.Context, cfg *rest.Config) (CRDStatus, error) {
 	_ = ctx

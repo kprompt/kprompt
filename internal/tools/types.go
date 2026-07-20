@@ -8,6 +8,7 @@ const (
 	IDHelm          ID = "helm"
 	IDArgoWorkflows ID = "argo-workflows"
 	IDTekton        ID = "tekton"
+	IDKEDA          ID = "keda"
 	IDPrometheus    ID = "prometheus"
 	IDGrafana       ID = "grafana"
 	IDOpenTelemetry ID = "opentelemetry"
@@ -29,9 +30,9 @@ type Status string
 
 const (
 	StatusAvailable   Status = "available"
-	StatusConfigured  Status = "configured"  // URL set but probe failed or not run
+	StatusConfigured  Status = "configured" // URL set but probe failed or not run
 	StatusUnavailable Status = "unavailable"
-	StatusDisabled    Status = "disabled"    // opted out in config
+	StatusDisabled    Status = "disabled" // opted out in config
 )
 
 // Result is the detect output for one tool.

@@ -13,10 +13,11 @@ import (
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
 	"github.com/kprompt/kprompt/internal/tools/argo"
-	"github.com/kprompt/kprompt/internal/tools/tekton"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
+	"github.com/kprompt/kprompt/internal/tools/keda"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
+	"github.com/kprompt/kprompt/internal/tools/tekton"
 )
 
 // PrintDenied writes a hard-deny message.
@@ -145,6 +146,13 @@ func PrintWorkflowStatus(w io.Writer, st argo.WorkflowStatus) {
 func PrintPipelineRunApplied(w io.Writer, plan planner.ExecutionPlan, st tekton.PipelineRunStatus) {
 	t := themeFor(w)
 	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Submitted:"), plan.Summary)
+	fmt.Fprintf(w, "  %s\n", st.Label())
+}
+
+// PrintScaledObjectApplied confirms a created KEDA ScaledObject and its phase.
+func PrintScaledObjectApplied(w io.Writer, plan planner.ExecutionPlan, st keda.ScaledObjectStatus) {
+	t := themeFor(w)
+	fmt.Fprintf(w, "%s %s\n", t.Success("✓ Applied:"), plan.Summary)
 	fmt.Fprintf(w, "  %s\n", st.Label())
 }
 
