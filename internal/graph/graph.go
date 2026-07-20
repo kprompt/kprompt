@@ -27,6 +27,7 @@ const (
 	EdgeRoutes         = "routes"
 	EdgeSelects        = "selects"
 	SourceKubernetes   = "k8s"
+	// SourceOTel / EdgeCalls are set in otel.go (T-060).
 )
 
 // Request configures a read-only service dependency graph.
@@ -48,9 +49,9 @@ type Node struct {
 type Edge struct {
 	From   string `json:"from"`
 	To     string `json:"to"`
-	Type   string `json:"type"` // routes | selects | allows | denies
+	Type   string `json:"type"` // routes | selects | calls | allows | denies
 	Detail string `json:"detail,omitempty"`
-	Source string `json:"source"` // k8s | otel (T-060)
+	Source string `json:"source"` // k8s | otel
 }
 
 // Report is the stable human + JSON contract for service dependency graphs (T-059).
@@ -215,26 +216,8 @@ func Build(ctx context.Context, client kubernetes.Interface, req Request) (Repor
 		notes = append(notes, fmt.Sprintf("truncated at %d edges", limit))
 	}
 
-	svcN, podN, npN := 0, 0, 0
-	for _, n := range rep.Nodes {
-		switch n.Kind {
-		case NodeService:
-			svcN++
-		case NodePod:
-			podN++
-		case NodeNetworkPolicy:
-			npN++
-		}
-	}
-	scopeLabel := "cluster"
-	if scope == ScopeNamespace {
-		scopeLabel = fmt.Sprintf("namespace %q", ns)
-	}
-	rep.Summary = fmt.Sprintf(
-		"Service dependency graph for %s: %d services, %d pods, %d network policies, %d edges (Kubernetes topology; OTel enrichment is T-060).",
-		scopeLabel, svcN, podN, npN, len(rep.Edges),
-	)
 	rep.Notes = notes
+	refreshSummary(&rep)
 	return rep, nil
 }
 

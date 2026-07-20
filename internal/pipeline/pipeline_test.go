@@ -389,6 +389,10 @@ func TestGraphRunsReadOnly(t *testing.T) {
 			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "default"},
 			Spec:       corev1.ServiceSpec{Selector: map[string]string{"app": "api"}},
 		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "db", Namespace: "default"},
+			Spec:       corev1.ServiceSpec{Selector: map[string]string{"app": "db"}},
+		},
 		&discoveryv1.EndpointSlice{
 			ObjectMeta: metav1.ObjectMeta{
 				Name:      "api-xyz",
@@ -409,13 +413,29 @@ func TestGraphRunsReadOnly(t *testing.T) {
 			`{"kind":"graph","target":{"kind":"ServiceGraph"},"params":{"scope":"cluster","includeNetworkPolicy":false},"confidence":1}`,
 		)},
 		Client: client,
+		OTel: traceQuerierFunc(func(
+			_ context.Context,
+			req toolotel.SearchRequest,
+		) ([]toolotel.Trace, error) {
+			if req.Service != "api" {
+				return nil, nil
+			}
+			return []toolotel.Trace{{
+				TraceID: "abc",
+				Spans: []toolotel.Span{
+					{SpanID: "1", Service: "api", Operation: "GET /"},
+					{SpanID: "2", ParentSpanID: "1", Service: "db", Operation: "query"},
+				},
+			}}, nil
+		}),
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	if !bytes.Contains(out.Bytes(), []byte("Service graph:")) ||
 		!bytes.Contains(out.Bytes(), []byte("Edges:")) ||
-		!bytes.Contains(out.Bytes(), []byte("routes")) {
+		!bytes.Contains(out.Bytes(), []byte("routes")) ||
+		!bytes.Contains(out.Bytes(), []byte("otel/calls")) {
 		t.Fatalf("output=%s", out.String())
 	}
 }

@@ -400,6 +400,20 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("service graph: %w", err))
 			}
+			querier := deps.OTel
+			if querier == nil {
+				settings := tools.LoadSettings(config.File{Tools: cfg.Tools})
+				if otelClient, err := tools.NewOTelClient(settings); err == nil {
+					querier = otelClient
+				}
+			}
+			window := time.Hour
+			if raw, ok := plan.Intent.Window(); ok {
+				if parsed, err := time.ParseDuration(raw); err == nil {
+					window = parsed
+				}
+			}
+			graph.EnrichFromOTel(ctx, querier, &report, window)
 			doc = doc.WithGraphResult(report)
 			if !jsonMode {
 				ui.PrintGraphReport(out, report)

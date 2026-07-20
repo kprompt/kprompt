@@ -281,7 +281,7 @@ func PrintGraphReport(w io.Writer, report graph.Report) {
 				fmt.Fprintf(w, "  … %d more edges\n", len(report.Edges)-maxEdges)
 				break
 			}
-			line := fmt.Sprintf("  - %s -[%s]→ %s", e.From, e.Type, e.To)
+			line := fmt.Sprintf("  - %s -[%s/%s]→ %s", e.From, e.Source, e.Type, e.To)
 			if e.Detail != "" {
 				line += " " + t.Muted("("+e.Detail+")")
 			}

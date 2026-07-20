@@ -48,7 +48,7 @@ func buildGraph(in intent.Intent) (ExecutionPlan, error) {
 				Kind:      in.Target.Kind,
 				Namespace: scopeNS,
 			},
-			Diff: "build adjacency from Services, EndpointSlices, and optional NetworkPolicies (read-only)",
+			Diff: "build Service/EndpointSlice graph and enrich with OTel call edges when available",
 		}},
 		Summary:          summary,
 		RequiresApproval: false,
