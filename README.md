@@ -37,6 +37,12 @@ Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Sec
 curl -fsSL https://kprompt.ai/install | bash
 ```
 
+### Homebrew
+
+```bash
+brew install kprompt/tap/kprompt
+```
+
 Fallback (pinned release script on jsDelivr):
 
 ```bash

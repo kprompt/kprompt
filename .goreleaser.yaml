@@ -47,3 +47,23 @@ release:
     name: kprompt
   draft: false
   prerelease: auto
+
+brews:
+  - name: kprompt
+    repository:
+      owner: kprompt
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: "https://kprompt.ai"
+    description: "AI CLI to control Kubernetes with natural language"
+    license: "Apache-2.0"
+    commit_author:
+      name: goreleaserbot
+      email: bot@goreleaser.com
+    commit_msg_template: "Brew formula update for {{ .ProjectName }} version {{ .Tag }}"
+    install: |
+      bin.install "kprompt"
+    test: |
+      assert_match version.to_s, shell_output("#{bin}/kprompt version")
+    skip_upload: '{{ eq .Env.HOMEBREW_TAP_GITHUB_TOKEN "" }}'
