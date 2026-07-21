@@ -126,6 +126,7 @@ Use `kprompt doctor` after install to verify kubeconfig, LLM keys, integrations,
 ```bash
 kprompt doctor           # kube + LLM key + tools + Team health (exit 1 if required fail)
 kprompt doctor --json
+kprompt dash             # local read-only cluster UI (requires kprompt-dash on PATH)
 ```
 
 ## Team enrollment (optional)
