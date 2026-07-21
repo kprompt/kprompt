@@ -121,6 +121,13 @@ kprompt history rerun 3 --approve
 
 History stores prompt, kind, summary, and action refs — never manifests or API keys.
 
+Use `kprompt doctor` after install to verify kubeconfig, LLM keys, integrations, and optional Team enrollment.
+
+```bash
+kprompt doctor           # kube + LLM key + tools + Team health (exit 1 if required fail)
+kprompt doctor --json
+```
+
 ## Team enrollment (optional)
 
 Opt-in control-plane login for org policy / audit (does not change Free CLI behavior until you enroll):
