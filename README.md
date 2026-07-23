@@ -1,10 +1,12 @@
 # kprompt
 
-Open-source AI CLI to control Kubernetes with natural language.
+**AI Kubernetes CLI** — natural language compiles into a **reviewable plan**, then you approve before anything touches the cluster.
 
 > Talk to Your Cluster.
 
-**Experimental.** Early software — always review the plan before apply, prefer non-production clusters first, and treat `--approve` with care. Safety hard-denies help; they do not make unattended production use safe.
+Open source (Apache-2.0). **Experimental.** Always review the plan before apply, prefer non-production first, and treat `--approve` with care. Safety hard-denies help; they do not make unattended production use safe.
+
+Same NL-CLI lane as [kubectl-ai](https://github.com/GoogleCloudPlatform/kubectl-ai); different contract: **PlanResult → safety → approve → apply** (not a free-form chat REPL). See [kprompt vs kubectl-ai](https://kprompt.ai/blog/kprompt-vs-kubectl-ai).
 
 ```bash
 kprompt "scale api to 10" --approve --wait
@@ -31,6 +33,18 @@ kprompt login
 ```
 
 Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Secret, …). See [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
+
+## Why kprompt
+
+| | |
+|--|--|
+| **Intent compiler** | English → typed plan (actions, risk, hard denies) |
+| **Plan before apply** | TTY `y/N` or explicit `--approve`; wipe-class denied |
+| **CI-ready** | `--output json` PlanResult for jq gates |
+| **Day-2 stack** | Helm, Prom, OTel, Grafana, GitOps… under one approval loop |
+| **Local BYOK** | Your kubeconfig + your LLM keys — no cluster creds uploaded |
+
+Longer positioning: [intent compiler, not chat](https://kprompt.ai/blog/intent-compiler-not-chat) · [AI SRE direction](https://kprompt.ai/blog/ai-sre-not-ai-kubectl) · [Roadmap](https://kprompt.ai/docs/roadmap)
 
 ## Status
 
@@ -117,6 +131,7 @@ kprompt "scale api to 10" --approve
 ```
 
 Destructive prompts (wipe cluster, delete everything, delete a namespace, …) are **hard-denied**.
+
 ## History
 
 ```bash
@@ -184,6 +199,14 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 Pipeline: **Prompt → Intent → Plan → Safety → Approval → Executor → Kubernetes**.
 
 Package layout matches the private architecture ADRs (`cmd/kprompt`, `internal/{config,llm,intent,planner,safety,executor,cluster,pipeline,ui}`).
+
+## Docs & guides
+
+| | |
+|--|--|
+| Site | [kprompt.ai](https://kprompt.ai) · [Docs](https://kprompt.ai/docs) · [Roadmap](https://kprompt.ai/docs/roadmap) |
+| Compare | [vs kubectl-ai](https://kprompt.ai/blog/kprompt-vs-kubectl-ai) · [AI tools map](https://kprompt.ai/blog/kubernetes-ai-tools-comparison) |
+| Product | [optimize my cluster](https://kprompt.ai/blog/optimize-my-cluster) · [PlanResult JSON](https://kprompt.ai/blog/planresult-json-deep-dive) · [AI SRE](https://kprompt.ai/blog/ai-sre-not-ai-kubectl) |
 
 ## License
 
