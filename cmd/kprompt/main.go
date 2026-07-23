@@ -76,6 +76,7 @@ func main() {
 		},
 	})
 	root.AddCommand(newConfigCmd())
+	root.AddCommand(newContextsCmd())
 	root.AddCommand(newDoctorCmd())
 	root.AddCommand(newDashCmd())
 	root.AddCommand(newHistoryCmd())
