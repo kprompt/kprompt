@@ -159,3 +159,39 @@ func TestMultiContextGetFanOut(t *testing.T) {
 		t.Fatal("expected applied")
 	}
 }
+
+func TestMultiContextOptimizeFanOut(t *testing.T) {
+	client := fake.NewSimpleClientset(deployment("api", "default", 2))
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Prompt:   "optimize my cluster",
+		Contexts: []string{"ctx-a", "ctx-b"},
+		Output:   "json",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"optimize","target":{"kind":"Cluster"},"params":{"scope":"cluster"},"confidence":1}`,
+		)},
+		Client: client,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc output.MultiContextResult
+	if err := json.Unmarshal(out.Bytes(), &doc); err != nil {
+		t.Fatalf("%v\n%s", err, out.String())
+	}
+	if doc.FleetSummary == nil {
+		t.Fatal("expected fleetSummary")
+	}
+	if len(doc.FleetSummary.ContextsOK) != 2 {
+		t.Fatalf("ok=%v failed=%v", doc.FleetSummary.ContextsOK, doc.FleetSummary.ContextsFailed)
+	}
+	if doc.FleetSummary.FindingCount < 1 {
+		t.Fatalf("findings=%d", doc.FleetSummary.FindingCount)
+	}
+	for _, f := range doc.FleetSummary.Findings {
+		if f.ClusterContext == "" {
+			t.Fatalf("finding missing cluster_context: %+v", f)
+		}
+	}
+}

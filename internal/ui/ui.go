@@ -9,6 +9,7 @@ import (
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/graph"
 	"github.com/kprompt/kprompt/internal/optimize"
+	"github.com/kprompt/kprompt/internal/output"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
 	"github.com/kprompt/kprompt/internal/suggest"
@@ -34,6 +35,35 @@ func PrintContextSection(w io.Writer, contextName string, index, total int) {
 	t := themeFor(w)
 	fmt.Fprintln(w)
 	fmt.Fprintln(w, t.Heading(fmt.Sprintf("=== context %d/%d: %s ===", index, total, contextName)))
+}
+
+// PrintFleetOptimizeSummary prints the merged multi-context optimize rollup.
+func PrintFleetOptimizeSummary(w io.Writer, sum *output.FleetOptimizeSummary) {
+	if sum == nil {
+		return
+	}
+	t := themeFor(w)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, t.Heading("=== fleet optimize summary ==="))
+	fmt.Fprintf(w, "ok: %d  failed: %d  findings: %d\n", len(sum.ContextsOK), len(sum.ContextsFailed), sum.FindingCount)
+	if len(sum.ContextsOK) > 0 {
+		fmt.Fprintf(w, "  contexts ok: %s\n", strings.Join(sum.ContextsOK, ", "))
+	}
+	if len(sum.ContextsFailed) > 0 {
+		fmt.Fprintf(w, "  contexts failed: %s\n", t.Danger(strings.Join(sum.ContextsFailed, ", ")))
+	}
+	const maxFindings = 30
+	for i, f := range sum.Findings {
+		if i >= maxFindings {
+			fmt.Fprintf(w, "  … %d more findings\n", len(sum.Findings)-maxFindings)
+			break
+		}
+		ctx := f.ClusterContext
+		if ctx == "" {
+			ctx = "?"
+		}
+		fmt.Fprintf(w, "  - [%s] [%s] %s: %s\n", t.Severity(f.Severity), ctx, t.Accent(f.Title), f.Message)
+	}
 }
 
 // PrintPlan prints a human-readable execution plan.
@@ -349,6 +379,9 @@ func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 		scope = fmt.Sprintf("%s/%s", report.Scope, report.Namespace)
 	}
 	fmt.Fprintf(w, "%s %s", t.Heading("Optimize:"), t.Accent(scope))
+	if report.ClusterContext != "" {
+		fmt.Fprintf(w, " @%s", t.Accent(report.ClusterContext))
+	}
 	if report.Window != "" {
 		fmt.Fprintf(w, " (%s)", report.Window)
 	}
@@ -357,7 +390,11 @@ func PrintOptimizeReport(w io.Writer, report optimize.Report) {
 	if len(report.Findings) > 0 {
 		fmt.Fprintln(w, t.Heading("Findings:"))
 		for _, f := range report.Findings {
-			fmt.Fprintf(w, "  - [%s] %s: %s\n", t.Severity(f.Severity), t.Accent(f.Title), f.Message)
+			ctx := ""
+			if f.ClusterContext != "" {
+				ctx = fmt.Sprintf(" [%s]", f.ClusterContext)
+			}
+			fmt.Fprintf(w, "  - [%s]%s %s: %s\n", t.Severity(f.Severity), ctx, t.Accent(f.Title), f.Message)
 		}
 	}
 	if len(report.Workloads) > 0 {

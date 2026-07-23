@@ -25,12 +25,13 @@ type Request struct {
 
 // Finding is one stable optimize insight (inventory/idle/rightsizing/HPA fill these later).
 type Finding struct {
-	Code      string `json:"code"`
-	Severity  string `json:"severity"` // info | low | medium | high
-	Title     string `json:"title"`
-	Message   string `json:"message"`
-	Resource  string `json:"resource,omitempty"`
-	Namespace string `json:"namespace,omitempty"`
+	Code           string `json:"code"`
+	Severity       string `json:"severity"` // info | low | medium | high
+	Title          string `json:"title"`
+	Message        string `json:"message"`
+	Resource       string `json:"resource,omitempty"`
+	Namespace      string `json:"namespace,omitempty"`
+	ClusterContext string `json:"cluster_context,omitempty"`
 }
 
 // Suggestion is a non-mutating recommendation (T-057 may turn these into optional plans).
@@ -57,18 +58,19 @@ type Sections struct {
 
 // Report is the stable human + JSON contract for `optimize my cluster` (T-052+).
 type Report struct {
-	Type        string       `json:"type"`
-	Scope       string       `json:"scope"`
-	Namespace   string       `json:"namespace,omitempty"`
-	Window      string       `json:"window,omitempty"`
-	Summary     string       `json:"summary"`
-	Findings    []Finding    `json:"findings"`
-	Suggestions []Suggestion `json:"suggestions"`
-	Workloads   []Workload         `json:"workloads,omitempty"`   // T-053 inventory
-	Idle        []IdleWorkload     `json:"idle,omitempty"`        // T-054 underutilized
-	Rightsizing []RightsizingDelta `json:"rightsizing,omitempty"` // T-055 deltas
-	HPA         []HPAHint          `json:"hpa,omitempty"`         // T-056 hints
-	Sections    Sections           `json:"sections"`
+	Type           string              `json:"type"`
+	Scope          string              `json:"scope"`
+	Namespace      string              `json:"namespace,omitempty"`
+	ClusterContext string              `json:"cluster_context,omitempty"`
+	Window         string              `json:"window,omitempty"`
+	Summary        string              `json:"summary"`
+	Findings       []Finding           `json:"findings"`
+	Suggestions    []Suggestion        `json:"suggestions"`
+	Workloads      []Workload          `json:"workloads,omitempty"`   // T-053 inventory
+	Idle           []IdleWorkload      `json:"idle,omitempty"`        // T-054 underutilized
+	Rightsizing    []RightsizingDelta  `json:"rightsizing,omitempty"` // T-055 deltas
+	HPA            []HPAHint           `json:"hpa,omitempty"`         // T-056 hints
+	Sections       Sections            `json:"sections"`
 }
 
 // BuildScaffold returns a read-only optimize report shell.
@@ -135,4 +137,19 @@ func formatWindow(d time.Duration) string {
 		return fmt.Sprintf("%dm", int64(d/time.Minute))
 	}
 	return d.String()
+}
+
+// StampClusterContext labels the report and findings with a kube context name (fleet optimize).
+func StampClusterContext(r *Report, contextName string) {
+	if r == nil {
+		return
+	}
+	contextName = strings.TrimSpace(contextName)
+	if contextName == "" {
+		return
+	}
+	r.ClusterContext = contextName
+	for i := range r.Findings {
+		r.Findings[i].ClusterContext = contextName
+	}
 }

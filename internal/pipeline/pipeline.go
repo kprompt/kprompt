@@ -401,6 +401,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			optimize.ApplyRightsizing(&report, rs)
 			hpa := optimize.CollectHPAHints(ctx, client, querier, report.Workloads, plan.Intent.Target.Namespace)
 			optimize.ApplyHPA(&report, hpa)
+			optimize.StampClusterContext(&report, cfg.Context)
 			doc = doc.WithOptimizeResult(report)
 			if !jsonMode {
 				ui.PrintOptimizeReport(out, report)
@@ -413,7 +414,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				ui.PrintSuggestions(out, suggestions)
 			}
 			actionable := suggest.ActionablePlans(suggestions)
-			if len(actionable) == 0 {
+			if len(actionable) == 0 || cfg.FanOutChild {
 				applied = true
 				return nil
 			}

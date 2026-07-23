@@ -10,6 +10,7 @@ import (
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/llm"
+	"github.com/kprompt/kprompt/internal/optimize"
 	"github.com/kprompt/kprompt/internal/output"
 	"github.com/kprompt/kprompt/internal/planner"
 	"github.com/kprompt/kprompt/internal/safety"
@@ -25,7 +26,7 @@ func fanOutContexts(cfg config.Resolved) []string {
 
 func supportsReadFanOut(kind intent.Kind) bool {
 	switch kind {
-	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe:
+	case intent.KindGet, intent.KindExplain, intent.KindLogs, intent.KindDescribe, intent.KindOptimize:
 		return true
 	default:
 		return false
@@ -66,7 +67,7 @@ func runMultiContextReads(
 
 	if !supportsReadFanOut(plan.Intent.Kind) {
 		msg := fmt.Sprintf(
-			"multi-context fan-out supports get/list/explain/logs/describe only (got %s)",
+			"multi-context fan-out supports get/list/explain/logs/describe/optimize only (got %s)",
 			plan.Intent.Kind,
 		)
 		return denyFanOut(out, deps, cfg, plan, jsonMode, msg)
@@ -74,12 +75,22 @@ func runMultiContextReads(
 
 	if !jsonMode && !cfg.FanOutChild {
 		ui.PrintPlan(human, plan, risk)
-		fmt.Fprintf(human, "Fan-out across %d contexts (read-only).\n", len(contexts))
+		if plan.Intent.Kind == intent.KindOptimize {
+			fmt.Fprintf(human, "Fleet optimize across %d contexts (read-only; optional fixes stay single-context).\n", len(contexts))
+		} else {
+			fmt.Fprintf(human, "Fan-out across %d contexts (read-only).\n", len(contexts))
+		}
 	}
 
 	result, err := fanOutSteps(ctx, cfg, human, deps, provider, plan, contexts, false)
 	if err != nil {
 		return err
+	}
+	if plan.Intent.Kind == intent.KindOptimize {
+		result.FleetSummary = buildFleetOptimizeSummary(result)
+		if !jsonMode {
+			ui.PrintFleetOptimizeSummary(human, result.FleetSummary)
+		}
 	}
 	if jsonMode {
 		return output.EncodeMultiContext(out, result)
@@ -244,8 +255,10 @@ func fanOutSteps(
 			stepDeps.Dynamic = nil
 			stepDeps.Resolver = nil
 		}
-		// Child already approved at fan-out layer.
-		stepDeps.Confirm = func(io.Writer) (bool, error) { return true, nil }
+		// Child already approved at fan-out layer (mutating only).
+		if mutating && stepApprove {
+			stepDeps.Confirm = func(io.Writer) (bool, error) { return true, nil }
+		}
 		stepDeps.OnResult = func(doc output.PlanResult) {
 			stepDoc = doc
 			observed = true
@@ -350,4 +363,45 @@ func (p *fixedIntentProvider) CompleteStructured(
 	}
 	p.used = true
 	return p.raw, nil
+}
+
+func buildFleetOptimizeSummary(result output.MultiContextResult) *output.FleetOptimizeSummary {
+	sum := &output.FleetOptimizeSummary{}
+	for _, step := range result.Steps {
+		ctxName := step.ClusterContext
+		if ctxName == "" {
+			ctxName = step.Plan.Context
+		}
+		if step.Risk.Denied || !step.Applied {
+			sum.ContextsFailed = append(sum.ContextsFailed, ctxName)
+			continue
+		}
+		sum.ContextsOK = append(sum.ContextsOK, ctxName)
+		findings := extractOptimizeFindings(step)
+		sum.Findings = append(sum.Findings, findings...)
+	}
+	sum.FindingCount = len(sum.Findings)
+	return sum
+}
+
+func extractOptimizeFindings(step output.PlanResult) []optimize.Finding {
+	if len(step.Result) == 0 {
+		return nil
+	}
+	var payload struct {
+		Findings []optimize.Finding `json:"findings"`
+	}
+	if err := json.Unmarshal(step.Result, &payload); err != nil {
+		return nil
+	}
+	ctxName := step.ClusterContext
+	if ctxName == "" {
+		ctxName = step.Plan.Context
+	}
+	for i := range payload.Findings {
+		if payload.Findings[i].ClusterContext == "" {
+			payload.Findings[i].ClusterContext = ctxName
+		}
+	}
+	return payload.Findings
 }

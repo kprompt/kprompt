@@ -135,6 +135,7 @@ kprompt doctor --json
 kprompt contexts         # kubeconfig contexts + aliases
 kprompt contexts --check # also probe API reachability
 kprompt --contexts staging,prod "list deployments"   # read-only fan-out
+kprompt --contexts staging,prod "optimize my cluster"  # fleet optimize rollup
 kprompt "list pods across staging and prod"
 # multi-context mutate: confirm each context (or --approve-each-context; never plain --approve)
 kprompt --contexts staging,prod "scale api to 3"

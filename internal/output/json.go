@@ -57,13 +57,22 @@ type RouteResult struct {
 
 // MultiContextResult is a read-only fan-out across kubeconfig contexts.
 type MultiContextResult struct {
-	APIVersion    string       `json:"apiVersion"`
-	Kind          string       `json:"kind"`
-	SchemaVersion string       `json:"schemaVersion"`
-	Prompt        string       `json:"prompt"`
-	Contexts      []string     `json:"contexts"`
-	Applied       bool         `json:"applied"`
-	Steps         []PlanResult `json:"steps"`
+	APIVersion    string                `json:"apiVersion"`
+	Kind          string                `json:"kind"`
+	SchemaVersion string                `json:"schemaVersion"`
+	Prompt        string                `json:"prompt"`
+	Contexts      []string              `json:"contexts"`
+	Applied       bool                  `json:"applied"`
+	Steps         []PlanResult          `json:"steps"`
+	FleetSummary  *FleetOptimizeSummary `json:"fleetSummary,omitempty"`
+}
+
+// FleetOptimizeSummary merges per-context optimize findings (MC-005).
+type FleetOptimizeSummary struct {
+	ContextsOK     []string           `json:"contextsOk"`
+	ContextsFailed []string           `json:"contextsFailed,omitempty"`
+	FindingCount   int                `json:"findingCount"`
+	Findings       []optimize.Finding `json:"findings,omitempty"`
 }
 
 // PlanPayload is the reviewable plan without manifests/secrets.
@@ -362,18 +371,19 @@ func (r PlanResult) WithPerformanceResult(report toolprometheus.PerformanceRepor
 // WithOptimizeResult attaches a read-only cluster optimize report (T-052+).
 func (r PlanResult) WithOptimizeResult(report optimize.Report) PlanResult {
 	payload := map[string]any{
-		"type":        report.Type,
-		"scope":       report.Scope,
-		"namespace":   report.Namespace,
-		"window":      report.Window,
-		"summary":     report.Summary,
-		"findings":    report.Findings,
-		"suggestions": report.Suggestions,
-		"workloads":   report.Workloads,
-		"idle":        report.Idle,
-		"rightsizing": report.Rightsizing,
-		"hpa":         report.HPA,
-		"sections":    report.Sections,
+		"type":             report.Type,
+		"scope":            report.Scope,
+		"namespace":        report.Namespace,
+		"cluster_context":  report.ClusterContext,
+		"window":           report.Window,
+		"summary":          report.Summary,
+		"findings":         report.Findings,
+		"suggestions":      report.Suggestions,
+		"workloads":        report.Workloads,
+		"idle":             report.Idle,
+		"rightsizing":      report.Rightsizing,
+		"hpa":              report.HPA,
+		"sections":         report.Sections,
 	}
 	raw, _ := json.Marshal(payload)
 	r.Result = raw
