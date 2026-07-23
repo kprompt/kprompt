@@ -160,7 +160,7 @@ Override API with `KPROMPT_API_URL` / `KPROMPT_API_TOKEN` if needed. The `kp_…
 
 ## CI
 
-Use `--output json` for a versioned PlanResult (see [docs/ci.md](./docs/ci.md)).
+Use `--output json` for a versioned PlanResult (see [docs/ci.md](./docs/ci.md)). Multi-context reads/optimizes emit `MultiContextResult` (see [docs/multi-cluster.md](./docs/multi-cluster.md)).
 
 Cluster / kubeconfig failures print short actionable hints (missing config, bad context, RBAC deny, unreachable API) and point at the [Usage guide](https://kprompt.ai/#usage) when helpful.
 

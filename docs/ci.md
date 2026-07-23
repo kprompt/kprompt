@@ -20,9 +20,24 @@ Stdout is a single JSON object (plus newline). Human confirmations / wait status
 | `risk.level` | `low` / `medium` / `high` / `denied` |
 | `risk.denied` | hard deny (wipe / unsafe) |
 | `applied` | whether a mutation ran |
-| `result` | optional payload for `get` / `explain` / `logs` / `describe` |
+| `result` | optional payload for `get` / `explain` / `logs` / `describe` / `optimize` |
+| `cluster_context` | kubeconfig context used for this plan (also on each `plan.actions[]`) |
 
 Manifests and API keys are never included.
+
+## Multi-context (`MultiContextResult`)
+
+When `--contexts a,b` (or NL “across …”) fans out a **read** (or optimize):
+
+| Field | Notes |
+|-------|--------|
+| `kind` | `MultiContextResult` |
+| `contexts` | resolved kube context names |
+| `steps` | per-context `PlanResult` (each with `cluster_context`) |
+| `fleetSummary` | optimize only: ok/failed contexts + merged findings |
+| `applied` | false if any step failed or was skipped |
+
+Mutating multi-context runs still use per-context approval (or `--approve-each-context`). Plain `--approve` across multiple contexts is refused. See [multi-cluster.md](./multi-cluster.md).
 
 ## Gate on risk (example)
 
