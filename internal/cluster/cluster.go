@@ -62,6 +62,17 @@ func EnsureContext(contextName string) error {
 	return ensureContextInConfig(raw, contextName)
 }
 
+// CurrentContext returns the active kubeconfig current-context name.
+func CurrentContext() (string, error) {
+	loadingRules := clientcmd.NewDefaultClientConfigLoadingRules()
+	clientCfg := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, &clientcmd.ConfigOverrides{})
+	raw, err := clientCfg.RawConfig()
+	if err != nil {
+		return "", Friendlier(fmt.Errorf("load kubeconfig: %w", err))
+	}
+	return raw.CurrentContext, nil
+}
+
 func ensureContextInConfig(raw clientcmdapi.Config, contextName string) error {
 	if _, ok := raw.Contexts[contextName]; !ok {
 		return Friendlier(fmt.Errorf(`context %q does not exist`, contextName))

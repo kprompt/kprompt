@@ -53,6 +53,21 @@ func runRoute(
 
 	routeCfg := cfg
 	if result.RequiresApproval {
+		if err := enforceAliasMatch(cfg); err != nil {
+			result.Risk = output.RiskPayload{
+				Level:   string(safety.RiskDenied),
+				Denied:  true,
+				Message: err.Error(),
+			}
+			stopRoute(&result, 1, err.Error())
+			if !jsonMode {
+				ui.PrintDenied(out, err.Error())
+			}
+			if jsonMode {
+				return output.EncodeRoute(out, result)
+			}
+			return nil
+		}
 		approved, err := resolveApproval(cfg.Approve, human, deps)
 		if err != nil {
 			return err
@@ -293,6 +308,7 @@ func carryIntentScope(cfg *config.Resolved, in intent.Intent) {
 	}
 	if in.Context != "" {
 		cfg.Context = in.Context
+		resolveCfgContext(cfg)
 	}
 }
 
@@ -302,6 +318,7 @@ func carryRouteScope(cfg *config.Resolved, result output.PlanResult) {
 	}
 	if result.Plan.Context != "" {
 		cfg.Context = result.Plan.Context
+		resolveCfgContext(cfg)
 	}
 }
 

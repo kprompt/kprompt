@@ -93,6 +93,12 @@ kprompt config
 kprompt config set provider gemini
 kprompt config set model gemini-2.0-flash
 kprompt config set namespace default
+
+# Cluster aliases (short name → kubeconfig context)
+kprompt config alias set prod gke_myproj_us-central1_prod
+kprompt config alias set staging kind-staging
+kprompt --context prod "list deployments"
+kprompt config set require_alias_match true   # refuse mutate unless kubectl current-context matches
 kprompt tools   # detect Helm, Argo CRD, Prometheus/Grafana URLs (integration layer)
 ```
 

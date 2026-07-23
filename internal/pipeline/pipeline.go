@@ -144,6 +144,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	if in.Context != "" {
 		cfg.Context = in.Context
 	}
+	resolveCfgContext(&cfg)
 
 	if intent.LooksLikeWorkflowPrompt(cfg.Prompt) || in.Kind == intent.KindWorkflow {
 		if err := tools.RequireArgoWorkflows(ctx, cfg.Context, nil); err != nil {
@@ -193,6 +194,26 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		}
 		ui.PrintDenied(out, risk.Message)
 		return nil
+	}
+
+	if plan.RequiresApproval {
+		if err := enforceAliasMatch(cfg); err != nil {
+			denied := safety.Result{
+				Risk:    safety.RiskDenied,
+				Denied:  true,
+				Message: err.Error(),
+			}
+			doc := output.FromPlan(cfg.Prompt, cfg.Context, plan, denied, false)
+			team.PushAuditBestEffort(ctx, auditFromPlan(cfg, plan, denied, "denied"))
+			if deps.OnResult != nil {
+				deps.OnResult(doc)
+			}
+			if jsonMode {
+				return output.Encode(out, doc)
+			}
+			ui.PrintDenied(out, denied.Message)
+			return nil
+		}
 	}
 
 	client := deps.Client
@@ -832,6 +853,42 @@ func isReadOnly(plan planner.ExecutionPlan) bool {
 	default:
 		return false
 	}
+}
+
+func resolveCfgContext(cfg *config.Resolved) {
+	resolved, alias := config.ResolveContext(cfg.Context, cfg.Aliases)
+	cfg.Context = resolved
+	if alias != "" {
+		cfg.ContextAlias = alias
+	}
+}
+
+// enforceAliasMatch refuses mutate when require_alias_match is on and the
+// active kubeconfig current-context differs from the resolved target context.
+func enforceAliasMatch(cfg config.Resolved) error {
+	if !cfg.RequireAliasMatch {
+		return nil
+	}
+	if strings.TrimSpace(cfg.Context) == "" {
+		return nil
+	}
+	active, err := cluster.CurrentContext()
+	if err != nil {
+		return err
+	}
+	if active == cfg.Context {
+		return nil
+	}
+	target := cfg.Context
+	if cfg.ContextAlias != "" {
+		target = fmt.Sprintf("%s (%s)", cfg.ContextAlias, cfg.Context)
+	}
+	return fmt.Errorf(
+		"require_alias_match: active kube context %q ≠ target %s — run: kubectl config use-context %s (or: kprompt config set require_alias_match false)",
+		active,
+		target,
+		cfg.Context,
+	)
 }
 
 func queryFromPlan(plan planner.ExecutionPlan) (cluster.Query, error) {

@@ -19,13 +19,15 @@ const (
 
 // File holds non-secret preferences (~/.kprompt/config.yaml).
 type File struct {
-	Provider  string    `yaml:"provider"`
-	Model     string    `yaml:"model"`
-	BaseURL   string    `yaml:"base_url,omitempty"`
-	Context   string    `yaml:"context,omitempty"`
-	Namespace string    `yaml:"namespace,omitempty"`
-	Theme     string    `yaml:"theme,omitempty"`
-	Tools     ToolsFile `yaml:"tools,omitempty"`
+	Provider          string            `yaml:"provider"`
+	Model             string            `yaml:"model"`
+	BaseURL           string            `yaml:"base_url,omitempty"`
+	Context           string            `yaml:"context,omitempty"`
+	Namespace         string            `yaml:"namespace,omitempty"`
+	Theme             string            `yaml:"theme,omitempty"`
+	Aliases           map[string]string `yaml:"aliases,omitempty"`
+	RequireAliasMatch bool              `yaml:"require_alias_match,omitempty"`
+	Tools             ToolsFile         `yaml:"tools,omitempty"`
 }
 
 // ToolsFile holds integration endpoints and opt-outs (no secrets).
@@ -80,6 +82,13 @@ type Resolved struct {
 	Timeout   time.Duration // used with Wait; 0 means default (5m)
 	Output    string        // "", "text", or "json"
 	Prompt    string
+
+	// Aliases maps short names (prod) → kubeconfig context names.
+	Aliases map[string]string
+	// RequireAliasMatch refuses mutating apply when active kube context ≠ resolved Context.
+	RequireAliasMatch bool
+	// ContextAlias is the alias key used to resolve Context, if any.
+	ContextAlias string
 
 	// Set when the corresponding CLI flag was explicitly passed.
 	NamespaceFromCLI bool
@@ -164,16 +173,21 @@ func Merge(file File, provider, model, context, namespace string, approve bool, 
 	}
 
 	r := Resolved{
-		Provider:  strings.ToLower(prov),
-		Model:     first(model, file.Model, defModel),
-		BaseURL:   first(file.BaseURL, os.Getenv(EnvOpenAIBaseURL), preset.BaseURL),
-		Context:   first(context, file.Context),
-		Namespace: first(namespace, file.Namespace, "default"),
-		Theme:     strings.ToLower(strings.TrimSpace(file.Theme)),
-		Tools:     file.Tools,
-		Approve:   approve,
-		Prompt:    prompt,
+		Provider:          strings.ToLower(prov),
+		Model:             first(model, file.Model, defModel),
+		BaseURL:           first(file.BaseURL, os.Getenv(EnvOpenAIBaseURL), preset.BaseURL),
+		Context:           first(context, file.Context),
+		Namespace:         first(namespace, file.Namespace, "default"),
+		Theme:             strings.ToLower(strings.TrimSpace(file.Theme)),
+		Tools:             file.Tools,
+		Aliases:           file.Aliases,
+		RequireAliasMatch: file.RequireAliasMatch,
+		Approve:           approve,
+		Prompt:            prompt,
 	}
+	resolved, alias := ResolveContext(r.Context, r.Aliases)
+	r.Context = resolved
+	r.ContextAlias = alias
 	return r
 }
 

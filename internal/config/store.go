@@ -60,6 +60,15 @@ func SetField(key, value string) (File, error) {
 		f.Namespace = v
 	case "theme":
 		f.Theme = strings.ToLower(v)
+	case "require_alias_match", "require-alias-match":
+		switch strings.ToLower(v) {
+		case "true", "1", "yes", "on":
+			f.RequireAliasMatch = true
+		case "false", "0", "no", "off", "":
+			f.RequireAliasMatch = false
+		default:
+			return File{}, fmt.Errorf("require_alias_match must be true or false")
+		}
 	case "tools.prometheus.url", "tools.prometheus_url":
 		f.Tools.Prometheus.URL = v
 	case "tools.grafana.url", "tools.grafana_url":
@@ -74,7 +83,7 @@ func SetField(key, value string) (File, error) {
 			return File{}, fmt.Errorf("tools.otel.backend must be auto, jaeger, or tempo")
 		}
 	default:
-		return File{}, fmt.Errorf("unknown config key %q (allowed: provider, model, base_url, context, namespace, theme, tools.prometheus.url, tools.grafana.url, tools.otel.endpoint, tools.otel.backend)", key)
+		return File{}, fmt.Errorf("unknown config key %q (allowed: provider, model, base_url, context, namespace, theme, require_alias_match, tools.prometheus.url, tools.grafana.url, tools.otel.endpoint, tools.otel.backend)", key)
 	}
 	if err := SaveFile(f); err != nil {
 		return File{}, err
@@ -84,15 +93,17 @@ func SetField(key, value string) (File, error) {
 
 // View is a redacted snapshot for `kprompt config`.
 type View struct {
-	Path      string
-	Provider  string
-	Model     string
-	BaseURL   string
-	Context   string
-	Namespace string
-	Theme     string
-	APIKey    string // "set" | "unset" | "optional" — never the secret
-	EnvHints  []string
+	Path              string
+	Provider          string
+	Model             string
+	BaseURL           string
+	Context           string
+	Namespace         string
+	Theme             string
+	Aliases           []string
+	RequireAliasMatch bool
+	APIKey            string // "set" | "unset" | "optional" — never the secret
+	EnvHints          []string
 }
 
 // BuildView loads file + env status without exposing secrets.
@@ -107,13 +118,15 @@ func BuildView() (View, error) {
 	}
 	r := Merge(f, "", "", "", "", false, "")
 	v := View{
-		Path:      path,
-		Provider:  r.Provider,
-		Model:     r.Model,
-		BaseURL:   r.BaseURL,
-		Context:   dash(r.Context),
-		Namespace: r.Namespace,
-		Theme:     themeOrAuto(r.Theme),
+		Path:              path,
+		Provider:          r.Provider,
+		Model:             r.Model,
+		BaseURL:           r.BaseURL,
+		Context:           dash(r.Context),
+		Namespace:         r.Namespace,
+		Theme:             themeOrAuto(r.Theme),
+		Aliases:           AliasLines(f.Aliases),
+		RequireAliasMatch: f.RequireAliasMatch,
 	}
 	preset, ok := llm.LookupPreset(r.Provider)
 	if ok {
@@ -161,6 +174,15 @@ func FormatView(v View) string {
 	fmt.Fprintf(&b, "namespace:   %s\n", v.Namespace)
 	fmt.Fprintf(&b, "theme:       %s\n", v.Theme)
 	fmt.Fprintf(&b, "context:     %s\n", v.Context)
+	fmt.Fprintf(&b, "require_alias_match: %v\n", v.RequireAliasMatch)
+	if len(v.Aliases) == 0 {
+		fmt.Fprintf(&b, "aliases:     (none — kprompt config alias set <name> <kube-context>)\n")
+	} else {
+		fmt.Fprintf(&b, "aliases:\n")
+		for _, line := range v.Aliases {
+			fmt.Fprintf(&b, "  %s\n", line)
+		}
+	}
 	fmt.Fprintf(&b, "api_key:     %s", v.APIKey)
 	if len(v.EnvHints) > 0 {
 		fmt.Fprintf(&b, "  (env: %s)", strings.Join(v.EnvHints, " | "))
