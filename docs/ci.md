@@ -22,6 +22,7 @@ Stdout is a single JSON object (plus newline). Human confirmations / wait status
 | `applied` | whether a mutation ran |
 | `result` | optional payload for `get` / `explain` / `logs` / `describe` / `optimize` |
 | `cluster_context` | kubeconfig context used for this plan (also on each `plan.actions[]`) |
+| `blastRadius` | optional mutate review aid: namespaces, labels/owners, related HPA/Service/NetworkPolicy (T-069) |
 
 Manifests and API keys are never included.
 
@@ -57,6 +58,6 @@ kprompt "scale api to 10" -n prod --approve --wait
 # Fail if any delete is planned without explicit allowlist
 echo "$json" | jq -e '[.plan.actions[].op] | index("delete") | not'
 
-# High-risk gate
-echo "$json" | jq -e '.risk.level != "high"'
+# Fail if blast radius spans more than one namespace
+echo "$json" | jq -e '(.blastRadius.namespaces // []) | length <= 1'
 ```

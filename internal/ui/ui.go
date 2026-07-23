@@ -3,6 +3,7 @@ package ui
 import (
 	"fmt"
 	"io"
+	"sort"
 	"strings"
 	"text/tabwriter"
 
@@ -110,8 +111,52 @@ func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 			}
 		}
 	}
+	PrintBlastRadius(w, plan.BlastRadius)
 	if plan.RequiresApproval {
 		fmt.Fprintln(w, t.Muted("Next: confirm interactively on a TTY, or re-run with --approve."))
+	}
+}
+
+// PrintBlastRadius prints the T-069 review-aid impact summary.
+func PrintBlastRadius(w io.Writer, br *planner.BlastRadius) {
+	if br == nil {
+		return
+	}
+	t := themeFor(w)
+	fmt.Fprintln(w, t.Heading("Blast radius:"))
+	if len(br.Namespaces) > 0 {
+		fmt.Fprintf(w, "  namespaces: %s\n", strings.Join(br.Namespaces, ", "))
+	}
+	for _, target := range br.Targets {
+		line := fmt.Sprintf("  - %s %s/%s", target.Op, target.Kind, target.Name)
+		if target.Namespace != "" {
+			line += " -n " + target.Namespace
+		}
+		if target.NotFound {
+			line += " (not found)"
+		}
+		fmt.Fprintln(w, line)
+		if len(target.Owners) > 0 {
+			fmt.Fprintf(w, "      owners: %s\n", strings.Join(target.Owners, ", "))
+		}
+		if len(target.Labels) > 0 {
+			keys := make([]string, 0, len(target.Labels))
+			for k := range target.Labels {
+				keys = append(keys, k)
+			}
+			sort.Strings(keys)
+			parts := make([]string, 0, len(keys))
+			for _, k := range keys {
+				parts = append(parts, fmt.Sprintf("%s=%s", k, target.Labels[k]))
+			}
+			fmt.Fprintf(w, "      labels: %s\n", strings.Join(parts, ", "))
+		}
+		for _, rel := range target.Related {
+			fmt.Fprintf(w, "      %s: %s/%s\n", rel.Relation, rel.Kind, rel.Name)
+		}
+	}
+	for _, note := range br.Notes {
+		fmt.Fprintf(w, "  note: %s\n", t.Muted(note))
 	}
 }
 

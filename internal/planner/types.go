@@ -59,4 +59,6 @@ type ExecutionPlan struct {
 	Actions          []Action
 	Summary          string
 	RequiresApproval bool
+	// BlastRadius is optional live enrichment for mutating plans (T-069).
+	BlastRadius *BlastRadius
 }

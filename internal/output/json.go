@@ -30,15 +30,16 @@ const (
 
 // PlanResult is the stable CI-facing JSON document.
 type PlanResult struct {
-	APIVersion     string          `json:"apiVersion"`
-	Kind           string          `json:"kind"`
-	SchemaVersion  string          `json:"schemaVersion"`
-	Prompt         string          `json:"prompt"`
-	ClusterContext string          `json:"cluster_context,omitempty"`
-	Plan           PlanPayload     `json:"plan"`
-	Risk           RiskPayload     `json:"risk"`
-	Applied        bool            `json:"applied"`
-	Result         json.RawMessage `json:"result,omitempty"`
+	APIVersion     string               `json:"apiVersion"`
+	Kind           string               `json:"kind"`
+	SchemaVersion  string               `json:"schemaVersion"`
+	Prompt         string               `json:"prompt"`
+	ClusterContext string               `json:"cluster_context,omitempty"`
+	Plan           PlanPayload          `json:"plan"`
+	Risk           RiskPayload          `json:"risk"`
+	Applied        bool                 `json:"applied"`
+	BlastRadius    *planner.BlastRadius `json:"blastRadius,omitempty"`
+	Result         json.RawMessage      `json:"result,omitempty"`
 }
 
 // RouteResult is a stable CI-facing sequence of per-step plan results.
@@ -144,7 +145,8 @@ func FromPlan(prompt, kubeContext string, plan planner.ExecutionPlan, risk safet
 			Denied:  risk.Denied,
 			Message: risk.Message,
 		},
-		Applied: applied,
+		Applied:     applied,
+		BlastRadius: plan.BlastRadius,
 	}
 }
 

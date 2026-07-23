@@ -244,6 +244,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			planner.EnrichHelmPlan(ctx, &plan)
 		} else if !executor.IsArgoWorkflowPlan(plan) && !executor.IsTektonPlan(plan) && !executor.IsKEDAPlan(plan) && !executor.IsCrossplanePlan(plan) && !executor.IsGitOpsSyncPlan(plan) {
 			planner.EnrichDiffs(ctx, client, &plan)
+			planner.EnrichBlastRadius(ctx, client, &plan)
 		}
 	}
 
@@ -434,6 +435,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			}
 			fmt.Fprintln(out, "Optional fix (requires approval; optimize --approve does not auto-apply):")
 			planner.EnrichDiffs(ctx, client, &fix)
+			planner.EnrichBlastRadius(ctx, client, &fix)
 			ui.PrintPlan(out, fix, fixRisk)
 			// Never treat the parent optimize --approve flag as consent to mutate.
 			approved, err := resolveApproval(false, out, deps)

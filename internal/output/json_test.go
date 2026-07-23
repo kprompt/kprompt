@@ -44,3 +44,26 @@ func TestFromPlanSchema(t *testing.T) {
 		t.Fatalf("invalid json: %s", buf.String())
 	}
 }
+
+func TestFromPlanIncludesBlastRadius(t *testing.T) {
+	r := FromPlan("scale api to 3", "ctx", planner.ExecutionPlan{
+		Intent:           intent.Intent{Kind: intent.KindScale},
+		RequiresApproval: true,
+		BlastRadius: &planner.BlastRadius{
+			Namespaces: []string{"demo"},
+			Targets: []planner.BlastTarget{{
+				Op: "scale", Kind: "Deployment", Name: "api", Namespace: "demo",
+			}},
+		},
+	}, safety.Result{Risk: safety.RiskMedium}, false)
+	if r.BlastRadius == nil || len(r.BlastRadius.Namespaces) != 1 {
+		t.Fatalf("%+v", r.BlastRadius)
+	}
+	raw, err := json.Marshal(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(raw), `"blastRadius"`) {
+		t.Fatalf("missing blastRadius: %s", raw)
+	}
+}
