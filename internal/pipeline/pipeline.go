@@ -197,7 +197,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 
 	if contexts := fanOutContexts(cfg); len(contexts) > 0 {
-		return runMultiContextReads(ctx, cfg, out, deps, provider, plan, risk, contexts)
+		return runMultiContextFanOut(ctx, cfg, out, deps, provider, plan, risk, contexts)
 	}
 
 	if plan.RequiresApproval {

@@ -136,6 +136,8 @@ kprompt contexts         # kubeconfig contexts + aliases
 kprompt contexts --check # also probe API reachability
 kprompt --contexts staging,prod "list deployments"   # read-only fan-out
 kprompt "list pods across staging and prod"
+# multi-context mutate: confirm each context (or --approve-each-context; never plain --approve)
+kprompt --contexts staging,prod "scale api to 3"
 kprompt dash             # local read-only cluster UI (requires kprompt-dash on PATH)
 ```
 
@@ -166,12 +168,14 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 | Flag | Description |
 |------|-------------|
 | `--approve` | Apply without interactive confirmation |
+| `--approve-each-context` | Apply a mutating plan to every `--contexts` entry (explicit; not implied by `--approve`) |
 | `--wait` | After apply, wait for Deployment rollout |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
 | `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `mistral`, `deepseek`, `openrouter`, `together`, `ollama`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |
+| `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |
 | `--namespace` / `-n` | Default namespace |
 
 ## Architecture

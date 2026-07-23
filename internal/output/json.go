@@ -30,14 +30,15 @@ const (
 
 // PlanResult is the stable CI-facing JSON document.
 type PlanResult struct {
-	APIVersion    string          `json:"apiVersion"`
-	Kind          string          `json:"kind"`
-	SchemaVersion string          `json:"schemaVersion"`
-	Prompt        string          `json:"prompt"`
-	Plan          PlanPayload     `json:"plan"`
-	Risk          RiskPayload     `json:"risk"`
-	Applied       bool            `json:"applied"`
-	Result        json.RawMessage `json:"result,omitempty"`
+	APIVersion     string          `json:"apiVersion"`
+	Kind           string          `json:"kind"`
+	SchemaVersion  string          `json:"schemaVersion"`
+	Prompt         string          `json:"prompt"`
+	ClusterContext string          `json:"cluster_context,omitempty"`
+	Plan           PlanPayload     `json:"plan"`
+	Risk           RiskPayload     `json:"risk"`
+	Applied        bool            `json:"applied"`
+	Result         json.RawMessage `json:"result,omitempty"`
 }
 
 // RouteResult is a stable CI-facing sequence of per-step plan results.
@@ -77,14 +78,15 @@ type PlanPayload struct {
 
 // ActionPayload is one planned step (no YAML manifests).
 type ActionPayload struct {
-	Op        string `json:"op"`
-	Backend   string `json:"backend"`
-	Kind      string `json:"kind"`
-	Name      string `json:"name"`
-	Namespace string `json:"namespace,omitempty"`
-	Replicas  *int32 `json:"replicas,omitempty"`
-	Revision  *int64 `json:"revision,omitempty"`
-	Diff      string `json:"diff,omitempty"`
+	Op             string `json:"op"`
+	Backend        string `json:"backend"`
+	Kind           string `json:"kind"`
+	Name           string `json:"name"`
+	Namespace      string `json:"namespace,omitempty"`
+	ClusterContext string `json:"cluster_context,omitempty"`
+	Replicas       *int32 `json:"replicas,omitempty"`
+	Revision       *int64 `json:"revision,omitempty"`
+	Diff           string `json:"diff,omitempty"`
 }
 
 // RiskPayload mirrors safety evaluation for CI gates.
@@ -103,21 +105,23 @@ func FromPlan(prompt, kubeContext string, plan planner.ExecutionPlan, risk safet
 			ns = a.Object.Namespace
 		}
 		actions = append(actions, ActionPayload{
-			Op:        string(a.Op),
-			Backend:   actionBackend(a),
-			Kind:      a.Object.Kind,
-			Name:      a.Object.Name,
-			Namespace: a.Object.Namespace,
-			Replicas:  a.Replicas,
-			Revision:  a.Revision,
-			Diff:      a.Diff,
+			Op:             string(a.Op),
+			Backend:        actionBackend(a),
+			Kind:           a.Object.Kind,
+			Name:           a.Object.Name,
+			Namespace:      a.Object.Namespace,
+			ClusterContext: kubeContext,
+			Replicas:       a.Replicas,
+			Revision:       a.Revision,
+			Diff:           a.Diff,
 		})
 	}
 	return PlanResult{
-		APIVersion:    APIVersion,
-		Kind:          KindPlanResult,
-		SchemaVersion: SchemaVersion,
-		Prompt:        prompt,
+		APIVersion:     APIVersion,
+		Kind:           KindPlanResult,
+		SchemaVersion:  SchemaVersion,
+		Prompt:         prompt,
+		ClusterContext: kubeContext,
 		Plan: PlanPayload{
 			Intent:           string(plan.Intent.Kind),
 			Summary:          plan.Summary,

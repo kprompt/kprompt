@@ -16,17 +16,18 @@ import (
 )
 
 var (
-	version    = "0.0.0-dev"
-	approve    bool
-	waitFlag   bool
-	timeout    time.Duration
-	provider   string
-	model      string
-	kubeCtx    string
-	kubeCtxs   string
-	namespace  string
-	outputFmt  string
-	theme      string
+	version            = "0.0.0-dev"
+	approve            bool
+	approveEachContext bool
+	waitFlag           bool
+	timeout            time.Duration
+	provider           string
+	model              string
+	kubeCtx            string
+	kubeCtxs           string
+	namespace          string
+	outputFmt          string
+	theme              string
 )
 
 func main() {
@@ -53,6 +54,7 @@ func main() {
 			cfg.Wait = waitFlag
 			cfg.Timeout = timeout
 			cfg.Output = outputFmt
+			cfg.ApproveEachContext = approveEachContext
 			cfg.NamespaceFromCLI = cmd.Flags().Changed("namespace")
 			cfg.ContextFromCLI = cmd.Flags().Changed("context") || cmd.Flags().Changed("contexts")
 			if cmd.Flags().Changed("theme") {
@@ -81,6 +83,7 @@ func main() {
 	}
 
 	root.PersistentFlags().BoolVar(&approve, "approve", false, "apply the plan without interactive confirmation")
+	root.PersistentFlags().BoolVar(&approveEachContext, "approve-each-context", false, "apply a mutating plan to every --contexts entry (explicit; not implied by --approve)")
 	root.PersistentFlags().BoolVar(&waitFlag, "wait", false, "after apply, wait for Deployment rollout to complete")
 	root.PersistentFlags().DurationVar(&timeout, "timeout", 5*time.Minute, "timeout for --wait (default 5m)")
 	root.PersistentFlags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|mistral|deepseek|openrouter|together|ollama|openai-compatible)")

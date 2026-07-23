@@ -91,6 +91,8 @@ type Resolved struct {
 	ContextAlias string
 	// Contexts is an explicit multi-context fan-out list (resolved kube context names).
 	Contexts []string
+	// ApproveEachContext allows non-interactive multi-context mutate (explicit; not plain --approve).
+	ApproveEachContext bool
 	// FanOutChild skips plan/header noise when executing one section of a fan-out.
 	FanOutChild bool
 
