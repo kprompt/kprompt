@@ -10,21 +10,23 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/kprompt/kprompt/internal/config"
+	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/pipeline"
 	"github.com/kprompt/kprompt/internal/ui"
 )
 
 var (
-	version   = "0.0.0-dev"
-	approve   bool
-	waitFlag  bool
-	timeout   time.Duration
-	provider  string
-	model     string
-	kubeCtx   string
-	namespace string
-	outputFmt string
-	theme     string
+	version    = "0.0.0-dev"
+	approve    bool
+	waitFlag   bool
+	timeout    time.Duration
+	provider   string
+	model      string
+	kubeCtx    string
+	kubeCtxs   string
+	namespace  string
+	outputFmt  string
+	theme      string
 )
 
 func main() {
@@ -44,14 +46,34 @@ func main() {
 			if err != nil {
 				return err
 			}
+			if cmd.Flags().Changed("context") && cmd.Flags().Changed("contexts") {
+				return fmt.Errorf("use either --context or --contexts, not both")
+			}
 			cfg := config.Merge(file, provider, model, kubeCtx, namespace, approve, prompt)
 			cfg.Wait = waitFlag
 			cfg.Timeout = timeout
 			cfg.Output = outputFmt
 			cfg.NamespaceFromCLI = cmd.Flags().Changed("namespace")
-			cfg.ContextFromCLI = cmd.Flags().Changed("context")
+			cfg.ContextFromCLI = cmd.Flags().Changed("context") || cmd.Flags().Changed("contexts")
 			if cmd.Flags().Changed("theme") {
 				cfg.Theme = theme
+			}
+			if raw := strings.TrimSpace(kubeCtxs); raw != "" {
+				names := config.ParseContextsFlag(raw)
+				resolved, err := config.ResolveContextList(names, cfg.Aliases)
+				if err != nil {
+					return err
+				}
+				cfg.Contexts = resolved
+				if len(resolved) == 1 {
+					cfg.Context = resolved[0]
+				}
+			} else if names := intent.ParseMultiContexts(prompt); len(names) > 0 {
+				resolved, err := config.ResolveContextList(names, cfg.Aliases)
+				if err != nil {
+					return err
+				}
+				cfg.Contexts = resolved
 			}
 			ui.SetTheme(cfg.Theme)
 			return pipeline.Run(cmd.Context(), cfg, cmd.OutOrStdout())
@@ -64,6 +86,7 @@ func main() {
 	root.PersistentFlags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|mistral|deepseek|openrouter|together|ollama|openai-compatible)")
 	root.PersistentFlags().StringVar(&model, "model", "", "LLM model id")
 	root.PersistentFlags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
+	root.PersistentFlags().StringVar(&kubeCtxs, "contexts", "", "comma-separated contexts for read-only fan-out (aliases ok)")
 	root.PersistentFlags().StringVarP(&namespace, "namespace", "n", "", "default namespace")
 	root.PersistentFlags().StringVarP(&outputFmt, "output", "o", "text", "output format: text|json")
 	root.PersistentFlags().StringVar(&theme, "theme", "", "color theme: auto|dracula|nord|gruvbox|mono|none")

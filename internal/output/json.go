@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	APIVersion      = "kprompt.io/v1"
-	KindPlanResult  = "PlanResult"
-	KindRouteResult = "RouteResult"
-	SchemaVersion   = "1"
+	APIVersion             = "kprompt.io/v1"
+	KindPlanResult         = "PlanResult"
+	KindRouteResult        = "RouteResult"
+	KindMultiContextResult = "MultiContextResult"
+	SchemaVersion          = "1"
 )
 
 // PlanResult is the stable CI-facing JSON document.
@@ -51,6 +52,17 @@ type RouteResult struct {
 	StoppedAt        int          `json:"stoppedAt,omitempty"`
 	StopReason       string       `json:"stopReason,omitempty"`
 	Steps            []PlanResult `json:"steps"`
+}
+
+// MultiContextResult is a read-only fan-out across kubeconfig contexts.
+type MultiContextResult struct {
+	APIVersion    string       `json:"apiVersion"`
+	Kind          string       `json:"kind"`
+	SchemaVersion string       `json:"schemaVersion"`
+	Prompt        string       `json:"prompt"`
+	Contexts      []string     `json:"contexts"`
+	Applied       bool         `json:"applied"`
+	Steps         []PlanResult `json:"steps"`
 }
 
 // PlanPayload is the reviewable plan without manifests/secrets.
@@ -432,6 +444,13 @@ func Encode(w io.Writer, r PlanResult) error {
 
 // EncodeRoute writes compact route JSON plus a trailing newline.
 func EncodeRoute(w io.Writer, r RouteResult) error {
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	return enc.Encode(r)
+}
+
+// EncodeMultiContext writes compact multi-context JSON plus a trailing newline.
+func EncodeMultiContext(w io.Writer, r MultiContextResult) error {
 	enc := json.NewEncoder(w)
 	enc.SetEscapeHTML(false)
 	return enc.Encode(r)

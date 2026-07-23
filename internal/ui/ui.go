@@ -29,6 +29,13 @@ func PrintDenied(w io.Writer, msg string) {
 	fmt.Fprintln(w, t.Danger(msg))
 }
 
+// PrintContextSection prints a fan-out header for one kube context.
+func PrintContextSection(w io.Writer, contextName string, index, total int) {
+	t := themeFor(w)
+	fmt.Fprintln(w)
+	fmt.Fprintln(w, t.Heading(fmt.Sprintf("=== context %d/%d: %s ===", index, total, contextName)))
+}
+
 // PrintPlan prints a human-readable execution plan.
 func PrintPlan(w io.Writer, plan planner.ExecutionPlan, risk safety.Result) {
 	t := themeFor(w)

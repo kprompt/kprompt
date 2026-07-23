@@ -89,6 +89,10 @@ type Resolved struct {
 	RequireAliasMatch bool
 	// ContextAlias is the alias key used to resolve Context, if any.
 	ContextAlias string
+	// Contexts is an explicit multi-context fan-out list (resolved kube context names).
+	Contexts []string
+	// FanOutChild skips plan/header noise when executing one section of a fan-out.
+	FanOutChild bool
 
 	// Set when the corresponding CLI flag was explicitly passed.
 	NamespaceFromCLI bool

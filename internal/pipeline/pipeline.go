@@ -196,6 +196,10 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		return nil
 	}
 
+	if contexts := fanOutContexts(cfg); len(contexts) > 0 {
+		return runMultiContextReads(ctx, cfg, out, deps, provider, plan, risk, contexts)
+	}
+
 	if plan.RequiresApproval {
 		if err := enforceAliasMatch(cfg); err != nil {
 			denied := safety.Result{
@@ -244,7 +248,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 	}
 
 	doc := output.FromPlan(cfg.Prompt, cfg.Context, plan, risk, false)
-	if !jsonMode {
+	if !jsonMode && !cfg.FanOutChild {
 		ui.PrintPlan(out, plan, risk)
 	}
 

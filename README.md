@@ -134,6 +134,8 @@ kprompt doctor           # kube + LLM key + tools + Team health (exit 1 if requi
 kprompt doctor --json
 kprompt contexts         # kubeconfig contexts + aliases
 kprompt contexts --check # also probe API reachability
+kprompt --contexts staging,prod "list deployments"   # read-only fan-out
+kprompt "list pods across staging and prod"
 kprompt dash             # local read-only cluster UI (requires kprompt-dash on PATH)
 ```
 
