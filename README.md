@@ -171,6 +171,7 @@ kprompt config
 kprompt config set provider gemini
 kprompt config set model gemini-2.0-flash
 kprompt config set namespace default
+kprompt config set theme nord
 
 # Cluster aliases (short name → kubeconfig context)
 kprompt config alias set prod gke_myproj_us-central1_prod
@@ -257,6 +258,7 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 | `--context` | kubeconfig context |
 | `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |
 | `--namespace` / `-n` | Default namespace |
+| `--theme` | Output theme (`auto`, `dracula`, `gruvbox`, `mono`, `nord`, `none`) |
 
 ## Architecture
 
@@ -272,7 +274,7 @@ Package layout matches the private architecture ADRs (`cmd/kprompt`, `internal/{
 | Community | [Discussions](https://github.com/kprompt/kprompt/discussions) · [Contributing](./CONTRIBUTING.md) · [Good first issues](https://github.com/kprompt/kprompt/labels/good%20first%20issue) |
 | Social | [X @kpromptai](https://x.com/kpromptai) · [LinkedIn](https://www.linkedin.com/company/kprompt) · [Bluesky](https://bsky.app/profile/kprompt.bsky.social) · [hello@kprompt.ai](mailto:hello@kprompt.ai) |
 | Compare | [vs kubectl-ai](https://kprompt.ai/blog/kprompt-vs-kubectl-ai) · [AI tools map](https://kprompt.ai/blog/kubernetes-ai-tools-comparison) · [kubectl vs K9s](https://kprompt.ai/blog/kubectl-vs-k9s) |
-| Product | [audit](./docs/audit.md) · [impact](./docs/impact.md) · [optimize my cluster](https://kprompt.ai/blog/optimize-my-cluster) · [PlanResult JSON](https://kprompt.ai/blog/planresult-json-deep-dive) · [AI SRE](https://kprompt.ai/blog/ai-sre-not-ai-kubectl) |
+| Product | [audit](./docs/audit.md) · [impact](./docs/impact.md) · [themes](./docs/theme.md) · [optimize my cluster](https://kprompt.ai/blog/optimize-my-cluster) · [PlanResult JSON](https://kprompt.ai/blog/planresult-json-deep-dive) · [AI SRE](https://kprompt.ai/blog/ai-sre-not-ai-kubectl) |
 
 ## Contributors
 
