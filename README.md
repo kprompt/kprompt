@@ -246,6 +246,8 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 
 ## Flags
 
+See also: [GitOps PR mode](./docs/gitops-pr.md). Example: `kprompt "deploy redis" -n demo --gitops --gitops-repo acme/infra --approve`
+
 | Flag | Description |
 |------|-------------|
 | `--approve` | Apply without interactive confirmation |
@@ -259,6 +261,10 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 | `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |
 | `--namespace` / `-n` | Default namespace |
 | `--theme` | Output theme (`auto`, `dracula`, `gruvbox`, `mono`, `nord`, `none`) |
+| `--gitops` | Open/update a GitHub PR instead of applying to the cluster (T-072; requires `gitops.repo`) |
+| `--gitops-repo` | GitHub `owner/name` for `--gitops` (or config `gitops.repo` / `KPROMPT_GITOPS_REPO`) |
+| `--gitops-path` | Path prefix inside the repo for PR files (default `kprompt`) |
+| `--gitops-base-branch` | PR base branch (default `main`) |
 
 ## Architecture
 
