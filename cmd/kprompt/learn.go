@@ -80,9 +80,13 @@ func displayCtx(name string) string {
 func printLearnProfile(cmd *cobra.Command, p learn.Profile, saved bool) error {
 	out := cmd.OutOrStdout()
 	if saved {
-		fmt.Fprintf(out, "Learned cluster tool profile → %s\n\n", learn.MustPath(p.Context))
+		fmt.Fprintf(out,
+			"Learned and saved cluster tool profile → %s\n\n",
+			learn.MustPath(p.Context))
 	} else {
-		fmt.Fprintf(out, "Saved cluster tool profile (%s)\n\n", learn.MustPath(p.Context))
+		fmt.Fprintf(out,
+			"Showing saved cluster tool profile → %s\n\n",
+			learn.MustPath(p.Context))
 	}
 	fmt.Fprintln(out, p.Summary())
 	fmt.Fprintln(out)

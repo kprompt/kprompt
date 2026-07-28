@@ -14,6 +14,8 @@ kprompt "learn cluster tools"
 kprompt "detect tools"
 ```
 
+`kprompt learn --show` is read-only: it shows the saved profile without re-detecting or rewriting it.
+
 Profile path: `~/.kprompt/profiles/<context>.json` (or `$KPROMPT_HOME/profiles/`).
 
 ## What it detects
