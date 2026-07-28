@@ -1,0 +1,25 @@
+kprompt-coordinator installed.
+
+1. Service:
+   - Name: {{ include "kprompt-coordinator.fullname" . }}
+   - Namespace: {{ .Release.Namespace }}
+   - Port: {{ .Values.service.port }}
+   - URL:
+     http://{{ include "kprompt-coordinator.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1/handoff
+2. On each Namespace Agent, point handoff traffic at the Coordinator:
+     --coordinator-url http://{{ include "kprompt-coordinator.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1/handoff
+3. RBAC / safety:
+   - Coordinator is ServiceAccount-only by default.
+   - rbac.clusterRole.create={{ .Values.rbac.clusterRole.create | default false }} keeps cluster-wide reads off unless you opt in.
+   - Coordinator never mutates workloads. Do not grant create/update/patch/delete on workloads.
+4. Logs:
+     kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} -f
+5. Docs:
+     https://github.com/kprompt/kprompt/blob/main/charts/kprompt-coordinator/README.md
+     https://github.com/kprompt/kprompt/blob/main/docs/namespace-agent.md
+     https://github.com/kprompt/kprompt/blob/main/docs/agent-ops.md
+{{- if .Values.rbac.clusterRole.create }}
+
+WARNING: rbac.clusterRole.create=true enables future optional cluster-wide read probes.
+Keep verbs read-only and do not grant mutate permissions.
+{{- end }}
