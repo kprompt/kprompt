@@ -17,6 +17,8 @@ func newDoctorCmd() *cobra.Command {
 		Use:   "doctor",
 		Short: "Check local setup (kube, LLM key, tools, Team)",
 		Long:  "Runs read-only health checks. Does not print API keys. Exit code 1 if a required check fails.",
+		Example: `  kprompt doctor
+  kprompt doctor --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rep, err := doctor.Run(cmd.Context(), doctor.Options{Context: kubeCtx})
 			if err != nil {

@@ -16,6 +16,8 @@ func newContextsCmd() *cobra.Command {
 		Aliases: []string{"context", "ctx"},
 		Short:   "List kubeconfig contexts and local aliases",
 		Long:    "Shows kubeconfig contexts, which are current, and aliases from ~/.kprompt/config.yaml. Optional --check probes API reachability per context.",
+		Example: `  kprompt contexts
+  kprompt contexts --check`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			rep, err := contexts.List(cmd.Context(), contexts.Options{
 				CheckReachability: check,

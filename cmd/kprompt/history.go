@@ -38,7 +38,9 @@ func newHistoryCmd() *cobra.Command {
 		Use:   "rerun [index]",
 		Short: "Re-run a history prompt (default: newest)",
 		Long:  "Replays the stored prompt through the normal pipeline. Use --approve for mutations.",
-		Args:  cobra.MaximumNArgs(1),
+		Example: `  kprompt history rerun
+  kprompt history rerun 3 --approve`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			idx := 1
 			if len(args) == 1 {
