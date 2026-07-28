@@ -98,6 +98,9 @@ func TestOpenFromPlanMemRunner(t *testing.T) {
 	if !strings.Contains(mem.LastBody, "instead of applying") {
 		t.Fatalf("body=%q", mem.LastBody)
 	}
+	if strings.Contains(mem.LastBody, "T-072") {
+		t.Fatalf("body contains internal ticket ID: %q", mem.LastBody)
+	}
 }
 
 func TestOpenFromPlanRequiresRepo(t *testing.T) {

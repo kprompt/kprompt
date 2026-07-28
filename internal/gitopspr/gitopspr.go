@@ -282,7 +282,7 @@ func prTitle(plan planner.ExecutionPlan, prompt string) string {
 
 func prBody(plan planner.ExecutionPlan, prompt string, files []FileChange) string {
 	var b strings.Builder
-	b.WriteString("## kprompt GitOps PR (T-072)\n\n")
+	b.WriteString("## kprompt GitOps PR\n\n")
 	b.WriteString("This pull request was opened **instead of applying to the cluster**.\n\n")
 	if p := strings.TrimSpace(prompt); p != "" {
 		fmt.Fprintf(&b, "**Prompt:** %s\n\n", p)
