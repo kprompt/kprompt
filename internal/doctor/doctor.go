@@ -188,7 +188,7 @@ func checkToolsSummary(reg *tools.Registry) []Check {
 		default:
 			c.Status = Warn
 			if c.Hint == "" {
-				c.Hint = "Optional for chart installs. Coming soon: kprompt setup (T-061+)."
+				c.Hint = "Optional for chart installs. Plan installation with: kprompt setup --profile minimal"
 			}
 		}
 		out = append(out, c)

@@ -49,6 +49,9 @@ func TestRunLLMKeyRequired(t *testing.T) {
 	if helm.Status != Warn {
 		t.Fatalf("helm=%+v", helm)
 	}
+	if helm.Hint != "Optional for chart installs. Plan installation with: kprompt setup --profile minimal" {
+		t.Fatalf("helm hint=%q", helm.Hint)
+	}
 	teamChk := find(rep, "team")
 	if teamChk.Status != Skip {
 		t.Fatalf("team=%+v", teamChk)
