@@ -56,6 +56,14 @@ var Presets = []Preset{
 		HelpURL:      "https://console.groq.com/keys",
 	},
 	{
+		Name:         "xai",
+		Kind:         "openai",
+		BaseURL:      "https://api.x.ai/v1",
+		DefaultModel: "grok-4.5",
+		EnvKeys:      []string{"KPROMPT_XAI_API_KEY", "XAI_API_KEY"},
+		HelpURL:      "https://console.x.ai/",
+	},
+	{
 		Name:         "mistral",
 		Kind:         "openai",
 		BaseURL:      "https://api.mistral.ai/v1",

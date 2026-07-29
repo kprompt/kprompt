@@ -159,6 +159,7 @@ export KPROMPT_OPENAI_API_KEY=sk-...          # --provider openai (default)
 export KPROMPT_ANTHROPIC_API_KEY=sk-ant-...   # --provider anthropic
 export KPROMPT_GEMINI_API_KEY=...             # --provider gemini
 export KPROMPT_GROQ_API_KEY=...               # --provider groq
+export KPROMPT_XAI_API_KEY=...                # --provider xai (Grok)
 export KPROMPT_MOONSHOT_API_KEY=...           # --provider moonshot (Kimi K3)
 # local: kprompt --provider ollama --model llama3.2 "..."
 ```

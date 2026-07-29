@@ -10,6 +10,7 @@ API keys are **environment variables only** (never stored in the config file).
 | Anthropic | `anthropic` | `KPROMPT_ANTHROPIC_API_KEY` / `ANTHROPIC_API_KEY` | `claude-sonnet-4-20250514` | Messages API |
 | Google Gemini | `gemini` | `KPROMPT_GEMINI_API_KEY` / `GEMINI_API_KEY` / `GOOGLE_API_KEY` | `gemini-2.0-flash` | AI Studio key |
 | Groq | `groq` | `KPROMPT_GROQ_API_KEY` / `GROQ_API_KEY` | `llama-3.3-70b-versatile` | OpenAI-compatible |
+| xAI (Grok) | `xai` | `KPROMPT_XAI_API_KEY` / `XAI_API_KEY` | `grok-4.5` | OpenAI-compatible |
 | Mistral | `mistral` | `KPROMPT_MISTRAL_API_KEY` / `MISTRAL_API_KEY` | `mistral-small-latest` | OpenAI-compatible |
 | DeepSeek | `deepseek` | `KPROMPT_DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEY` | `deepseek-chat` | OpenAI-compatible |
 | Moonshot (Kimi K3) | `moonshot` | `KPROMPT_MOONSHOT_API_KEY` / `MOONSHOT_API_KEY` | `kimi-k3` | OpenAI-compatible |
@@ -36,6 +37,10 @@ kprompt --provider gemini --model gemini-2.0-flash "deploy redis"
 # Groq
 export KPROMPT_GROQ_API_KEY=...
 kprompt --provider groq "scale api to 3"
+
+# xAI / Grok
+export KPROMPT_XAI_API_KEY=...
+kprompt --provider xai "explain why api is crashlooping"
 
 # Moonshot / Kimi K3
 export KPROMPT_MOONSHOT_API_KEY=...
