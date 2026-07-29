@@ -221,7 +221,7 @@ kprompt --contexts staging,prod "optimize my cluster"  # fleet optimize rollup
 kprompt "list pods across staging and prod"
 # multi-context mutate: confirm each context (or --approve-each-context; never plain --approve)
 kprompt --contexts staging,prod "scale api to 3"
-kprompt dash             # local read-only cluster UI (requires kprompt-dash on PATH)
+kprompt dash             # local read-only cluster UI (requires kprompt-dash on PATH; see docs/dash.md)
 ```
 
 ## Team enrollment (optional)
