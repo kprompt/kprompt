@@ -210,6 +210,14 @@ kprompt history rerun 3 --approve
 
 History stores prompt, kind, summary, and action refs — never manifests or API keys.
 
+Explore setup, the learn profile, and built-in recipes:
+
+```bash
+kprompt setup
+kprompt learn
+kprompt recipe list
+```
+
 Use `kprompt doctor` after install to verify kubeconfig, LLM keys, integrations, and optional Team enrollment.
 
 ```bash
