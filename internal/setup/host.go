@@ -54,9 +54,9 @@ func (DefaultRunner) GOOS() string    { return runtime.GOOS }
 
 // InstallMethod is how we would install a host binary on this OS.
 type InstallMethod struct {
-	ID          string   // brew | get-helm-3 | unsupported
+	ID          string // brew | get-helm-3 | unsupported
 	Description string
-	Binary      string   // expected PATH name after install
+	Binary      string // expected PATH name after install
 	Prepare     func(ctx context.Context, r CommandRunner) (name string, args []string, cleanup func(), err error)
 }
 
@@ -99,7 +99,7 @@ func ResolveHelmMethod(r CommandRunner) (InstallMethod, error) {
 	default:
 		return InstallMethod{
 			ID:          "unsupported",
-			Description: fmt.Sprintf("%s is not in the T-063 OS matrix — install Helm manually: https://helm.sh/docs/intro/install/", goos),
+			Description: fmt.Sprintf("%s is not in the supported OS matrix — install Helm manually: https://helm.sh/docs/intro/install/", goos),
 			Binary:      "helm",
 		}, nil
 	}
@@ -153,7 +153,7 @@ func ApplyHost(ctx context.Context, plan Plan, r CommandRunner, out io.Writer) (
 		r = DefaultRunner{}
 	}
 	rep := ApplyReport{Notes: []string{
-		"Host apply only (T-063). Cluster operators remain T-064; URL config stays manual / config set.",
+		"Host apply only. Cluster operators remain a separate step; URL config stays manual / config set.",
 	}}
 	needed := HostNeeded(plan)
 	if len(needed) == 0 {
@@ -166,7 +166,7 @@ func ApplyHost(ctx context.Context, plan Plan, r CommandRunner, out io.Writer) (
 			rep.Applied = append(rep.Applied, HostResult{
 				Component: step.Component,
 				Status:    "unsupported",
-				Detail:    "T-063 installs Helm only; other host CLIs are not wired yet",
+				Detail:    "Setup currently installs Helm only; other host CLIs are not wired yet",
 			})
 			continue
 		}
@@ -261,10 +261,10 @@ func FormatApply(w io.Writer, rep ApplyReport) {
 // OSMatrixDoc is the supported install matrix for docs / --help.
 func OSMatrixDoc() string {
 	var b strings.Builder
-	b.WriteString("Host install OS matrix (T-063):\n")
+	b.WriteString("Host install OS matrix:\n")
 	b.WriteString("  darwin  — Homebrew: brew install helm (brew required)\n")
 	b.WriteString("  linux   — brew if present, else official get-helm-3 script (curl required)\n")
 	b.WriteString("  other   — unsupported; install manually (https://helm.sh/docs/intro/install/)\n")
-	b.WriteString("Skip if helm already on PATH. Cluster installs are T-064.\n")
+	b.WriteString("Skip if helm already on PATH. Cluster installs are a separate step.\n")
 	return b.String()
 }

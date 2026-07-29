@@ -166,7 +166,7 @@ func ApplyCluster(ctx context.Context, plan Plan, opts ClusterApplyOptions, out 
 		opts.Runner = DefaultRunner{}
 	}
 	rep := ClusterApplyReport{Notes: []string{
-		"Cluster apply only installs operators (T-064). Wipe-class uninstalls are denied.",
+		"Cluster apply only installs operators. Wipe-class uninstalls are denied.",
 		fmt.Sprintf("Namespace defaults: Argo=%s · Prometheus stack=%s",
 			orDefault(opts.ArgoNS, DefaultArgoNamespace),
 			orDefault(opts.PromNS, DefaultPrometheusNamespace)),
@@ -332,7 +332,7 @@ func FormatClusterApply(w io.Writer, rep ClusterApplyReport) {
 // NamespaceDefaultsDoc documents install namespaces.
 func NamespaceDefaultsDoc() string {
 	return fmt.Sprintf(
-		"Cluster install namespaces (T-064):\n  Argo Workflows → %s\n  kube-prometheus-stack → %s (release %s)\n",
+		"Cluster install namespaces:\n  Argo Workflows → %s\n  kube-prometheus-stack → %s (release %s)\n",
 		DefaultArgoNamespace, DefaultPrometheusNamespace, DefaultPrometheusRelease,
 	)
 }

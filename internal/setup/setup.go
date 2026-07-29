@@ -94,7 +94,7 @@ func BuildPlan(reg *tools.Registry, opts Options) (Plan, error) {
 		Steps:   make([]Step, 0, 8),
 		Notes: []string{
 			"Plan from tools.Detect (ADR-0018). Default is dry-run.",
-			"Apply with --approve / TTY: host Helm (T-063) + cluster Argo/Prom stack (T-064).",
+			"Apply with --approve / TTY: host Helm + cluster Argo/Prom stack.",
 			"Wipe-class uninstalls denied. Re-check: kprompt tools · kprompt doctor",
 		},
 	}
@@ -309,7 +309,7 @@ func FormatText(w io.Writer, plan Plan) error {
 		}
 	}
 	if plan.Needed > 0 {
-		fmt.Fprintln(w, "\nNo mutations performed yet. Apply host+cluster with --approve or TTY confirm (T-063/T-064).")
+		fmt.Fprintln(w, "\nNo mutations performed yet. Apply host+cluster with --approve or TTY confirm.")
 	}
 	return nil
 }
