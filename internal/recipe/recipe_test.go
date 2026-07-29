@@ -66,3 +66,54 @@ func TestCatalogStable(t *testing.T) {
 		t.Fatal("not sorted")
 	}
 }
+
+func TestFormatListIncludesHeaderAndKnownRecipe(t *testing.T) {
+	out := FormatList()
+	if !strings.Contains(out, "ID") || !strings.Contains(out, "TITLE") || !strings.Contains(out, "STEPS") {
+		t.Fatalf("missing table header in output:\n%s", out)
+	}
+	if !strings.Contains(out, "harden-production") {
+		t.Fatalf("missing known recipe id in output:\n%s", out)
+	}
+}
+
+func TestFormatShowIncludesTitleStepsAndFooter(t *testing.T) {
+	r, ok := Lookup("crashloop-rca")
+	if !ok {
+		t.Fatal("crashloop-rca recipe not found")
+	}
+
+	out := FormatShow(r)
+	if !strings.Contains(out, "Recipe: crashloop-rca") || !strings.Contains(out, r.Title) {
+		t.Fatalf("missing title in output:\n%s", out)
+	}
+	if !strings.Contains(out, "Steps:") || !strings.Contains(out, "1. ") {
+		t.Fatalf("missing steps in output:\n%s", out)
+	}
+	if !strings.Contains(out, "Never mutates silently") {
+		t.Fatalf("missing footer in output:\n%s", out)
+	}
+}
+
+func TestExtractWorkload(t *testing.T) {
+	tests := []struct {
+		name   string
+		prompt string
+		want   string
+	}{
+		{name: "for api", prompt: "crashloop recipe for api", want: "api"},
+		{name: "workload payment-api", prompt: "run workload payment-api", want: "payment-api"},
+		{name: "deployment checkout", prompt: "investigate deployment checkout", want: "checkout"},
+		{name: "empty", prompt: "", want: ""},
+		{name: "no match", prompt: "show service dependency graph", want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := ExtractWorkload(tt.prompt)
+			if got != tt.want {
+				t.Fatalf("ExtractWorkload(%q) = %q, want %q", tt.prompt, got, tt.want)
+			}
+		})
+	}
+}
