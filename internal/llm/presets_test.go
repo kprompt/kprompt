@@ -16,6 +16,24 @@ func TestLookupPresetDefaults(t *testing.T) {
 		t.Fatal("ollama should allow empty key")
 	}
 }
+func TestLookupPresetXAI(t *testing.T) {
+	p, ok := LookupPreset("xai")
+	if !ok {
+		t.Fatal("xai preset not found")
+	}
+	if p.Kind != "openai" {
+		t.Fatalf("xai kind = %q, want openai", p.Kind)
+	}
+	if p.BaseURL != "https://api.x.ai/v1" {
+		t.Fatalf("xai base URL = %q", p.BaseURL)
+	}
+	if p.DefaultModel != "grok-4.5" {
+		t.Fatalf("xai default model = %q", p.DefaultModel)
+	}
+	if len(p.EnvKeys) != 2 || p.EnvKeys[0] != "KPROMPT_XAI_API_KEY" || p.EnvKeys[1] != "XAI_API_KEY" {
+		t.Fatalf("xai env keys = %v", p.EnvKeys)
+	}
+}
 func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
 	for _, want := range []string{"openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "moonshot", "ollama", "openrouter", "together", "xai"} {
