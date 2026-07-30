@@ -73,6 +73,8 @@ func verifyAction(ctx context.Context, client kubernetes.Interface, a planner.Ac
 	switch a.Op {
 	case planner.OpDelete:
 		return verifyDeleted(ctx, client, base), true
+	case planner.OpHelmInstall, planner.OpHelmUpgrade:
+		return verifyHelmRelease(ctx, client, base), true
 	case planner.OpScale, planner.OpCreate, planner.OpUpdate, planner.OpRollback:
 		switch strings.ToLower(a.Object.Kind) {
 		case "deployment", "":
@@ -80,9 +82,11 @@ func verifyAction(ctx context.Context, client kubernetes.Interface, a planner.Ac
 			return verifyDeployment(ctx, client, base, a.Replicas), true
 		case "service":
 			return verifyServicePresent(ctx, client, base), true
-		case "statefulset":
+		case "statefulset", "sts":
+			base.Kind = "StatefulSet"
 			return verifyStatefulSet(ctx, client, base, a.Replicas), true
-		case "daemonset":
+		case "daemonset", "ds":
+			base.Kind = "DaemonSet"
 			return verifyDaemonSet(ctx, client, base), true
 		default:
 			return Check{}, false
@@ -97,6 +101,10 @@ func verifyDeleted(ctx context.Context, client kubernetes.Interface, base Check)
 	switch strings.ToLower(base.Kind) {
 	case "deployment":
 		_, err = client.AppsV1().Deployments(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
+	case "statefulset":
+		_, err = client.AppsV1().StatefulSets(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
+	case "daemonset":
+		_, err = client.AppsV1().DaemonSets(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
 	case "service":
 		_, err = client.CoreV1().Services(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
 	case "pod":
@@ -154,6 +162,104 @@ func verifyDeployment(ctx context.Context, client kubernetes.Interface, base Che
 	base.Status = Pending
 	base.Detail = fmt.Sprintf("updated=%d available=%d desired=%d",
 		dep.Status.UpdatedReplicas, dep.Status.AvailableReplicas, desired)
+	return base
+}
+
+func verifyHelmRelease(ctx context.Context, client kubernetes.Interface, base Check) Check {
+	labelSelector := fmt.Sprintf("app.kubernetes.io/instance=%s", base.Name)
+
+	// 1) Try pods first — most releases create Pods we can observe.
+	pods, err := client.CoreV1().Pods(base.Namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+	if err != nil {
+		base.Status = Failed
+		base.Detail = err.Error()
+		return base
+	}
+	if len(pods.Items) > 0 {
+		total := len(pods.Items)
+		ready := 0
+		for _, p := range pods.Items {
+			isReady := false
+			if p.Status.Phase == "Succeeded" {
+				isReady = true
+			}else {
+				for _, c := range p.Status.Conditions {
+					if c.Type == "Ready" && c.Status == "True" {
+						isReady = true
+						break
+					}
+				}
+			}
+			if isReady {
+				ready++
+			}
+		}
+		if ready == total {
+			base.Status = OK
+			base.Detail = fmt.Sprintf("pods ready %d/%d", ready, total)
+			return base
+		}
+		base.Status = Pending
+		base.Detail = fmt.Sprintf("pods ready %d/%d", ready, total)
+		return base
+	}
+
+	// 2) No pods — look for controller resources and evaluate them.
+	var checks []Check
+
+	deps, err := client.AppsV1().Deployments(base.Namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+	if err == nil {
+		for _, d := range deps.Items {
+			nb := base
+			nb.Kind = "Deployment"
+			nb.Name = d.Name
+			checks = append(checks, verifyDeployment(ctx, client, nb, nil))
+		}
+	}
+
+	stss, err := client.AppsV1().StatefulSets(base.Namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+	if err == nil {
+		for _, s := range stss.Items {
+			nb := base
+			nb.Kind = "StatefulSet"
+			nb.Name = s.Name
+			checks = append(checks, verifyStatefulSet(ctx, client, nb, nil))
+		}
+	}
+
+	dss, err := client.AppsV1().DaemonSets(base.Namespace).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
+	if err == nil {
+		for _, d := range dss.Items {
+			nb := base
+			nb.Kind = "DaemonSet"
+			nb.Name = d.Name
+			checks = append(checks, verifyDaemonSet(ctx, client, nb))
+		}
+	}
+
+	if len(checks) == 0 {
+		base.Status = Skipped
+		base.Detail = "no verifiable workloads found for release"
+		return base
+	}
+
+	// Aggregate checks: Failed > Pending > OK
+	for _, c := range checks {
+		if c.Status == Failed {
+			base.Status = Failed
+			base.Detail = c.Detail
+			return base
+		}
+	}
+	for _, c := range checks {
+		if c.Status == Pending {
+			base.Status = Pending
+			base.Detail = c.Detail
+			return base
+		}
+	}
+	base.Status = OK
+	base.Detail = "release workloads healthy"
 	return base
 }
 
@@ -217,7 +323,7 @@ func verifyDaemonSet(ctx context.Context, client kubernetes.Interface, base Chec
 		base.Detail = err.Error()
 		return base
 	}
-	
+
 	desired := ds.Status.DesiredNumberScheduled
 	ready := ds.Status.NumberReady
 	updated := ds.Status.UpdatedNumberScheduled
