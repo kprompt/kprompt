@@ -80,6 +80,10 @@ func verifyAction(ctx context.Context, client kubernetes.Interface, a planner.Ac
 			return verifyDeployment(ctx, client, base, a.Replicas), true
 		case "service":
 			return verifyServicePresent(ctx, client, base), true
+		case "statefulset":
+			return verifyStatefulSet(ctx, client, base, a.Replicas), true
+		case "daemonset":
+			return verifyDaemonSet(ctx, client, base), true
 		default:
 			return Check{}, false
 		}
@@ -150,6 +154,90 @@ func verifyDeployment(ctx context.Context, client kubernetes.Interface, base Che
 	base.Status = Pending
 	base.Detail = fmt.Sprintf("updated=%d available=%d desired=%d",
 		dep.Status.UpdatedReplicas, dep.Status.AvailableReplicas, desired)
+	return base
+}
+
+func verifyStatefulSet(ctx context.Context, client kubernetes.Interface, base Check, wantReplicas *int32) Check {
+	sts, err := client.AppsV1().StatefulSets(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		base.Status = Failed
+		base.Detail = "StatefulSet not found after apply"
+		return base
+	}
+	if err != nil {
+		base.Status = Failed
+		base.Detail = err.Error()
+		return base
+	}
+
+	// 1. Determine default desired replicas (StatefulSets default to 1 if Spec.Replicas is nil)
+	var desired int32 = 1
+	if sts.Spec.Replicas != nil {
+		desired = *sts.Spec.Replicas
+	}
+
+	// 2. Override desired if explicit wantReplicas was passed in (e.g. scale operation)
+	if wantReplicas != nil {
+		desired = *wantReplicas
+		curSpec := int32(1)
+		if sts.Spec.Replicas != nil {
+			curSpec = *sts.Spec.Replicas
+		}
+		if curSpec != desired {
+			base.Status = Pending
+			base.Detail = fmt.Sprintf("spec.replicas %d (want %d)", curSpec, desired)
+			return base
+		}
+	}
+
+	readyReplicas := sts.Status.ReadyReplicas
+	updatedReplicas := sts.Status.UpdatedReplicas
+
+	// 3. Rollout check: StatefulSet is ready when ReadyReplicas == desired AND UpdatedReplicas == desired
+	if readyReplicas == desired && updatedReplicas == desired {
+		base.Status = OK
+		base.Detail = fmt.Sprintf("ready %d/%d", readyReplicas, desired)
+		return base
+	}
+
+	base.Status = Pending
+	base.Detail = fmt.Sprintf("updated=%d ready=%d desired=%d", updatedReplicas, readyReplicas, desired)
+	return base
+}
+
+func verifyDaemonSet(ctx context.Context, client kubernetes.Interface, base Check) Check {
+	ds, err := client.AppsV1().DaemonSets(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
+	if apierrors.IsNotFound(err) {
+		base.Status = Failed
+		base.Detail = "DaemonSet not found after apply"
+		return base
+	}
+	if err != nil {
+		base.Status = Failed
+		base.Detail = err.Error()
+		return base
+	}
+	
+	desired := ds.Status.DesiredNumberScheduled
+	ready := ds.Status.NumberReady
+	updated := ds.Status.UpdatedNumberScheduled
+
+	// Handle case where no nodes match the DaemonSet schedule criteria
+	if desired == 0 {
+		base.Status = Pending
+		base.Detail = "desired=0 scheduled=0 (no matching nodes)"
+		return base
+	}
+
+	// DaemonSet is fully rolled out when ready and updated counts match desired
+	if ready == desired && updated == desired {
+		base.Status = OK
+		base.Detail = fmt.Sprintf("ready %d/%d", ready, desired)
+		return base
+	}
+
+	base.Status = Pending
+	base.Detail = fmt.Sprintf("updated=%d ready=%d desired=%d", updated, ready, desired)
 	return base
 }
 
