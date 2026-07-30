@@ -175,6 +175,7 @@ kprompt config set provider gemini
 kprompt config set model gemini-2.0-flash
 kprompt config set namespace default
 kprompt config set theme nord
+kprompt theme preview   # sample every palette in the terminal
 
 # Cluster aliases (short name → kubeconfig context)
 kprompt config alias set prod gke_myproj_us-central1_prod

@@ -122,6 +122,7 @@ func main() {
 		},
 	})
 	root.AddCommand(newConfigCmd())
+	root.AddCommand(newThemeCmd())
 	root.AddCommand(newContextsCmd())
 	root.AddCommand(newDoctorCmd())
 	root.AddCommand(newDashCmd())

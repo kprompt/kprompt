@@ -191,6 +191,52 @@ func ThemeNames() []string {
 	return names
 }
 
+// PreviewThemes writes a demo of every built-in palette to w.
+// Colors are forced on (unless NO_COLOR is set) so the preview is useful even
+// when stdout is redirected; the "none" theme stays plain.
+func PreviewThemes(w io.Writer) {
+	forceColor := os.Getenv("NO_COLOR") == ""
+	fmt.Fprintln(w, "Built-in themes — pick one with --theme, config set theme, or KPROMPT_THEME")
+	fmt.Fprintln(w)
+	for _, name := range ThemeNames() {
+		th := paletteByName(name)
+		th.enabled = forceColor && !disableKeywords[name]
+		fmt.Fprintln(w, th.Bold(name))
+		if disableKeywords[name] {
+			fmt.Fprintln(w, "  plain output (no ANSI color)")
+			fmt.Fprintln(w)
+			continue
+		}
+		fmt.Fprintf(w, "  %s  %s  %s  %s  %s  %s  %s\n",
+			th.Heading("Intent:"),
+			th.Success("applied"),
+			th.Warn("caution"),
+			th.Danger("denied"),
+			th.Info("info"),
+			th.Accent("deploy/api"),
+			th.Muted("detail"),
+		)
+		fmt.Fprintf(w, "  risk  %s  %s  %s\n",
+			th.Risk(safety.RiskLow),
+			th.Risk(safety.RiskMedium),
+			th.Risk(safety.RiskHigh),
+		)
+		fmt.Fprintf(w, "  try   %s\n", th.Accent(fmt.Sprintf(`kprompt --theme %s "list pods"`, name)))
+		fmt.Fprintln(w)
+	}
+}
+
+func paletteByName(name string) Theme {
+	name = strings.ToLower(strings.TrimSpace(name))
+	if disableKeywords[name] {
+		return Theme{}
+	}
+	if p, ok := palettes[name]; ok {
+		return p
+	}
+	return palettes["auto"]
+}
+
 // themeFor resolves the active theme for a writer, honoring configuration,
 // KPROMPT_THEME, NO_COLOR, KPROMPT_FORCE_COLOR, and TTY detection.
 func themeFor(w io.Writer) Theme {

@@ -2,6 +2,15 @@
 
 kprompt supports built-in terminal themes for human-readable output.
 
+## Preview
+
+List every palette with a short color sample (no cluster or LLM key required):
+
+```bash
+kprompt theme
+kprompt theme preview
+```
+
 ## Select a theme
 
 Use a one-off flag:
