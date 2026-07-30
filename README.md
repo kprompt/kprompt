@@ -10,9 +10,9 @@
 
 > The AI Runtime for Kubernetes.
 
-![kprompt turns "scale api to 10" into a reviewable plan — intent, risk, actions, diff, and blast radius — then waits at "Apply this plan? [y/N]:"](./.github/assets/plan-demo.svg)
+![kprompt hard-denies wipe prompts, then turns scale into a reviewable plan waiting at Apply this plan? y/N](./.github/assets/kprompt-plan-deny.gif)
 
-Nothing touched the cluster. That is the whole point: every mutation becomes a **typed plan you review first** — actions, diff, risk, blast radius — and the prompts that should never compile, don't:
+Nothing touched the cluster on the wipe — that is the point. Real mutates become a **typed plan you review first** — actions, diff, risk, blast radius — and the prompts that should never compile, don't:
 
 ```console
 $ kprompt "delete everything in the cluster"
@@ -21,6 +21,7 @@ $ kprompt "delete everything in the cluster"
 😅 Your cluster lives another day
 ```
 
+Static still of a scale plan: [plan-demo.svg](./.github/assets/plan-demo.svg).
 Open source (Apache-2.0). **Experimental.** Always review the plan before apply, prefer non-production first, and treat `--approve` with care. Safety hard-denies help; they do not make unattended production use safe.
 
 ## Try it in 60 seconds — no API key, no cloud
