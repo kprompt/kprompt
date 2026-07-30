@@ -182,7 +182,7 @@ func verifyHelmRelease(ctx context.Context, client kubernetes.Interface, base Ch
 			isReady := false
 			if p.Status.Phase == "Succeeded" {
 				isReady = true
-			}else {
+			} else {
 				for _, c := range p.Status.Conditions {
 					if c.Type == "Ready" && c.Status == "True" {
 						isReady = true
