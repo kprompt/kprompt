@@ -75,6 +75,7 @@ func newAgentAutopilotApplyCmd() *cobra.Command {
   --approve is set AND policy mode=policyAuto AND policy.apply=true.
 
 Propose-only policies always deny. Never invents allowlist entries.`,
+		Example: `  kprompt agent autopilot apply-proposal --file proposal.json --approve --policy ./policy-auto.json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !approve {
 				return fmt.Errorf("refusing apply without --approve (ADR-0015 / ADR-0003)")
@@ -144,6 +145,7 @@ Endpoints:
   GET  /v1/recent    — in-memory recent handoffs (debug)
 
 Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
+		Example: `  kprompt agent coordinator --addr :9090`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runCtx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
@@ -186,6 +188,8 @@ RoleBinding, and Deployment exist for Observe Mode.
 
 Never enables Autopilot. Rejects non-Observe modes. V1 requires the CR
 namespace to equal the watch namespace (spec.namespace empty or same).`,
+		Example: `  kprompt agent operator --once -n payments
+  kprompt agent operator --in-cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var clients *cluster.Clients
 			var err error
@@ -321,6 +325,9 @@ Generic webhook:
 
 KpromptAgent status sync:
   --agent-cr / KPROMPT_AGENT_CR  (+ optional --agent-cr-namespace)`,
+		Example: `  kprompt agent run -n payments --health --heuristic
+  kprompt agent run -n payments --analyze --fetch-logs --health --heuristic
+  kprompt agent run -n payments --coordinator-url http://127.0.0.1:9090/v1/handoff --health --heuristic`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ns = strings.TrimSpace(ns)
 			if ns == "" {
