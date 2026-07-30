@@ -32,7 +32,7 @@ func newHistoryCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().IntVarP(&limit, "limit", "n", 20, "number of entries to show")
+	cmd.Flags().IntVar(&limit, "limit", 20, "number of entries to show")
 
 	cmd.AddCommand(&cobra.Command{
 		Use:   "rerun [index]",
