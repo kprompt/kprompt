@@ -26,11 +26,10 @@ kprompt history rerun 3 --approve
 
 The default list shows up to `20` entries.
 
-Use `--limit` (or `-n`) to change the number shown:
+Use `--limit` to change the number shown:
 
 ```bash
 kprompt history --limit 50
-kprompt history -n 5
 ```
 
 ## Re-running a prompt
