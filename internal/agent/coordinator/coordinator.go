@@ -56,6 +56,10 @@ type Service struct {
 	// Probe is optional: fetch a suspect-ns InvestigationReport (AG-037 route).
 	// Nil → routing note only; never invents foreign facts.
 	Probe SuspectProber
+	// Store is optional durable backend for the recent ring (AG-060).
+	Store Store
+	// PersistErrLog is optional; called when Save fails after a handoff.
+	PersistErrLog func(error)
 }
 
 // SuspectProber is a read-only verification hook for a suspect namespace.
@@ -120,9 +124,47 @@ func (s *Service) Handle(ctx context.Context, env handoff.Envelope) (Reply, erro
 		if s.maxKeep > 0 && len(s.recent) > s.maxKeep {
 			s.recent = s.recent[len(s.recent)-s.maxKeep:]
 		}
+		snap := Snapshot{SchemaVersion: SchemaVersion, Records: append([]Record(nil), s.recent...)}
+		store := s.Store
+		logf := s.PersistErrLog
 		s.mu.Unlock()
+		if store != nil {
+			if err := store.Save(snap); err != nil && logf != nil {
+				logf(err)
+			}
+		}
 	}
 	return reply, nil
+}
+
+// Restore loads durable Shared Knowledge into the recent ring (AG-060).
+// Safe to call before ListenAndServe. Truncates to maxKeep.
+func (s *Service) Restore() error {
+	if s == nil || s.Store == nil {
+		return nil
+	}
+	snap, err := s.Store.Load()
+	if err != nil {
+		return err
+	}
+	recs := snap.Records
+	if s.maxKeep > 0 && len(recs) > s.maxKeep {
+		recs = recs[len(recs)-s.maxKeep:]
+	}
+	s.mu.Lock()
+	s.recent = append([]Record(nil), recs...)
+	s.mu.Unlock()
+	return nil
+}
+
+// Durable reports whether a Store is configured (AG-060).
+func (s *Service) Durable() bool {
+	return s != nil && s.Store != nil
+}
+
+// Knowledge returns the Shared Knowledge summary for the current ring.
+func (s *Service) Knowledge() KnowledgeSummary {
+	return Summarize(s.Recent(), s.Durable())
 }
 
 // Recent returns a copy of recent handoff records (newest last).
@@ -219,6 +261,7 @@ func (h *Handler) routes() http.Handler {
 	mux.HandleFunc("/healthz", h.healthz)
 	mux.HandleFunc("/v1/handoff", h.handoff)
 	mux.HandleFunc("/v1/recent", h.recent)
+	mux.HandleFunc("/v1/knowledge", h.knowledge) // AG-059 Shared Knowledge MVP
 	return mux
 }
 

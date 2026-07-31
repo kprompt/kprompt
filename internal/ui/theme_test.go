@@ -93,3 +93,46 @@ func TestThemeNamesIncludeKnownPalettes(t *testing.T) {
 		}
 	}
 }
+
+func TestPreviewThemesListsEveryPalette(t *testing.T) {
+	t.Setenv("NO_COLOR", "")
+	t.Setenv("KPROMPT_FORCE_COLOR", "")
+	var buf bytes.Buffer
+	PreviewThemes(&buf)
+	out := buf.String()
+	for _, want := range ThemeNames() {
+		if !strings.Contains(out, want) {
+			t.Errorf("preview missing theme %q", want)
+		}
+	}
+	if !strings.Contains(out, "plain output") {
+		t.Error("preview should describe the none theme as plain")
+	}
+	if !strings.Contains(out, `kprompt --theme nord "list pods"`) {
+		t.Error("preview should include a try hint with --theme")
+	}
+	// With colors forced for non-TTY preview, colored themes wrap ANSI.
+	if !strings.Contains(out, "\x1b[") {
+		t.Error("preview should emit ANSI when NO_COLOR is unset")
+	}
+}
+
+func TestPreviewThemesRespectsNoColor(t *testing.T) {
+	t.Setenv("NO_COLOR", "1")
+	var buf bytes.Buffer
+	PreviewThemes(&buf)
+	if strings.Contains(buf.String(), "\x1b[") {
+		t.Fatal("NO_COLOR must keep theme preview plain")
+	}
+}
+
+func TestPaletteByNameNoneAndUnknown(t *testing.T) {
+	none := paletteByName("none")
+	if none.enabled || none.heading != "" {
+		t.Fatalf("none palette should be zero Theme: %+v", none)
+	}
+	fallback := paletteByName("does-not-exist")
+	if fallback.heading != palettes["auto"].heading {
+		t.Fatal("unknown palette name should fall back to auto")
+	}
+}

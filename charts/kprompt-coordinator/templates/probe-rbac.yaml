@@ -1,0 +1,33 @@
+{{- /* AG-051: optional Role + RoleBinding per probe namespace (Pods/Events read-only). */ -}}
+{{- if and .Values.probe.enabled .Values.rbac.probeNamespaces }}
+{{- range .Values.rbac.probeNamespaces }}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "kprompt-coordinator.fullname" $ }}-probe
+  namespace: {{ . | quote }}
+  labels:
+    {{- include "kprompt-coordinator.labels" $ | nindent 4 }}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "events"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "kprompt-coordinator.fullname" $ }}-probe
+  namespace: {{ . | quote }}
+  labels:
+    {{- include "kprompt-coordinator.labels" $ | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "kprompt-coordinator.fullname" $ }}-probe
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "kprompt-coordinator.serviceAccountName" $ }}
+    namespace: {{ $.Release.Namespace }}
+{{- end }}
+{{- end }}

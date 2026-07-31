@@ -2,7 +2,7 @@
 //
 // The MVP reads Flux Kustomization / Argo CD Application sync+health via
 // tools/gitops and emits ADR-0014 Investigation findings. It never mutates.
-// Approve-gated sync plans may be offered separately (pairs T-043; PR mode is T-072).
+// Approve-gated sync plans may be offered separately (pairs T-043).
 package drift
 
 import (
@@ -92,7 +92,7 @@ func (a *Analyzer) Run(ctx context.Context, req Request) (incident.Investigation
 		})
 		out.Summary = "GitOps controllers not available — drift scan degraded"
 		out.Confidence = 0.95
-		out.SuggestedPlanHint = "Install Flux or Argo CD, then re-run: kprompt \"check drift\". Optional PR mode is tracked as T-072."
+		out.SuggestedPlanHint = "Install Flux or Argo CD, then re-run: kprompt \"check drift\". For PR mode, see docs/gitops-pr.md and use kprompt --gitops --gitops-repo owner/name \"...\"."
 		sortFindings(&out)
 		if err := incident.ValidateInvestigation(out); err != nil {
 			return out, err
@@ -207,7 +207,7 @@ func (a *Analyzer) Run(ctx context.Context, req Request) (incident.Investigation
 		out.Confidence = 0.9
 		out.RootCause = "Live cluster state differs from the GitOps desired revision (manual change, failed sync, or pending reconcile)"
 	}
-	out.SuggestedPlanHint = "Review findings; approve a GitOps sync to reconcile, or open a PR (T-072 PR mode not shipped yet). Drift never auto-syncs."
+	out.SuggestedPlanHint = "Review findings; approve a GitOps sync to reconcile, or open a PR with kprompt --gitops --gitops-repo owner/name \"...\". See docs/gitops-pr.md. Drift never auto-syncs."
 
 	sortFindings(&out)
 	if err := incident.ValidateInvestigation(out); err != nil {

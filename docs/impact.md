@@ -48,3 +48,5 @@ Secret values and it does not claim complete runtime coverage.
 
 No findings means “no static references found,” not “nobody calls this.”
 `impact` never mutates and never asks for approval.
+
+See also: [Knowledge Graph MVP](./graph.md) · [Simulation MVP](./simulation.md) (plan preview + blastRadius).

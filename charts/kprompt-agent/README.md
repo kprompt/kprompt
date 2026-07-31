@@ -41,7 +41,10 @@ helm upgrade --install kprompt-agent ./charts/kprompt-agent \
 | `agent.fetchLogs` | `true` | AG-005 on-demand logs |
 | `agent.health` | `true` | AG-011 health score |
 | `agent.memory` | `true` | AG-015 namespace deps/facts |
+| `agent.memoryBackend` | `configmap` | Incident Memory persist (file\|configmap) |
 | `agent.patterns` | `true` | AG-016 seen-before confidence boost |
+| `agent.patternsBackend` | `configmap` | Pattern store (file\|configmap) |
+| `agent.incidentsBackend` | `configmap` | AG-032 durable open incidents |
 | `agent.gitopsEvidence` | `false` | AG-035 Argo/Flux EvidenceRefs (+ Role rules) |
 | `agent.autopilotPropose` | `false` | ADR-0015 propose-only (never apply by itself) |
 | `agent.autopilotApply` | `false` | AG-042 in-loop apply (needs policyAuto) |

@@ -1,6 +1,7 @@
 package suggest
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/kprompt/kprompt/internal/drift"
@@ -60,5 +61,11 @@ func TestFromDriftMissingIsGuidance(t *testing.T) {
 	}
 	if len(suggestions) == 0 {
 		t.Fatal("expected guidance")
+	}
+	if !strings.Contains(suggestions[0].Summary, "docs/gitops-pr.md") && !strings.Contains(suggestions[0].Summary, "--gitops --gitops-repo") {
+		t.Fatalf("guidance=%q", suggestions[0].Summary)
+	}
+	if strings.Contains(suggestions[0].Summary, "T-072") || strings.Contains(suggestions[0].Summary, "not shipped") {
+		t.Fatalf("stale guidance=%q", suggestions[0].Summary)
 	}
 }

@@ -12,7 +12,7 @@ import (
 )
 
 // FromDrift turns Drift.OutOfSync findings into approve-gated GitOps sync plans
-// plus guidance for unhealthy apps, resource-level diffs, and PR mode (T-072).
+// plus guidance for unhealthy apps, resource-level diffs, and PR mode.
 func FromDrift(inv incident.Investigation) ([]Suggestion, error) {
 	var out []Suggestion
 	seenSync := map[string]bool{}
@@ -50,12 +50,12 @@ func FromDrift(inv incident.Investigation) ([]Suggestion, error) {
 			addDriftGuidance(&out, seenGuide, f.Code,
 				"Resource differs from Git",
 				guidancePrompt(ref, "investigate"),
-				"Per-resource OutOfSync entries are reported from Argo inventory — reconcile via app sync or fix Git (PR mode is T-072)")
+				"Per-resource OutOfSync entries are reported from Argo inventory — reconcile via app sync or fix Git with kprompt --gitops --gitops-repo owner/name \"...\"")
 		case drift.CodeMissing:
 			addDriftGuidance(&out, seenGuide, f.Code,
 				"Install GitOps to enable drift",
 				"learn cluster tools",
-				"Install Flux or Argo CD, then re-run drift. Optional: kprompt --gitops opens a PR (T-072) once gitops.repo is set")
+				"Install Flux or Argo CD, then re-run drift. For PR mode, see docs/gitops-pr.md and use kprompt --gitops --gitops-repo owner/name \"...\"")
 		}
 	}
 
@@ -63,7 +63,7 @@ func FromDrift(inv incident.Investigation) ([]Suggestion, error) {
 		addDriftGuidance(&out, seenGuide, "Drift.PRMode",
 			"Prefer a Git PR instead of live sync?",
 			"gitops pr mode",
-			"Live sync reconciles toward Git desired state. Prefer --gitops to open a PR instead of cluster mutate (T-072)")
+			"Live sync reconciles toward Git desired state. Prefer kprompt --gitops --gitops-repo owner/name \"...\" to open a PR instead of cluster mutate")
 	}
 	return out, nil
 }

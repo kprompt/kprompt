@@ -17,12 +17,20 @@ func newRecipeCmd() *cobra.Command {
 		Use:   "recipe",
 		Short: "Curated workflow packs (harden, peak prep, Ingress→Gateway discover, RCA chains)",
 		Long: `Recipes expand into multi-step prompts run through the same route + approval
-loop as a manual "A then B" chain. Never mutates silently (S-013 · T-088).
-
+loop as a manual "A then B" chain. Never mutates silently (S-013 · T-088).`,
+		Example: `  # List all built-in recipe packs
   kprompt recipe list
+
+  # Show steps and triggers for a specific recipe
   kprompt recipe show harden-production
+
+  # Execute a recipe in a specific namespace
   kprompt recipe run harden-production -n payments
+
+  # Run an RCA chain for a crashlooping workload
   kprompt recipe run crashloop-rca --workload api -n payments
+
+  # Run via natural language trigger directly
   kprompt "prepare for black friday"`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return cmd.Help()
@@ -39,6 +47,11 @@ func newRecipeListCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List built-in recipe packs",
+		Example: `  # List all recipe packs as a formatted table
+  kprompt recipe list
+
+  # Output the catalog in JSON format
+  kprompt recipe list --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if jsonOut {
 				enc := json.NewEncoder(cmd.OutOrStdout())
@@ -58,6 +71,8 @@ func newRecipeShowCmd() *cobra.Command {
 		Use:   "show <id>",
 		Short: "Show one recipe (steps + notes)",
 		Args:  cobra.ExactArgs(1),
+		Example: `  # Show details of the harden-production recipe
+  kprompt recipe show harden-production`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r, ok := recipe.Lookup(args[0])
 			if !ok {
@@ -80,6 +95,14 @@ func newRecipeRunCmd() *cobra.Command {
 		Use:   "run <id>",
 		Short: "Expand and execute a recipe as a multi-step route",
 		Args:  cobra.ExactArgs(1),
+		Example: `  # Run a recipe in a specific namespace
+  kprompt recipe run harden-production -n payments
+
+  # Run a recipe with workload and namespace overrides
+  kprompt recipe run crashloop-rca --workload api -n payments
+
+  # Run a recipe and automatically approve mutating steps
+  kprompt recipe run oom-rca --workload backend --approve`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			r, ok := recipe.Lookup(args[0])
 			if !ok {

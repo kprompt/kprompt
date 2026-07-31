@@ -77,7 +77,18 @@ func (c *Client) Notify(ctx context.Context, alert incident.AgentAlert) error {
 	if err := incident.ValidateAgentAlert(alert); err != nil {
 		return err
 	}
-	raw, err := json.Marshal(alert)
+	return c.NotifyJSON(ctx, alert)
+}
+
+// NotifyJSON POSTs an arbitrary JSON payload (AG-053 CoordinatorReply follow-up).
+func (c *Client) NotifyJSON(ctx context.Context, payload any) error {
+	if c == nil {
+		return fmt.Errorf("webhook: client is nil")
+	}
+	if !c.cfg.Enabled() {
+		return fmt.Errorf("webhook: %s is required", EnvURL)
+	}
+	raw, err := json.Marshal(payload)
 	if err != nil {
 		return err
 	}

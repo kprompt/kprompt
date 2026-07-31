@@ -17,6 +17,7 @@ import (
 	"github.com/kprompt/kprompt/internal/agent/confidence"
 	"github.com/kprompt/kprompt/internal/agent/ctxbuild"
 	"github.com/kprompt/kprompt/internal/agent/detect"
+	"github.com/kprompt/kprompt/internal/agent/handoff"
 	"github.com/kprompt/kprompt/internal/agent/patterns"
 	"github.com/kprompt/kprompt/internal/agent/priority"
 	"github.com/kprompt/kprompt/internal/incident"
@@ -378,7 +379,48 @@ func buildReport(inc incident.Incident, agentCtx ctxbuild.AgentContext, res Resu
 	if seenNote != "" {
 		rep.Unknowns = append(rep.Unknowns, seenNote)
 	}
+	annotateCrossNamespace(&rep, agentCtx)
 	return rep
+}
+
+// annotateCrossNamespace stamps honest Unknowns when evidence/memory mention a foreign ns (AG-053).
+func annotateCrossNamespace(rep *incident.InvestigationReport, agentCtx ctxbuild.AgentContext) {
+	if rep == nil {
+		return
+	}
+	fromNS := strings.TrimSpace(rep.Namespace)
+	if fromNS == "" {
+		fromNS = strings.TrimSpace(agentCtx.Namespace)
+	}
+	var parts []string
+	for _, e := range rep.Evidence {
+		parts = append(parts, e.Message, e.Reason)
+	}
+	for _, e := range agentCtx.LogSnippets {
+		parts = append(parts, e.Message, e.Reason)
+	}
+	for _, f := range agentCtx.Memory {
+		parts = append(parts, f.Key, f.Value, f.Evidence)
+	}
+	blob := strings.Join(parts, " ")
+	suspect, reason, ok := handoff.NeedsHandoff(fromNS, incident.InvestigationReport{
+		Namespace: fromNS,
+		Summary:   blob,
+		Unknowns:  nil,
+	})
+	if !ok {
+		return
+	}
+	note := reason
+	if suspect != "" {
+		note = fmt.Sprintf("cross-namespace dependency may involve namespace %q — need Coordinator verification", suspect)
+	}
+	for _, u := range rep.Unknowns {
+		if u == note {
+			return
+		}
+	}
+	rep.Unknowns = append(rep.Unknowns, note)
 }
 
 func firstNonEmptyJoin(a, b string) string {

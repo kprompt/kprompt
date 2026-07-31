@@ -20,6 +20,14 @@ func newToolsCmd() *cobra.Command {
 		Use:   "tools",
 		Short: "Show detected integrations (Helm, Argo, Prometheus, …)",
 		Long:  "Probes local binaries, configured URLs, and the active Kubernetes cluster. Read-only — does not call an LLM.",
+		Example: `  # Show integrations using the default context
+  kprompt tools
+
+  # Show integrations for a specific kube context
+  kprompt tools --context kind-dev
+
+  # Output details in JSON format
+  kprompt tools --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			file, err := config.LoadFile()
 			if err != nil {

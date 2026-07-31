@@ -126,6 +126,14 @@ func (c *Client) Channel() string {
 	return c.cfg.Channel
 }
 
+// Threaded reports whether bot-token mode can maintain threads.
+func (c *Client) Threaded() bool {
+	if c == nil {
+		return false
+	}
+	return c.cfg.Threaded()
+}
+
 func (c *Client) postBot(ctx context.Context, text, threadTS string) (PostResult, error) {
 	body := map[string]any{
 		"channel": c.cfg.Channel,

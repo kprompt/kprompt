@@ -53,10 +53,12 @@ spec:
             {{- if .Values.agent.memory }}
             - --memory
             - --memory-backend
-            - {{ .Values.agent.memoryBackend | default "file" | quote }}
+            - {{ .Values.agent.memoryBackend | default "configmap" | quote }}
             {{- end }}
             {{- if .Values.agent.patterns }}
             - --patterns
+            - --patterns-backend
+            - {{ .Values.agent.patternsBackend | default "configmap" | quote }}
             {{- end }}
             {{- if .Values.agent.gitopsEvidence }}
             - --gitops-evidence

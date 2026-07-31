@@ -87,6 +87,21 @@ func TestEffectiveBoostZeroBelowMinPrior(t *testing.T) {
 	}
 }
 
+func TestList(t *testing.T) {
+	lib := New(NewMemStore())
+	if _, err := lib.Record("payments", sampleCtx("CrashLoopBackOff"), "high", "crash", "oom", "check limits"); err != nil {
+		t.Fatal(err)
+	}
+	snap, err := lib.List("payments")
+	if err != nil || len(snap.Patterns) != 1 {
+		t.Fatalf("snap=%+v err=%v", snap, err)
+	}
+	empty, err := lib.List("other")
+	if err != nil || len(empty.Patterns) != 0 {
+		t.Fatalf("empty ns should be empty: %+v err=%v", empty, err)
+	}
+}
+
 func TestFileStore(t *testing.T) {
 	dir := t.TempDir()
 	lib := New(FileStore{Dir: dir})

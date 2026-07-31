@@ -203,7 +203,7 @@ Secrets are never watched implicitly and only metadata (type + key count) is emi
 
 **Slack ask (AG-019):** `--slack-ask` listens on `--slack-ask-addr` (default `:8080`) for Slack Events (`status` / `why` / `what broke` / `false positive`). Read-only for the cluster — never mutates. With `--patterns`, `false positive` dampens future “seen before” boosts (AG-033). Requires bot token mode + Events API URL (or port-forward).
 
-**Coordinator handoff (AG-036 · AG-037):** Ns agents POST with `--coordinator-url`. Run the thin fan-in with `kprompt agent coordinator --addr :9090` (or Helm [`charts/kprompt-coordinator`](../charts/kprompt-coordinator)). Returns `CoordinatorReply` with merged InvestigationReport; **mutate stays off** ([ADR-0017](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0017-coordinator.md)).
+**Coordinator handoff (AG-036 · AG-037 · AG-048…AG-053 · AG-059 · AG-060):** Ns agents POST with `--coordinator-url`. Run the thin fan-in with `kprompt agent coordinator --addr :9090` (or Helm [`charts/kprompt-coordinator`](../charts/kprompt-coordinator)). Optional `--probe-kube` enables a read-only Pods/Events probe of `suspectNamespace`. Returns `CoordinatorReply` with merged InvestigationReport; with `--slack` (bot token) the reply is posted into the incident thread, and `--webhook` gets a JSON follow-up. **Shared Knowledge:** `GET /v1/knowledge` (and `kprompt agent coordinator knowledge`) summarizes handoff edges; Helm defaults to ConfigMap persistence (`--knowledge-backend configmap`, AG-060) — still not a full continuous blast-radius product graph ([coordinator-knowledge.md](./coordinator-knowledge.md)). **Mutate stays off** ([ADR-0017](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0017-coordinator.md)).
 
 ## Pipeline flags
 
@@ -226,6 +226,32 @@ Secrets are never watched implicitly and only metadata (type + key count) is emi
 | `--slack-ask` | AG-019 ask (+ FP learning with `--patterns`) |
 | `--coordinator-url` | AG-036 Coordinator handoff (opt-in) |
 | `--gitops-evidence` | AG-035 Argo/Flux EvidenceRefs (opt-in) |
+
+## Incident Memory (AG-015 · AG-016 · AG-032…AG-034 · AG-054)
+
+**Shipped** as the Learn stack — local / in-cluster only, never uploaded to `api.kprompt.ai`.
+
+| Layer | Flag / CLI | What it remembers |
+|-------|------------|-------------------|
+| Namespace facts | `--memory` · `agent memory list` | Redis/Postgres/… deps (evidence, not proof) |
+| Incident patterns | `--patterns` · `agent patterns list` | Signatures → “Seen before (N×)” + outcome weights |
+| Durable incidents | `--incidents-backend` | Open incidents + Slack thread ts across restarts |
+
+Helm chart defaults (`charts/kprompt-agent`) persist all three via ConfigMaps so pod restarts do not wipe memory.
+
+```bash
+# Laptop (file backends)
+kprompt agent run -n payments --analyze --heuristic --memory --patterns \
+  --incidents-backend file
+
+kprompt agent memory list -n payments
+kprompt agent patterns list -n payments
+
+# In-cluster ConfigMaps (Helm defaults)
+kprompt agent patterns list -n payments --patterns-backend configmap
+```
+
+**Honesty:** memory/patterns boost confidence and explainability — they never auto-mutate. Memory alone never proves root cause (AG-034). Thin **Knowledge Graph** MVP (service graph + impact + memory deps) is documented in [graph.md](./graph.md); full continuous topology stays building.
 
 ## Namespace memory (AG-015)
 
@@ -254,6 +280,7 @@ Remembers incident signatures (reason + workload kind + bucket like crashloop/oo
 
 ```bash
 kprompt agent run -n payments --analyze --heuristic --patterns
+kprompt agent patterns list -n payments
 ```
 
 ## Autopilot (AG-017 · AG-040…AG-044 · ADR-0015)

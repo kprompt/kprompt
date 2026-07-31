@@ -61,6 +61,12 @@ func TestRunGitOpsMissing(t *testing.T) {
 	if len(inv.Degraded) == 0 || inv.Degraded[0] != "gitops" {
 		t.Fatalf("degraded=%v", inv.Degraded)
 	}
+	if !strings.Contains(inv.SuggestedPlanHint, "docs/gitops-pr.md") || !strings.Contains(inv.SuggestedPlanHint, "--gitops --gitops-repo") {
+		t.Fatalf("suggested hint=%q", inv.SuggestedPlanHint)
+	}
+	if strings.Contains(inv.SuggestedPlanHint, "T-072") || strings.Contains(inv.SuggestedPlanHint, "not shipped") {
+		t.Fatalf("stale suggested hint=%q", inv.SuggestedPlanHint)
+	}
 }
 
 func TestRunResourceDrifts(t *testing.T) {
@@ -112,5 +118,11 @@ func TestRunClean(t *testing.T) {
 	}
 	if !strings.Contains(inv.Summary, "No drift") {
 		t.Fatalf("summary=%q", inv.Summary)
+	}
+	if !strings.Contains(inv.SuggestedPlanHint, "--gitops --gitops-repo") || !strings.Contains(inv.SuggestedPlanHint, "docs/gitops-pr.md") {
+		t.Fatalf("suggested hint=%q", inv.SuggestedPlanHint)
+	}
+	if strings.Contains(inv.SuggestedPlanHint, "T-072") || strings.Contains(inv.SuggestedPlanHint, "not shipped") {
+		t.Fatalf("stale suggested hint=%q", inv.SuggestedPlanHint)
 	}
 }

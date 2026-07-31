@@ -84,6 +84,20 @@ func New(store Store) *Library {
 	return &Library{store: store}
 }
 
+// List returns the persisted pattern snapshot for a namespace (AG-054).
+func (l *Library) List(namespace string) (Snapshot, error) {
+	if l == nil || l.store == nil {
+		return Snapshot{}, fmt.Errorf("patterns: library unset")
+	}
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	snap, err := l.store.Load(namespace)
+	if err != nil {
+		return emptySnapshot(namespace), nil
+	}
+	return snap, nil
+}
+
 // Match finds the best prior pattern for this context (excluding the current incident id noise).
 func (l *Library) Match(namespace string, agentCtx ctxbuild.AgentContext) (Pattern, bool) {
 	if l == nil || l.store == nil {

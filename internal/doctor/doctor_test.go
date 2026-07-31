@@ -56,6 +56,10 @@ func TestRunLLMKeyRequired(t *testing.T) {
 	if teamChk.Status != Skip {
 		t.Fatalf("team=%+v", teamChk)
 	}
+	gh := find(rep, "github")
+	if gh.Status != Skip && gh.Status != Pass {
+		t.Fatalf("github=%+v", gh)
+	}
 
 	var buf bytes.Buffer
 	if err := FormatText(&buf, rep); err != nil {

@@ -23,12 +23,18 @@ func newLearnCmd() *cobra.Command {
 integrations via tools.Detect, then writes ~/.kprompt/profiles/<context>.json.
 
 Read-only — never mutates the cluster. The profile biases later intent routing
-toward the detected stack. Re-run after installing new controllers.
-
+toward the detected stack. Re-run after installing new controllers.`,
+		Example: `  # Detect cluster tools and save profile
   kprompt learn
+
+  # Detect cluster tools on a specific kube context
   kprompt learn --context kind-dev
+
+  # Print the saved profile without re-detecting
   kprompt learn --show
-  kprompt learn --json`,
+
+  # Emit the saved profile in JSON format
+  kprompt learn --show --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			file, err := config.LoadFile()
 			if err != nil {

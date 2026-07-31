@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"syscall"
@@ -31,9 +34,11 @@ import (
 	agentwatch "github.com/kprompt/kprompt/internal/agent/watch"
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/config"
+	"github.com/kprompt/kprompt/internal/graph"
 	"github.com/kprompt/kprompt/internal/incident"
 	"github.com/kprompt/kprompt/internal/llm"
 	"github.com/kprompt/kprompt/internal/tools"
+	"github.com/kprompt/kprompt/internal/ui"
 )
 
 func newAgentCmd() *cobra.Command {
@@ -47,6 +52,8 @@ func newAgentCmd() *cobra.Command {
 	cmd.AddCommand(newAgentCoordinatorCmd())
 	cmd.AddCommand(newAgentAutopilotCmd())
 	cmd.AddCommand(newAgentMemoryCmd())
+	cmd.AddCommand(newAgentPatternsCmd())
+	cmd.AddCommand(newAgentGraphCmd())
 	return cmd
 }
 
@@ -75,6 +82,7 @@ func newAgentAutopilotApplyCmd() *cobra.Command {
   --approve is set AND policy mode=policyAuto AND policy.apply=true.
 
 Propose-only policies always deny. Never invents allowlist entries.`,
+		Example: `  kprompt agent autopilot apply-proposal --file proposal.json --approve --policy ./policy-auto.json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if !approve {
 				return fmt.Errorf("refusing apply without --approve (ADR-0015 / ADR-0003)")
@@ -128,26 +136,96 @@ Propose-only policies always deny. Never invents allowlist entries.`,
 }
 
 func newAgentCoordinatorCmd() *cobra.Command {
-	var addr string
+	var (
+		addr               string
+		probeKube          bool
+		kubeCtx            string
+		inCluster          bool
+		knowledgeBackend   string // "" | file | configmap
+		knowledgeDir       string
+		knowledgeNamespace string
+	)
 	cmd := &cobra.Command{
 		Use:   "coordinator",
 		Short: "Thin Coordinator HTTP fan-in (AG-037; no mutate)",
 		Long: `Listen for Namespace Agent CoordinatorHandoff POSTs, merge InvestigationReports,
 and reply with CoordinatorReply.
 
-Never applies/patches/deletes workloads (ADR-0017). Optional probe hooks are
-read-only; the default probe is a no-op (records routing notes + unknowns).
+Never applies/patches/deletes workloads (ADR-0017). Optional --probe-kube enables a
+read-only Events/Pods probe of suspectNamespace (AG-050). Default probe is a no-op.
+
+Shared Knowledge (AG-059 · AG-060): GET /v1/knowledge summarizes handoff edges.
+Optional --knowledge-backend file|configmap persists the recent ring across restarts
+(still not a full continuous blast-radius product graph).
 
 Endpoints:
   GET  /healthz
-  POST /v1/handoff   — accept handoff.Envelope → CoordinatorReply
-  GET  /v1/recent    — in-memory recent handoffs (debug)
+  POST /v1/handoff    — accept handoff.Envelope → CoordinatorReply
+  GET  /v1/recent     — recent handoffs
+  GET  /v1/knowledge  — Shared Knowledge summary (namespace edges)
 
 Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
+		Example: `  kprompt agent coordinator --addr :9090
+  kprompt agent coordinator --addr :9090 --probe-kube
+  kprompt agent coordinator --addr :9090 --knowledge-backend configmap --in-cluster --knowledge-namespace kprompt-system
+  kprompt agent coordinator knowledge --url http://127.0.0.1:9090`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			runCtx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 			svc := coordinator.New()
+			backend := strings.ToLower(strings.TrimSpace(knowledgeBackend))
+			needKube := probeKube || backend == "configmap"
+			var clients *cluster.Clients
+			if needKube {
+				var err error
+				if inCluster {
+					clients, err = cluster.ConnectInCluster()
+				} else {
+					clients, err = cluster.Connect(kubeCtx)
+				}
+				if err != nil {
+					return fmt.Errorf("coordinator kube: %w", err)
+				}
+			}
+			if probeKube {
+				svc.Probe = &coordinator.KubeProbe{Client: clients.Clientset}
+				fmt.Fprintf(cmd.ErrOrStderr(), "kprompt agent coordinator: kube probe enabled (read-only)\n")
+			}
+			switch backend {
+			case "":
+				// in-memory only
+			case "file":
+				dir := strings.TrimSpace(knowledgeDir)
+				if dir == "" {
+					home, _ := os.UserHomeDir()
+					dir = filepath.Join(home, ".config", "kprompt", "coordinator")
+				}
+				path := filepath.Join(dir, "handoffs.json")
+				svc.Store = coordinator.FileStore{Path: path}
+				fmt.Fprintf(cmd.ErrOrStderr(), "kprompt agent coordinator: knowledge store file %s\n", path)
+			case "configmap":
+				ns := strings.TrimSpace(knowledgeNamespace)
+				if ns == "" {
+					ns = strings.TrimSpace(os.Getenv("POD_NAMESPACE"))
+				}
+				if ns == "" {
+					return fmt.Errorf("coordinator --knowledge-backend configmap requires --knowledge-namespace or POD_NAMESPACE")
+				}
+				svc.Store = coordinator.ConfigMapStore{Client: clients.Clientset, Namespace: ns}
+				fmt.Fprintf(cmd.ErrOrStderr(), "kprompt agent coordinator: knowledge store ConfigMap %s/%s\n", ns, coordinator.ConfigMapName)
+			default:
+				return fmt.Errorf("coordinator --knowledge-backend: want file|configmap, got %q", knowledgeBackend)
+			}
+			if svc.Store != nil {
+				svc.PersistErrLog = func(err error) {
+					fmt.Fprintf(cmd.ErrOrStderr(), "warning: persist knowledge: %v\n", err)
+				}
+				if err := svc.Restore(); err != nil {
+					fmt.Fprintf(cmd.ErrOrStderr(), "warning: restore knowledge: %v\n", err)
+				} else if n := len(svc.Recent()); n > 0 {
+					fmt.Fprintf(cmd.ErrOrStderr(), "kprompt agent coordinator: restored %d handoff(s)\n", n)
+				}
+			}
 			h := &coordinator.Handler{
 				Service: svc,
 				Logf: func(format string, a ...any) {
@@ -167,7 +245,92 @@ Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 		},
 	}
 	cmd.Flags().StringVar(&addr, "addr", ":9090", "listen address for Coordinator HTTP API")
+	cmd.Flags().BoolVar(&probeKube, "probe-kube", false, "read-only Pods/Events probe of suspectNamespace (AG-050)")
+	cmd.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context for --probe-kube / configmap knowledge")
+	cmd.Flags().BoolVar(&inCluster, "in-cluster", false, "use in-cluster config for --probe-kube / configmap knowledge")
+	cmd.Flags().StringVar(&knowledgeBackend, "knowledge-backend", "", "persist Shared Knowledge: file|configmap (AG-060)")
+	cmd.Flags().StringVar(&knowledgeDir, "knowledge-dir", "", "file backend directory (default ~/.config/kprompt/coordinator)")
+	cmd.Flags().StringVar(&knowledgeNamespace, "knowledge-namespace", "", "ConfigMap namespace (default POD_NAMESPACE)")
+	cmd.AddCommand(newAgentCoordinatorKnowledgeCmd())
+	cmd.AddCommand(newAgentCoordinatorRecentCmd())
 	return cmd
+}
+
+func newAgentCoordinatorKnowledgeCmd() *cobra.Command {
+	var (
+		baseURL string
+		asJSON  bool
+	)
+	cmd := &cobra.Command{
+		Use:   "knowledge",
+		Short: "Fetch Coordinator Shared Knowledge MVP (AG-059)",
+		Long: `GET /v1/knowledge from a running Coordinator — namespace edges derived from
+recent handoffs. Restart-lossy; not a durable blast-radius graph.`,
+		Example: `  kprompt agent coordinator knowledge --url http://127.0.0.1:9090`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			body, err := fetchCoordinatorJSON(cmd.Context(), baseURL, "/v1/knowledge")
+			if err != nil {
+				return err
+			}
+			if asJSON {
+				_, err = cmd.OutOrStdout().Write(append(body, '\n'))
+				return err
+			}
+			var sum coordinator.KnowledgeSummary
+			if err := json.Unmarshal(body, &sum); err != nil {
+				return fmt.Errorf("decode knowledge: %w", err)
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), coordinator.FormatKnowledge(sum))
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&baseURL, "url", "http://127.0.0.1:9090", "Coordinator base URL (no path)")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "print raw JSON")
+	return cmd
+}
+
+func newAgentCoordinatorRecentCmd() *cobra.Command {
+	var baseURL string
+	cmd := &cobra.Command{
+		Use:   "recent",
+		Short: "Fetch recent Coordinator handoffs (AG-059)",
+		Long:  `GET /v1/recent from a running Coordinator — raw in-memory handoff ring.`,
+		Example: `  kprompt agent coordinator recent --url http://127.0.0.1:9090`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			body, err := fetchCoordinatorJSON(cmd.Context(), baseURL, "/v1/recent")
+			if err != nil {
+				return err
+			}
+			_, err = cmd.OutOrStdout().Write(append(body, '\n'))
+			return err
+		},
+	}
+	cmd.Flags().StringVar(&baseURL, "url", "http://127.0.0.1:9090", "Coordinator base URL (no path)")
+	return cmd
+}
+
+func fetchCoordinatorJSON(ctx context.Context, baseURL, path string) ([]byte, error) {
+	base := strings.TrimRight(strings.TrimSpace(baseURL), "/")
+	if base == "" {
+		return nil, fmt.Errorf("coordinator url is required")
+	}
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, base+path, nil)
+	if err != nil {
+		return nil, err
+	}
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 1<<20))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("coordinator %s: HTTP %d: %s", path, resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	return body, nil
 }
 
 func newAgentOperatorCmd() *cobra.Command {
@@ -186,6 +349,8 @@ RoleBinding, and Deployment exist for Observe Mode.
 
 Never enables Autopilot. Rejects non-Observe modes. V1 requires the CR
 namespace to equal the watch namespace (spec.namespace empty or same).`,
+		Example: `  kprompt agent operator --once -n payments
+  kprompt agent operator --in-cluster`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			var clients *cluster.Clients
 			var err error
@@ -259,6 +424,7 @@ func newAgentRunCmd() *cobra.Command {
 		memoryDir        string
 		usePatterns      bool
 		patternsDir      string
+		patternsBackend  string // file | configmap
 		autopilotProp    bool
 		autopilotDir     string
 		autopilotPolicy  string
@@ -291,6 +457,7 @@ Pipeline flags (read-only — never mutate workload objects):
   --agent-cr       patch KpromptAgent.status (AG-013; health + lastAlert)
   --memory         discover/load namespace deps+facts into analyzer context (AG-015)
   --patterns       learn incident signatures; boost confidence on “seen before” (AG-016)
+  --patterns-backend file|configmap   pattern store (AG-054; default file)
   --autopilot-propose  emit PlanResult-shaped AutopilotProposal (ADR-0015; propose-only by default)
   --autopilot-policy   RemediationPolicy JSON file (AG-040); else ConfigMap / defaults
   --autopilot-apply    with policyAuto+apply=true, apply approved proposals in-loop (AG-042; off by default)
@@ -321,6 +488,9 @@ Generic webhook:
 
 KpromptAgent status sync:
   --agent-cr / KPROMPT_AGENT_CR  (+ optional --agent-cr-namespace)`,
+		Example: `  kprompt agent run -n payments --health --heuristic
+  kprompt agent run -n payments --analyze --fetch-logs --health --heuristic
+  kprompt agent run -n payments --coordinator-url http://127.0.0.1:9090/v1/handoff --health --heuristic`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ns = strings.TrimSpace(ns)
 			if ns == "" {
@@ -505,11 +675,11 @@ KpromptAgent status sync:
 				}
 				analyzer = analyze.New(provider, opts)
 				if usePatterns {
-					dir := strings.TrimSpace(patternsDir)
-					if dir == "" {
-						dir = patterns.DefaultDir()
+					pstore, perr := openPatternsStore(patternsBackend, patternsDir, ns, inCluster, clients)
+					if perr != nil {
+						return perr
 					}
-					analyzer.Patterns = patterns.New(patterns.FileStore{Dir: dir})
+					analyzer.Patterns = patterns.New(pstore)
 				}
 			}
 			if notifySlack {
@@ -636,10 +806,40 @@ KpromptAgent status sync:
 						if handoffClient != nil && !outcome.Skipped {
 							if suspect, reason, ok := handoff.NeedsHandoff(ns, outcome.Report); ok {
 								env := handoff.New(ns, suspect, reason, outcome.Report)
-								if herr := handoffClient.Handoff(cmd.Context(), env); herr != nil {
+								reply, herr := handoffClient.Handoff(cmd.Context(), env)
+								if herr != nil {
 									fmt.Fprintf(cmd.ErrOrStderr(), "coordinator handoff: %v\n", herr)
-								} else if !emitJSON {
-									fmt.Fprintf(out, "handoff from=%s reason=%q\n", ns, reason)
+								} else {
+									if !emitJSON {
+										if reply != nil && reply.Merged.Summary != "" {
+											fmt.Fprintf(out, "handoff from=%s suspect=%s conf=%.2f routing=%v summary=%s\n",
+												ns, reply.SuspectNamespace, reply.Merged.Confidence, reply.Routing, reply.Merged.Summary)
+										} else {
+											fmt.Fprintf(out, "handoff from=%s suspect=%s reason=%q\n", ns, suspect, reason)
+										}
+									}
+									// AG-053: surface CoordinatorReply on Slack thread / webhook.
+									if reply != nil {
+										if slackClient != nil && slackClient.Threaded() {
+											thread := threads[outcome.Alert.IncidentID]
+											if thread == "" && builder != nil {
+												thread = builder.NotifierThread(outcome.Alert.IncidentID)
+											}
+											if thread == "" {
+												thread = ch.Incident.NotifierThread
+											}
+											if text := handoff.FormatReply(reply); text != "" {
+												if _, serr := slackClient.PostText(cmd.Context(), text, thread); serr != nil {
+													fmt.Fprintf(cmd.ErrOrStderr(), "slack coordinator reply: %v\n", serr)
+												}
+											}
+										}
+										if webhookClient != nil {
+											if werr := webhookClient.NotifyJSON(cmd.Context(), reply); werr != nil {
+												fmt.Fprintf(cmd.ErrOrStderr(), "webhook coordinator reply: %v\n", werr)
+											}
+										}
+									}
 								}
 							}
 						}
@@ -863,7 +1063,8 @@ KpromptAgent status sync:
 	cmd.Flags().StringVar(&memoryBackend, "memory-backend", "file", "memory store: file|configmap")
 	cmd.Flags().StringVar(&memoryDir, "memory-dir", "", "file backend directory (default ~/.config/kprompt/memory)")
 	cmd.Flags().BoolVar(&usePatterns, "patterns", false, "learn incident signatures; boost confidence on seen-before (AG-016; never mutates)")
-	cmd.Flags().StringVar(&patternsDir, "patterns-dir", "", "pattern store directory (default ~/.config/kprompt/patterns)")
+	cmd.Flags().StringVar(&patternsBackend, "patterns-backend", "file", "pattern store: file|configmap (AG-054)")
+	cmd.Flags().StringVar(&patternsDir, "patterns-dir", "", "file backend directory (default ~/.config/kprompt/patterns)")
 	cmd.Flags().BoolVar(&autopilotProp, "autopilot-propose", false, "emit AutopilotProposal for allowlisted actions (ADR-0015; propose-only by default)")
 	cmd.Flags().StringVar(&autopilotDir, "autopilot-audit-dir", "", "autopilot audit directory (default ~/.config/kprompt/autopilot)")
 	cmd.Flags().StringVar(&autopilotPolicy, "autopilot-policy", "", "RemediationPolicy JSON file (AG-040)")
@@ -921,6 +1122,137 @@ func openIncidentsStore(backend, dir, ns string, inCluster bool, clients *cluste
 	default:
 		return nil, fmt.Errorf("incidents: unknown backend %q (want file|configmap)", backend)
 	}
+}
+
+func openPatternsStore(backend, dir, ns string, inCluster bool, clients *cluster.Clients) (patterns.Store, error) {
+	b := strings.ToLower(strings.TrimSpace(backend))
+	if b == "" {
+		b = "file"
+	}
+	switch b {
+	case "configmap":
+		if clients == nil || clients.Clientset == nil {
+			return nil, fmt.Errorf("patterns: configmap backend requires kubernetes")
+		}
+		return patterns.ConfigMapStore{Client: clients.Clientset, Namespace: ns}, nil
+	case "file":
+		if dir == "" {
+			dir = patterns.DefaultDir()
+		}
+		return patterns.FileStore{Dir: dir}, nil
+	default:
+		return nil, fmt.Errorf("patterns: unknown backend %q (want file|configmap)", backend)
+	}
+}
+
+func newAgentPatternsCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "patterns",
+		Short: "Incident Memory signatures (AG-016 · AG-054; local/in-cluster only)",
+	}
+	cmd.AddCommand(newAgentPatternsListCmd())
+	return cmd
+}
+
+func newAgentGraphCmd() *cobra.Command {
+	var (
+		ns        string
+		kubeCtx   string
+		inCluster bool
+		includeNP bool
+		output    string
+	)
+	cmd := &cobra.Command{
+		Use:   "graph",
+		Short: "Dump Knowledge Graph MVP service dependency graph (AG-055; read-only)",
+		Long: `Build a read-only service-graph for one namespace (Services, EndpointSlices,
+optional NetworkPolicies). Same contract as:
+
+  kprompt "show service dependency graph" -n <ns>
+
+Does not mutate the cluster. Full continuous topology remains out of scope —
+see docs/graph.md.`,
+		Example: `  kprompt agent graph -n payments
+  kprompt agent graph -n payments --output json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ns = strings.TrimSpace(ns)
+			if ns == "" {
+				return fmt.Errorf("--namespace is required")
+			}
+			var clients *cluster.Clients
+			var err error
+			if inCluster {
+				clients, err = cluster.ConnectInCluster()
+			} else {
+				clients, err = cluster.Connect(kubeCtx)
+			}
+			if err != nil {
+				return err
+			}
+			report, err := graph.Build(cmd.Context(), clients.Clientset, graph.Request{
+				Namespace:            ns,
+				IncludeNetworkPolicy: includeNP,
+			})
+			if err != nil {
+				return err
+			}
+			settings := tools.LoadSettings(config.File{})
+			if otelClient, oerr := tools.NewOTelClient(settings); oerr == nil {
+				graph.EnrichFromOTel(cmd.Context(), otelClient, &report, time.Hour)
+			}
+			if strings.EqualFold(strings.TrimSpace(output), "json") {
+				enc := json.NewEncoder(cmd.OutOrStdout())
+				enc.SetIndent("", "  ")
+				return enc.Encode(report)
+			}
+			ui.PrintGraphReport(cmd.OutOrStdout(), report)
+			return nil
+		},
+	}
+	cmd.Flags().StringVarP(&ns, "namespace", "n", "", "namespace (required)")
+	cmd.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
+	cmd.Flags().BoolVar(&inCluster, "in-cluster", false, "use InClusterConfig")
+	cmd.Flags().BoolVar(&includeNP, "network-policy", true, "include NetworkPolicy edges")
+	cmd.Flags().StringVarP(&output, "output", "o", "text", "output format: text|json")
+	_ = cmd.MarkFlagRequired("namespace")
+	return cmd
+}
+
+func newAgentPatternsListCmd() *cobra.Command {
+	var ns, backend, dir, kubeCtx string
+	var inCluster bool
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List learned incident signatures for a namespace",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ns = strings.TrimSpace(ns)
+			if ns == "" {
+				return fmt.Errorf("--namespace is required")
+			}
+			clients, err := connectOptional(kubeCtx, inCluster, backend == "configmap")
+			if err != nil {
+				return err
+			}
+			store, err := openPatternsStore(backend, dir, ns, inCluster, clients)
+			if err != nil {
+				return err
+			}
+			snap, err := patterns.New(store).List(ns)
+			if err != nil {
+				return err
+			}
+			enc := json.NewEncoder(cmd.OutOrStdout())
+			enc.SetIndent("", "  ")
+			return enc.Encode(snap)
+		},
+	}
+	cmd.Flags().StringVarP(&ns, "namespace", "n", "", "namespace (required)")
+	cmd.Flags().StringVar(&backend, "patterns-backend", "file", "file|configmap")
+	cmd.Flags().StringVar(&dir, "patterns-dir", "", "file backend directory")
+	cmd.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
+	cmd.Flags().BoolVar(&inCluster, "in-cluster", false, "use InClusterConfig")
+	_ = cmd.MarkFlagRequired("namespace")
+	return cmd
 }
 
 func newAgentMemoryCmd() *cobra.Command {

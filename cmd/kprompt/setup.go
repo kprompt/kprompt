@@ -37,10 +37,17 @@ Profiles:
   platform  Helm + Argo Workflows + Prometheus stack (default)
   full      platform + Grafana + OpenTelemetry URL config (config lane)
 
-` + setup.OSMatrixDoc() + setup.NamespaceDefaultsDoc() + `
+` + setup.OSMatrixDoc() + "\n" + setup.NamespaceDefaultsDoc(),
+		Example: `  # Detect missing tools and print dry-run installation plan
   kprompt setup
+
+  # Approve setup with minimal profile
   kprompt setup --profile minimal --approve
+
+  # Approve setup with platform profile on a specific kube context
   kprompt setup --profile platform --approve --context kind-dev
+
+  # Generate and print the setup plan in JSON format
   kprompt setup --dry-run --json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			file, err := config.LoadFile()

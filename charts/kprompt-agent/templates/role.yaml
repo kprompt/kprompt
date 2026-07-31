@@ -26,7 +26,7 @@ rules:
   - apiGroups: ["autoscaling"]
     resources: ["horizontalpodautoscalers"]
     verbs: ["get", "list", "watch"]
-  {{- if eq (.Values.agent.memoryBackend | default "file") "configmap" }}
+  {{- if eq (.Values.agent.memoryBackend | default "configmap") "configmap" }}
   # Namespace memory ConfigMap (AG-015) — facts only; not a control-plane upload.
   - apiGroups: [""]
     resources: ["configmaps"]
@@ -36,7 +36,17 @@ rules:
     resources: ["configmaps"]
     verbs: ["create"]
   {{- end }}
-  {{- if eq (.Values.agent.incidentsBackend | default "") "configmap" }}
+  {{- if and .Values.agent.patterns (eq (.Values.agent.patternsBackend | default "configmap") "configmap") }}
+  # Incident patterns ConfigMap (AG-016 / AG-054).
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    resourceNames: ["kprompt-incident-patterns"]
+    verbs: ["get", "update", "patch"]
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["create"]
+  {{- end }}
+  {{- if eq (.Values.agent.incidentsBackend | default "configmap") "configmap" }}
   # Durable incident state (AG-032).
   - apiGroups: [""]
     resources: ["configmaps"]

@@ -32,17 +32,19 @@ agent:
   webhook: false
   # AG-015: discover deps into analyzer context (file or configmap backend).
   memory: true
-  memoryBackend: file # file | configmap
+  # In-cluster default is configmap so Incident Memory survives pod restarts (AG-054).
+  memoryBackend: configmap # file | configmap
   # AG-016: learn signatures; boost confidence on seen-before (never mutates).
   patterns: true
+  patternsBackend: configmap # file | configmap
   # AG-017 / ADR-0015: emit AutopilotProposal only — does not apply.
   autopilotPropose: false
   # AG-042: in-loop apply (still requires RemediationPolicy mode=policyAuto apply=true).
   autopilotApply: false
   # AG-040: mount/load kprompt-remediation-policy ConfigMap.
   remediationPolicy: false
-  # AG-032: persist incidents (file|configmap|"").
-  incidentsBackend: ""
+  # AG-032 / AG-054: persist incidents across restarts (file|configmap|"").
+  incidentsBackend: configmap
   # AG-035: Argo/Flux EvidenceRefs (opt-in; adds Role rules for Applications/Kustomizations).
   gitopsEvidence: false
   minSeverity: medium

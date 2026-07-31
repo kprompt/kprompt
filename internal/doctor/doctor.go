@@ -6,6 +6,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"os"
+	"os/exec"
 	"strings"
 	"text/tabwriter"
 	"time"
@@ -94,6 +96,7 @@ func Run(ctx context.Context, opts Options) (Report, error) {
 	checks = append(checks, checkPolicyCache())
 	checks = append(checks, checkPulledSecrets())
 	checks = append(checks, checkLearnProfile(first(opts.Context, file.Context)))
+	checks = append(checks, checkGitHub(file))
 
 	rep := Report{Checks: checks, Checked: time.Now().UTC()}
 	rep.OK = true
@@ -304,6 +307,62 @@ func checkLearnProfile(kubeCtx string) Check {
 	c.Detail = p.Summary()
 	c.Hint = "Refresh: kprompt learn"
 	return c
+}
+
+// checkGitHub reports GitHub Integration MVP readiness (T-072 / AG-056).
+// Optional unless gitops.mode=pr or gitops.repo is configured.
+func checkGitHub(file config.File) Check {
+	c := Check{ID: "github", Name: "GitHub Integration", Required: false}
+	mode := strings.ToLower(strings.TrimSpace(file.GitOps.Mode))
+	repo := strings.TrimSpace(file.GitOps.Repo)
+	if env := strings.TrimSpace(os.Getenv("KPROMPT_GITOPS_REPO")); env != "" {
+		repo = env
+	}
+	wantPR := mode == "pr" || repo != ""
+
+	_, ghErr := exec.LookPath("gh")
+	token := strings.TrimSpace(first(os.Getenv("GH_TOKEN"), os.Getenv("GITHUB_TOKEN")))
+	hasAuth := ghErr == nil || token != ""
+
+	switch {
+	case !wantPR && !hasAuth:
+		c.Status = Skip
+		c.Detail = "not configured (optional CLI --gitops)"
+		c.Hint = "docs/gitops-pr.md — set gitops.repo + gh auth login, or GH_TOKEN"
+		return c
+	case !wantPR && hasAuth:
+		c.Status = Pass
+		detail := "gh available"
+		if ghErr != nil {
+			detail = "token env set"
+		}
+		c.Detail = detail + " · repo unset (PR mode off)"
+		c.Hint = "Enable: kprompt config set gitops.repo owner/name && kprompt config set gitops.mode pr"
+		return c
+	case wantPR && !hasAuth:
+		c.Status = Warn
+		c.Detail = fmt.Sprintf("gitops.repo=%s but gh/token missing", repo)
+		c.Hint = "Install GitHub CLI (gh auth login) or set GH_TOKEN — see docs/gitops-pr.md"
+		return c
+	default:
+		c.Status = Pass
+		parts := []string{}
+		if ghErr == nil {
+			parts = append(parts, "gh on PATH")
+		}
+		if token != "" {
+			parts = append(parts, "token env")
+		}
+		if repo != "" {
+			parts = append(parts, "repo="+repo)
+		}
+		if mode != "" {
+			parts = append(parts, "mode="+mode)
+		}
+		c.Detail = strings.Join(parts, " · ")
+		c.Hint = "PR instead of apply: kprompt \"deploy redis\" --gitops --approve"
+		return c
+	}
 }
 
 func defaultMe(ctx context.Context, apiURL, token string) (team.MeResponse, error) {

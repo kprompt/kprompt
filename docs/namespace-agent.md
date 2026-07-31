@@ -36,6 +36,7 @@ Contracts: [ADR-0013](https://github.com/kprompt/kprompt-architecture/blob/main/
 | Slack `status` / `why` / `false positive` | Namespace Agent (`--slack-ask`) |
 | Guess another namespace’s root cause | **Nobody** — hand off |
 | Route / verify cross-ns suspicion | Coordinator (`kprompt agent coordinator` / Helm chart) |
+| Shared Knowledge (durable handoff edges) | `GET /v1/knowledge` · ConfigMap store · `agent coordinator knowledge` |
 | Apply / patch / delete workloads | Autopilot **policyAuto** only (AG-042+), never silent |
 
 ## Non-claims (do not market these)

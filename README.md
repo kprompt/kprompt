@@ -4,15 +4,17 @@
 
 [![CI](https://github.com/kprompt/kprompt/actions/workflows/ci.yml/badge.svg)](https://github.com/kprompt/kprompt/actions/workflows/ci.yml)
 [![Release](https://img.shields.io/github/v/release/kprompt/kprompt?logo=github)](https://github.com/kprompt/kprompt/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/kprompt/kprompt/total?logo=github)](https://github.com/kprompt/kprompt/releases)
+[![Downloads (latest)](https://img.shields.io/github/downloads/kprompt/kprompt/latest/total)](https://github.com/kprompt/kprompt/releases/latest)
 [![Go](https://img.shields.io/badge/go-1.23-00ADD8?logo=go&logoColor=white)](./go.mod)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 [![Stars](https://img.shields.io/github/stars/kprompt/kprompt?style=flat&logo=github)](https://github.com/kprompt/kprompt/stargazers)
 
 > The AI Runtime for Kubernetes.
 
-![kprompt turns "scale api to 10" into a reviewable plan — intent, risk, actions, diff, and blast radius — then waits at "Apply this plan? [y/N]:"](./.github/assets/plan-demo.svg)
+![kprompt hard-denies wipe prompts, then turns scale into a reviewable plan waiting at Apply this plan? y/N](./.github/assets/kprompt-plan-deny.gif)
 
-Nothing touched the cluster. That is the whole point: every mutation becomes a **typed plan you review first** — actions, diff, risk, blast radius — and the prompts that should never compile, don't:
+Nothing touched the cluster on the wipe — that is the point. Real mutates become a **typed plan you review first** — actions, diff, risk, blast radius — and the prompts that should never compile, don't:
 
 ```console
 $ kprompt "delete everything in the cluster"
@@ -21,6 +23,7 @@ $ kprompt "delete everything in the cluster"
 😅 Your cluster lives another day
 ```
 
+Static still of a scale plan: [plan-demo.svg](./.github/assets/plan-demo.svg).
 Open source (Apache-2.0). **Experimental.** Always review the plan before apply, prefer non-production first, and treat `--approve` with care. Safety hard-denies help; they do not make unattended production use safe.
 
 ## Try it in 60 seconds — no API key, no cloud
@@ -107,7 +110,7 @@ kprompt login
 
 </details>
 
-Multi-hop RCA: [docs/investigate.md](./docs/investigate.md) · Causal why: [docs/why.md](./docs/why.md) · Timeline: [docs/timeline.md](./docs/timeline.md) · Reverse dependencies: [docs/impact.md](./docs/impact.md) · Knowledge Graph MVP: [docs/graph.md](./docs/graph.md) · Simulation MVP: [docs/simulation.md](./docs/simulation.md) · Security hygiene: [docs/audit.md](./docs/audit.md) · Cleanup: [docs/cleanup.md](./docs/cleanup.md) · Learn profile: [docs/learn.md](./docs/learn.md) · Drift: [docs/drift.md](./docs/drift.md) · GitOps PR: [docs/gitops-pr.md](./docs/gitops-pr.md) · Recipes: [docs/recipes.md](./docs/recipes.md) · Cost Intelligence / Optimize: [docs/optimize.md](./docs/optimize.md) · Setup: [docs/setup.md](./docs/setup.md) · Doctor: [docs/doctor.md](./docs/doctor.md) · Tools: [docs/tools.md](./docs/tools.md) · History: [docs/history.md](./docs/history.md).
+Multi-hop RCA: [docs/investigate.md](./docs/investigate.md) · Causal why: [docs/why.md](./docs/why.md) · Timeline: [docs/timeline.md](./docs/timeline.md) · Reverse dependencies: [docs/impact.md](./docs/impact.md) · Knowledge Graph MVP: [docs/graph.md](./docs/graph.md) · Simulation MVP: [docs/simulation.md](./docs/simulation.md) · Security hygiene: [docs/audit.md](./docs/audit.md) · Cleanup: [docs/cleanup.md](./docs/cleanup.md) · Learn profile: [docs/learn.md](./docs/learn.md) · Drift: [docs/drift.md](./docs/drift.md) · GitOps PR: [docs/gitops-pr.md](./docs/gitops-pr.md) · Recipes: [docs/recipes.md](./docs/recipes.md) · Cost Intelligence / Optimize: [docs/optimize.md](./docs/optimize.md) · Setup: [docs/setup.md](./docs/setup.md) · Doctor: [docs/doctor.md](./docs/doctor.md) · Tools: [docs/tools.md](./docs/tools.md) · History: [docs/history.md].
 In-cluster Observe agent (Helm): [docs/agent.md](./docs/agent.md) · modes: [docs/namespace-agent.md](./docs/namespace-agent.md) · ops: [docs/agent-ops.md](./docs/agent-ops.md) · [`charts/kprompt-agent`](./charts/kprompt-agent) · Coordinator: [`charts/kprompt-coordinator`](./charts/kprompt-coordinator).
 
 Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Secret, …). See [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
@@ -151,6 +154,16 @@ go build -o bin/kprompt ./cmd/kprompt
 ./bin/kprompt version
 ```
 
+## Transparent metrics
+
+The Free CLI does **not** phone home. Adoption signals stay public and passive:
+
+- **Install volume** — live [download badges](https://github.com/kprompt/kprompt/releases) above (curl install and Homebrew both count as release asset downloads)
+- **Stars** — badge above
+- **Prompt runs / setup** — local only (`~/.kprompt/history.jsonl`); Team audit only after `kprompt login`
+
+Downloads are not unique users (re-installs, CI, checksums). Site `/install` fetches and GA4 stay maintainer-side.
+
 ## Quick start
 
 1. Point kubeconfig at a cluster (`~/.kube/config` or `KUBECONFIG`).
@@ -176,6 +189,7 @@ kprompt config set provider gemini
 kprompt config set model gemini-2.0-flash
 kprompt config set namespace default
 kprompt config set theme nord
+kprompt theme preview   # sample every palette in the terminal
 
 # Cluster aliases (short name → kubeconfig context)
 kprompt config alias set prod gke_myproj_us-central1_prod
@@ -259,7 +273,7 @@ Cluster / kubeconfig failures print short actionable hints (missing config, bad 
 
 ## Flags
 
-See also: [GitOps PR mode](./docs/gitops-pr.md). Example: `kprompt "deploy redis" -n demo --gitops --gitops-repo acme/infra --approve`
+See also: [GitHub Integration MVP / GitOps PR mode](./docs/gitops-pr.md). Example: `kprompt "deploy redis" -n demo --gitops --gitops-repo acme/infra --approve`
 
 | Flag | Description |
 |------|-------------|

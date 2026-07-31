@@ -14,6 +14,18 @@ rbac:
   # AG-039: default is SA-only — no ClusterRole (no cluster-wide pod/Secret reads).
   clusterRole:
     create: false
+  # AG-051: optional read-only probe into named namespaces (Pods + Events get/list).
+  # Empty = no RoleBindings; Coordinator stays NopProbe unless probe.enabled.
+  probeNamespaces: []
+
+probe:
+  # AG-050: pass --probe-kube --in-cluster to the Coordinator container.
+  enabled: false
+
+knowledge:
+  # AG-060: persist Shared Knowledge handoff ring in ConfigMap (restart-safe).
+  # Still not a full continuous blast-radius product graph.
+  enabled: true
 
 service:
   type: ClusterIP
