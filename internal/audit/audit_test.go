@@ -39,6 +39,7 @@ func TestAuditFindsHygieneIssues(t *testing.T) {
 				SecurityContext: &corev1.SecurityContext{
 					RunAsNonRoot:             boolPtr(true),
 					AllowPrivilegeEscalation: boolPtr(false),
+					ReadOnlyRootFilesystem:   boolPtr(true),
 				},
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -69,8 +70,12 @@ func TestAuditFindsHygieneIssues(t *testing.T) {
 	requireFinding(t, got, "Audit.LatestTag", "Deployment/bad container app uses a mutable image tag")
 	requireFinding(t, got, "Audit.MissingLimits", "Deployment/bad container app is missing CPU/memory limits")
 	requireFinding(t, got, "Audit.RunAsRoot", "Deployment/bad container app may run as root")
+	requireFinding(t, got, "Audit.WritableRootFS", "Deployment/bad container app has a writable root filesystem")
 	if findingTitle(got, "Audit.Privileged", "Deployment/good") {
 		t.Fatal("clean deployment should not be privileged")
+	}
+	if findingTitle(got, "Audit.WritableRootFS", "Deployment/good") {
+		t.Fatal("clean deployment sets readOnlyRootFilesystem=true and should not be flagged")
 	}
 	if got.Confidence != 0.9 {
 		t.Fatalf("confidence=%v", got.Confidence)
@@ -88,6 +93,7 @@ func TestAuditCleanNamespace(t *testing.T) {
 				SecurityContext: &corev1.SecurityContext{
 					RunAsNonRoot:             boolPtr(true),
 					AllowPrivilegeEscalation: boolPtr(false),
+					ReadOnlyRootFilesystem:   boolPtr(true),
 				},
 				Resources: corev1.ResourceRequirements{
 					Requests: corev1.ResourceList{
@@ -113,6 +119,41 @@ func TestAuditCleanNamespace(t *testing.T) {
 	}
 	if !strings.Contains(got.Summary, "no issues matched MVP rules") {
 		t.Fatalf("summary=%q", got.Summary)
+	}
+}
+
+func TestAuditWritableRootFS(t *testing.T) {
+	cases := []struct {
+		name     string
+		roFS     *bool // nil = unset
+		wantFlag bool
+	}{
+		{"readonly-true", boolPtr(true), false},
+		{"readonly-false", boolPtr(false), true},
+		{"unset", nil, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			client := fake.NewSimpleClientset(
+				deployment(tc.name, "prod", corev1.PodSpec{
+					Containers: []corev1.Container{{
+						Name:  "app",
+						Image: "nginx:1.27",
+						SecurityContext: &corev1.SecurityContext{
+							ReadOnlyRootFilesystem: tc.roFS,
+						},
+					}},
+				}),
+			)
+			got, err := (&Analyzer{Client: client}).Run(context.Background(), Request{Namespace: "prod"})
+			if err != nil {
+				t.Fatal(err)
+			}
+			flagged := findingTitle(got, "Audit.WritableRootFS", "Deployment/"+tc.name)
+			if flagged != tc.wantFlag {
+				t.Fatalf("writable-root-fs flagged=%v want=%v; findings=%+v", flagged, tc.wantFlag, got.Findings)
+			}
+		})
 	}
 }
 

@@ -28,6 +28,7 @@ applies silently, and `-o json` stays report-only.
 | `Audit.MissingRequests` | missing CPU or memory requests |
 | `Audit.MissingLimits` | missing CPU or memory limits |
 | `Audit.HostNamespace` | `hostNetwork` / `hostPID` / `hostIPC` |
+| `Audit.WritableRootFS` | `readOnlyRootFilesystem` is not `true` (unset or `false`) |
 
 ```bash
 kprompt "audit payments" -n payments --output json | jq '.result'
@@ -45,12 +46,14 @@ could stop a container from starting or that requires an invented value:
 | `Audit.PrivilegeEscalation` | set `allowPrivilegeEscalation: false` |
 
 Everything else stays **guidance-only** — `Audit.RunAsRoot` (enforcing non-root
-can break a root image), `Audit.HostNamespace`, `Audit.LatestTag` (never invent a
-tag), `Audit.MissingRequests` / `Audit.MissingLimits` (never invent CPU/memory),
-and any other workload kind (Pod, Job, CronJob templates are reported, not patched).
+can break a root image), `Audit.WritableRootFS` (enforcing a read-only root
+filesystem can break containers that write to disk), `Audit.HostNamespace`,
+`Audit.LatestTag` (never invent a tag), `Audit.MissingRequests` /
+`Audit.MissingLimits` (never invent CPU/memory), and any other workload kind
+(Pod, Job, CronJob templates are reported, not patched).
 
 ## Honest limits
 
-This MVP does **not** cover NetworkPolicy gaps, RBAC over-permission,
-PodSecurity admission levels, or `readOnlyRootFilesystem`. Findings are
-static template rules — not a CIS benchmark or live runtime attestation.
+This MVP does **not** cover NetworkPolicy gaps, RBAC over-permission, or
+PodSecurity admission levels. Findings are static template rules — not a
+CIS benchmark or live runtime attestation.

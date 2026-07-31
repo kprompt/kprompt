@@ -196,6 +196,13 @@ func scanContainer(out *incident.Investigation, w *workload, podSC *corev1.PodSe
 			w.kind, w.name, w.ns, "PrivilegeEscalation")
 	}
 
+	if csc == nil || csc.ReadOnlyRootFilesystem == nil || !*csc.ReadOnlyRootFilesystem {
+		addFinding(out, "Audit.WritableRootFS", incident.SeverityMedium,
+			fmt.Sprintf("%s/%s container %s has a writable root filesystem", w.kind, w.name, cname),
+			"securityContext.readOnlyRootFilesystem is not set to true",
+			w.kind, w.name, w.ns, "WritableRootFS")
+	}
+
 	if imageIsLatestOrUntagged(c.Image) {
 		addFinding(out, "Audit.LatestTag", incident.SeverityMedium,
 			fmt.Sprintf("%s/%s container %s uses a mutable image tag", w.kind, w.name, cname),

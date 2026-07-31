@@ -253,6 +253,8 @@ func auditGuidanceTitle(code string) string {
 		return "Set resource limits"
 	case "Audit.MissingImagePullPolicy":
 		return "Set imagePullPolicy"
+	case "Audit.WritableRootFS":
+		return "Set a read-only root filesystem"
 	default:
 		return "Review finding"
 	}
@@ -280,6 +282,8 @@ func auditGuidanceSummary(code string) string {
 		return "Add resources.limits after profiling — CPU/memory values are workload-specific, not invented"
 	case "Audit.MissingImagePullPolicy":
 		return "Set imagePullPolicy (e.g. IfNotPresent) once the image tag is pinned"
+	case "Audit.WritableRootFS":
+		return "Set securityContext.readOnlyRootFilesystem=true and mount an emptyDir for paths that need writes — kprompt never auto-enables it because a container that writes to its root filesystem would break"
 	default:
 		return "Review the finding and remediate in your workload manifest"
 	}
