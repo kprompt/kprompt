@@ -31,7 +31,7 @@ const (
 type Request struct {
 	Name      string
 	Namespace string
-	Kind      string // Pod or Deployment
+	Kind      string // Pod, Deployment, StatefulSet, or DaemonSet
 	Prompt    string
 	Window    time.Duration // lookback; default 1h
 }
@@ -54,8 +54,8 @@ func (b *Builder) Run(ctx context.Context, req Request) (incident.Investigation,
 	if name == "" {
 		return incident.Investigation{}, fmt.Errorf("timeline: target name required")
 	}
-	kind := cluster.NormalizeKind(req.Kind)
-	if kind != "Pod" && kind != "Deployment" {
+	kind := normalizeTimelineKind(req.Kind)
+	if kind != "Pod" && kind != "Deployment" && kind != "StatefulSet" && kind != "DaemonSet" {
 		kind = "Deployment"
 	}
 	window := req.Window
@@ -84,13 +84,12 @@ func (b *Builder) Run(ctx context.Context, req Request) (incident.Investigation,
 			findings = append(findings, finding("Timeline.Events", incident.SeverityInfo,
 				"Pod events", fmt.Sprintf("%d Event(s) for Pod/%s in last %s", n, name, window)))
 		}
-	default:
+	case "Deployment":
 		dep, err := b.Client.AppsV1().Deployments(ns).Get(ctx, name, metav1.GetOptions{})
 		if err != nil {
 			return incident.Investigation{}, err
 		}
 		entries = append(entries, objectStamp("Deployment", dep.Name, ns, dep.CreationTimestamp.Time, "created")...)
-
 		rsEntries, rsFinding := b.replicaSetEntries(ctx, ns, dep, cutoff)
 		entries = append(entries, rsEntries...)
 		if rsFinding != nil {
@@ -112,6 +111,52 @@ func (b *Builder) Run(ctx context.Context, req Request) (incident.Investigation,
 		if hpaFinding != nil {
 			findings = append(findings, *hpaFinding)
 		}
+	case "StatefulSet":
+		sts, err := b.Client.AppsV1().StatefulSets(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return incident.Investigation{}, err
+		}
+		entries = append(entries, objectStamp("StatefulSet", sts.Name, ns, sts.CreationTimestamp.Time, "created")...)
+
+		revEntries, revFinding := b.controllerRevisionEntries(ctx, ns, "StatefulSet", sts.Name, string(sts.UID), cutoff)
+		entries = append(entries, revEntries...)
+		if revFinding != nil {
+			findings = append(findings, *revFinding)
+		}
+
+		evs, n := b.eventsFor(ctx, ns, "StatefulSet", name, cutoff)
+		entries = append(entries, evs...)
+		podEvs, pn := b.podEventsForSelector(ctx, ns, sts.Spec.Selector, cutoff)
+		entries = append(entries, podEvs...)
+		totalEv := n + pn
+		if totalEv > 0 {
+			findings = append(findings, finding("Timeline.Events", incident.SeverityInfo,
+				"Workload events", fmt.Sprintf("%d Event(s) for StatefulSet/%s (incl. pods) in last %s", totalEv, name, window)))
+		}
+	case "DaemonSet":
+		ds, err := b.Client.AppsV1().DaemonSets(ns).Get(ctx, name, metav1.GetOptions{})
+		if err != nil {
+			return incident.Investigation{}, err
+		}
+		entries = append(entries, objectStamp("DaemonSet", ds.Name, ns, ds.CreationTimestamp.Time, "created")...)
+
+		revEntries, revFinding := b.controllerRevisionEntries(ctx, ns, "DaemonSet", ds.Name, string(ds.UID), cutoff)
+		entries = append(entries, revEntries...)
+		if revFinding != nil {
+			findings = append(findings, *revFinding)
+		}
+
+		evs, n := b.eventsFor(ctx, ns, "DaemonSet", name, cutoff)
+		entries = append(entries, evs...)
+		podEvs, pn := b.podEventsForSelector(ctx, ns, ds.Spec.Selector, cutoff)
+		entries = append(entries, podEvs...)
+		totalEv := n + pn
+		if totalEv > 0 {
+			findings = append(findings, finding("Timeline.Events", incident.SeverityInfo,
+				"Workload events", fmt.Sprintf("%d Event(s) for DaemonSet/%s (incl. pods) in last %s", totalEv, name, window)))
+		}
+	default:
+		return incident.Investigation{}, fmt.Errorf("timeline: unsupported kind %q", req.Kind)
 	}
 
 	entries = dedupeSortTruncate(entries, cutoff, maxEntries)
@@ -134,8 +179,8 @@ func (b *Builder) Run(ctx context.Context, req Request) (incident.Investigation,
 
 func (b *Builder) replicaSetEntries(ctx context.Context, ns string, dep *appsv1.Deployment, cutoff time.Time) ([]incident.EvidenceRef, *incident.Finding) {
 	sel := labels.Everything().String()
-	if dep.Spec.Selector != nil && len(dep.Spec.Selector.MatchLabels) > 0 {
-		sel = labels.Set(dep.Spec.Selector.MatchLabels).String()
+	if x, ok := selectorString(dep.Spec.Selector); ok {
+		sel = x
 	}
 	list, err := b.Client.AppsV1().ReplicaSets(ns).List(ctx, metav1.ListOptions{LabelSelector: sel})
 	if err != nil {
@@ -234,12 +279,15 @@ func (b *Builder) hpaEntries(ctx context.Context, ns, deployName string, cutoff 
 }
 
 func (b *Builder) podEvents(ctx context.Context, ns string, dep *appsv1.Deployment, cutoff time.Time) ([]incident.EvidenceRef, int) {
-	if dep.Spec.Selector == nil || len(dep.Spec.Selector.MatchLabels) == 0 {
+	return b.podEventsForSelector(ctx, ns, dep.Spec.Selector, cutoff)
+}
+
+func (b *Builder) podEventsForSelector(ctx context.Context, ns string, sel *metav1.LabelSelector, cutoff time.Time) ([]incident.EvidenceRef, int) {
+	labelSelector, ok := selectorString(sel)
+	if !ok {
 		return nil, 0
 	}
-	pods, err := b.Client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{
-		LabelSelector: labels.Set(dep.Spec.Selector.MatchLabels).String(),
-	})
+	pods, err := b.Client.CoreV1().Pods(ns).List(ctx, metav1.ListOptions{LabelSelector: labelSelector})
 	if err != nil {
 		return nil, 0
 	}
@@ -258,6 +306,49 @@ func (b *Builder) podEvents(ctx context.Context, ns string, dep *appsv1.Deployme
 	return out, total
 }
 
+func (b *Builder) controllerRevisionEntries(ctx context.Context, ns, ownerKind, ownerName, ownerUID string, cutoff time.Time) ([]incident.EvidenceRef, *incident.Finding) {
+	list, err := b.Client.AppsV1().ControllerRevisions(ns).List(ctx, metav1.ListOptions{})
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			return nil, nil
+		}
+		f := finding("Timeline.ControllerRevisionError", incident.SeverityLow, "ControllerRevision list failed", err.Error())
+		return nil, &f
+	}
+	var out []incident.EvidenceRef
+	count := 0
+	for i := range list.Items {
+		rev := &list.Items[i]
+		if !ownedByControllerRevision(rev, ownerKind, ownerUID) {
+			continue
+		}
+		ts := rev.CreationTimestamp.Time
+		if ts.Before(cutoff) {
+			continue
+		}
+		if rev.Revision == 0 {
+			continue
+		}
+		msg := fmt.Sprintf("ControllerRevision/%s revision=%d for %s/%s", rev.Name, rev.Revision, ownerKind, ownerName)
+		out = append(out, incident.EvidenceRef{
+			Type:      incident.EvidenceObject,
+			Resource:  &incident.ResourceRef{Kind: "ControllerRevision", Name: rev.Name, Namespace: ns},
+			Reason:    "Rollout",
+			Message:   msg,
+			Timestamp: timePtr(ts),
+			Source:    "kubernetes",
+		})
+		evs, _ := b.eventsFor(ctx, ns, "ControllerRevision", rev.Name, cutoff)
+		out = append(out, evs...)
+		count++
+	}
+	if count == 0 {
+		return out, nil
+	}
+	f := finding("Timeline.ControllerRevisions", incident.SeverityInfo,
+		"Controller revisions", fmt.Sprintf("%d ControllerRevision(s) for %s/%s", count, ownerKind, ownerName))
+	return out, &f
+}
 func (b *Builder) eventsFor(ctx context.Context, ns, kind, name string, cutoff time.Time) ([]incident.EvidenceRef, int) {
 	list, err := b.Client.CoreV1().Events(ns).List(ctx, metav1.ListOptions{
 		FieldSelector: fmt.Sprintf("involvedObject.kind=%s,involvedObject.name=%s", kind, name),
@@ -300,6 +391,20 @@ func objectStamp(kind, name, ns string, created time.Time, reason string) []inci
 	}}
 }
 
+func normalizeTimelineKind(k string) string {
+	switch strings.ToLower(strings.TrimSpace(cluster.NormalizeKind(k))) {
+	case "", "deployment":
+		return "Deployment"
+	case "pod":
+		return "Pod"
+	case "statefulset", "statefulsets", "sts":
+		return "StatefulSet"
+	case "daemonset", "daemonsets", "ds":
+		return "DaemonSet"
+	default:
+		return strings.TrimSpace(cluster.NormalizeKind(k))
+	}
+}
 func ownedBy(rs *appsv1.ReplicaSet, dep *appsv1.Deployment) bool {
 	for _, o := range rs.OwnerReferences {
 		if o.UID == dep.UID && o.Kind == "Deployment" {
@@ -307,6 +412,26 @@ func ownedBy(rs *appsv1.ReplicaSet, dep *appsv1.Deployment) bool {
 		}
 	}
 	return false
+}
+
+func ownedByControllerRevision(rev *appsv1.ControllerRevision, ownerKind, ownerUID string) bool {
+	for _, o := range rev.OwnerReferences {
+		if o.Kind == ownerKind && string(o.UID) == ownerUID {
+			return true
+		}
+	}
+	return false
+}
+
+func selectorString(sel *metav1.LabelSelector) (string, bool) {
+	if sel == nil {
+		return "", false
+	}
+	x, err := metav1.LabelSelectorAsSelector(sel)
+	if err != nil || x.Empty() {
+		return "", false
+	}
+	return x.String(), true
 }
 
 func eventTime(ev *corev1.Event) time.Time {
