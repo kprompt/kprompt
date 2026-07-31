@@ -205,12 +205,18 @@ Destructive prompts (wipe cluster, delete everything, delete a namespace, …) a
 ## History
 
 ```bash
-kprompt history              # last 20 prompts/plans (~/.kprompt/history.jsonl)
-kprompt history rerun        # replay newest prompt
+kprompt history                          # last 20 prompts/plans (~/.kprompt/history.jsonl)
+kprompt history --namespace payments     # filter by namespace
+kprompt history --kind deploy             # filter by intent/kind string
+kprompt history rerun                     # replay newest prompt
 kprompt history rerun 3 --approve
+kprompt history show 1                    # inspect one entry
+kprompt history clear                     # clear history with confirmation
+kprompt history clear --yes               # clear history without prompting
 ```
 
 History stores prompt, kind, summary, and action refs — never manifests or API keys.
+Filters are case-insensitive exact matches, and `--namespace` and `--kind` can be combined.
 
 Explore setup, the learn profile, and built-in recipes:
 

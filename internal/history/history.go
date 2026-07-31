@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"strings"
@@ -204,6 +205,113 @@ func Truncate() error {
 		return err
 	}
 	return os.Rename(tmp, path)
+}
+
+// Clear removes all history entries by truncating/clearing the history file safely.
+func Clear() error {
+	if Disable || os.Getenv("KPROMPT_DISABLE_HISTORY") == "1" {
+		return nil
+	}
+	path, err := DefaultPath()
+	if err != nil {
+		return err
+	}
+	return ClearPath(path)
+}
+
+// ClearPath clears a custom history file (used by tests).
+func ClearPath(path string) error {
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0o600)
+	if err != nil {
+		return err
+	}
+	return f.Close()
+}
+
+// FilterOptions contains criteria for filtering history entries.
+type FilterOptions struct {
+	Namespace string
+	Kind      string
+}
+
+// ListFiltered returns newest entries filtered by the given criteria (up to limit).
+func ListFiltered(limit int, opts FilterOptions) ([]Entry, error) {
+	path, err := DefaultPath()
+	if err != nil {
+		return nil, err
+	}
+	return ListFilteredPath(path, limit, opts)
+}
+
+// ListFilteredPath lists filtered history from a custom file path.
+func ListFilteredPath(path string, limit int, opts FilterOptions) ([]Entry, error) {
+	entries, err := ListPath(path, math.MaxInt)
+	if err != nil {
+		return nil, err
+	}
+
+	maxResults := limit
+	if limit <= 0 {
+		maxResults = 20
+	}
+
+	var filtered []Entry
+	targetNs := strings.ToLower(strings.TrimSpace(opts.Namespace))
+	targetKind := strings.ToLower(strings.TrimSpace(opts.Kind))
+
+	for _, e := range entries {
+		if targetNs != "" && targetNs != strings.ToLower(e.Namespace) {
+			continue
+		}
+		if targetKind != "" && targetKind != strings.ToLower(e.Kind) {
+			continue
+		}
+		filtered = append(filtered, e)
+		if len(filtered) == maxResults {
+			break
+		}
+	}
+	return filtered, nil
+}
+
+// FormatEntry renders a single detailed history entry for 'show'.
+func FormatEntry(idx int, e Entry) string {
+	var b strings.Builder
+	applied := "plan"
+	if e.Applied {
+		applied = "applied"
+	}
+	if e.VerifyStatus != "" && e.VerifyStatus != "skipped" {
+		applied += "/" + e.VerifyStatus
+	}
+
+	fmt.Fprintf(&b, "Entry #%d\n", idx)
+	fmt.Fprintf(&b, "Time:      %s\n", e.Time.Local().Format("2006-01-02 15:04:05"))
+	fmt.Fprintf(&b, "Prompt:    %s\n", e.Prompt)
+	if e.Summary != "" {
+		fmt.Fprintf(&b, "Summary:   %s\n", e.Summary)
+	}
+	if e.Namespace != "" {
+		fmt.Fprintf(&b, "Namespace: %s\n", e.Namespace)
+	}
+	if e.Context != "" {
+		fmt.Fprintf(&b, "Context:   %s\n", e.Context)
+	}
+	if e.Kind != "" {
+		fmt.Fprintf(&b, "Kind:      %s\n", e.Kind)
+	}
+	if e.Risk != "" {
+		fmt.Fprintf(&b, "Risk:      %s\n", e.Risk)
+	}
+	fmt.Fprintf(&b, "Status:    %s\n", applied)
+
+	if len(e.Actions) > 0 {
+		b.WriteString("Actions:\n")
+		for _, act := range e.Actions {
+			fmt.Fprintf(&b, "  - %s\n", act)
+		}
+	}
+	return b.String()
 }
 
 // FormatList renders a human-readable history list.

@@ -14,13 +14,20 @@ import (
 )
 
 func newHistoryCmd() *cobra.Command {
-	var limit int
+	var (
+		limit      int
+		filterNs   string
+		filterKind string
+	)
 	cmd := &cobra.Command{
 		Use:   "history",
 		Short: "List recent prompts and plans",
 		Long:  "Reads append-only ~/.kprompt/history.jsonl (no secrets or manifests).",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			entries, err := history.List(limit)
+			entries, err := history.ListFiltered(limit, history.FilterOptions{
+				Namespace: filterNs,
+				Kind:      filterKind,
+			})
 			if err != nil {
 				return err
 			}
@@ -33,7 +40,8 @@ func newHistoryCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().IntVar(&limit, "limit", 20, "number of entries to show")
-
+	cmd.Flags().StringVar(&filterNs, "namespace", "", "filter history by namespace")
+	cmd.Flags().StringVar(&filterKind, "kind", "", "filter history by kind")
 	cmd.AddCommand(&cobra.Command{
 		Use:   "rerun [index]",
 		Short: "Re-run a history prompt (default: newest)",
@@ -89,6 +97,58 @@ func newHistoryCmd() *cobra.Command {
 			return pipeline.Run(cmd.Context(), cfg, cmd.OutOrStdout())
 		},
 	})
+
+	cmd.AddCommand(&cobra.Command{
+		Use:   "show [index]",
+		Short: "Show detailed information for a single history entry",
+		Long:  "Displays the prompt text, summary, namespace, and kind/intent for a specific history entry by index (1 = newest).",
+		Example: `  kprompt history show 1
+  kprompt history show 3`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			idx, err := strconv.Atoi(args[0])
+			if err != nil || idx < 1 {
+				return fmt.Errorf("index must be a positive integer")
+			}
+			entry, err := history.Get(idx, 100)
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprint(cmd.OutOrStdout(), history.FormatEntry(idx, entry))
+			return nil
+		},
+	})
+
+	var skipConfirm bool
+	clearCmd := &cobra.Command{
+		Use:     "clear",
+		Short:   "Clear all prompt history safely",
+		Long:    "Safely truncates/clears the local history file (~/.kprompt/history.jsonl). Requires confirmation unless --yes is passed.",
+		Example: `  kprompt history clear` + "\n" + `  kprompt history clear --yes`,
+		Args:    cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if !skipConfirm {
+				fmt.Fprint(cmd.OutOrStdout(), "Are you sure you want to clear all history? [y/N]: ")
+				var input string
+				if _, err := fmt.Fscanln(cmd.InOrStdin(), &input); err != nil {
+					input = ""
+				}
+				input = strings.ToLower(strings.TrimSpace(input))
+				if input != "y" && input != "yes" {
+					fmt.Fprintln(cmd.OutOrStdout(), "Canceled.")
+					return nil
+				}
+			}
+			if err := history.Clear(); err != nil {
+				return fmt.Errorf("failed to clear history: %w", err)
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), "History Cleared Successfully.")
+			return nil
+		},
+	}
+	cmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "skip confirmation prompt")
+	cmd.AddCommand(clearCmd)
 
 	return cmd
 }
