@@ -24,6 +24,11 @@ func newHistoryCmd() *cobra.Command {
 		Short: "List recent prompts and plans",
 		Long:  "Reads append-only ~/.kprompt/history.jsonl (no secrets or manifests).",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			filterNs = ""
+			root := cmd.Root()
+			if root.PersistentFlags().Changed("namespace") {
+				filterNs = namespace // uses global namespace variable
+			}
 			entries, err := history.ListFiltered(limit, history.FilterOptions{
 				Namespace: filterNs,
 				Kind:      filterKind,
@@ -40,7 +45,6 @@ func newHistoryCmd() *cobra.Command {
 		},
 	}
 	cmd.Flags().IntVar(&limit, "limit", 20, "number of entries to show")
-	cmd.Flags().StringVar(&filterNs, "namespace", "", "filter history by namespace")
 	cmd.Flags().StringVar(&filterKind, "kind", "", "filter history by kind")
 	cmd.AddCommand(&cobra.Command{
 		Use:   "rerun [index]",
@@ -147,7 +151,7 @@ func newHistoryCmd() *cobra.Command {
 			return nil
 		},
 	}
-	cmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "skip confirmation prompt")
+	clearCmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "skip confirmation prompt")
 	cmd.AddCommand(clearCmd)
 
 	return cmd
