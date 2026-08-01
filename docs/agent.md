@@ -1,6 +1,6 @@
 # kprompt Observe agent
 
-In-cluster, **namespace-scoped** agent that continuously watches Pods/Events (and optional workloads), correlates incidents, optionally analyzes with an LLM, and notifies Slack/webhooks.
+In-cluster, **namespace-scoped** agent that continuously watches Pods/Events (and optional workloads), correlates incidents, optionally analyzes with an LLM, and notifies Discord, Slack, or webhooks.
 
 This is **Observe Mode** by default — it never applies, patches, or deletes cluster resources ([ADR-0013](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0013-in-cluster-agent.md)). Optional `--autopilot-propose` emits PlanResult-shaped proposals only ([ADR-0015](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0015-autopilot-mode.md)); **apply** stays gated. The Namespace Agent continuous-intelligence contract is [ADR-0016](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0016-namespace-agent.md).
 
@@ -42,7 +42,7 @@ Default install is a **Role + RoleBinding in one namespace** (get/list/watch on 
 
 ## LLM cost
 
-- The agent does **not** call the LLM on every raw API event. It batches by open **Incident**, then applies a **severity + confidence gate** before Slack/webhook.
+- The agent does **not** call the LLM on every raw API event. It batches by open **Incident**, then applies a **severity + confidence gate** before Discord/Slack/webhook.
 - Prefer `--heuristic` for demos / offline; turn LLM on when you accept API spend.
 - Gate tighter with `--min-severity` / `--min-confidence` (defaults: medium / 0.7) to limit alert fatigue and token burn.
 - Credentials stay in a **Secret** (`envFrom`) — never in CRD/ConfigMap plaintext.
@@ -52,6 +52,7 @@ Default install is a **Role + RoleBinding in one namespace** (get/list/watch on 
 ```bash
 kprompt agent run -n payments --analyze --fetch-logs --health --heuristic
 kprompt agent run -n payments --slack --fetch-logs   # needs Slack env
+kprompt agent run -n payments --discord --fetch-logs # needs Discord webhook env
 ```
 
 Need a namespace that actually misbehaves? [kprompt-examples](https://github.com/kprompt/kprompt-examples) provisions a kind cluster plus seven failure scenarios (crashloop, image pull, OOM, stalled rollout, unbound PVC, failing CronJob, missing dependency), each documenting what the agent is expected to conclude:
@@ -157,6 +158,7 @@ Chart: [`charts/kprompt-operator`](../charts/kprompt-operator).
 | Env key | Purpose |
 |---------|---------|
 | `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` / … | LLM (same as CLI) |
+| `KPROMPT_DISCORD_WEBHOOK_URL` | Discord webhook URL for gated AgentAlert text |
 | `KPROMPT_SLACK_BOT_TOKEN` + `KPROMPT_SLACK_CHANNEL` | Threaded Slack (preferred) |
 | `KPROMPT_SLACK_WEBHOOK_URL` | Slack webhook fallback |
 | `KPROMPT_WEBHOOK_URL` | Generic AgentAlert JSON POST |
@@ -216,6 +218,8 @@ Secrets are never watched implicitly and only metadata (type + key count) is emi
 | `--fetch-logs` | AG-005 on-demand logs |
 | `--build-context` | AG-007 context |
 | `--analyze` | AG-008 gated AgentAlert |
+| `--discord` | Discord webhook gated alerts |
+| `--discord-webhook-url` | Override `KPROMPT_DISCORD_WEBHOOK_URL` |
 | `--slack` | AG-009 |
 | `--webhook` | AG-010 |
 | `--health` | AG-011 score |

@@ -7,7 +7,7 @@ Companion: [agent.md](./agent.md) · [namespace-agent.md](./namespace-agent.md) 
 ## Install checklist
 
 1. Pick **one watch namespace** (or one agent Deployment per ns).
-2. Create Secret for LLM + Slack/webhook (never put keys in values/CRD plaintext).
+2. Create Secret for LLM + Discord/Slack/webhook (never put keys in values/CRD plaintext).
 3. `helm upgrade --install` with image your cluster can pull.
 4. Confirm Role is namespaced: `kubectl -n <ns> get role,rolebinding,sa -l app.kubernetes.io/name=kprompt-agent`.
 5. Tail agent logs; expect `watching namespace … (read-only)`.
@@ -42,6 +42,7 @@ Argo CD Applications often live in `argocd`, not the app ns — `--gitops-eviden
 | `--min-severity` / `--min-confidence` | Defaults medium / 0.7 — raise to cut noise |
 | Incident batching | One LLM call per evidence fingerprint, not per raw Event |
 | `--patterns` | Local disk/CM; no cloud upload; dampens repeat analysis quality issues |
+| Discord webhook | Simple gated alert posts; keep webhook URL in Secret |
 | Slack threads | Prefer bot token + channel over webhook for update-in-thread |
 | Prom / OTel | Optional; missing → `degraded:` — no invented metrics |
 
@@ -63,6 +64,7 @@ All of the above stay **local / in-cluster** — not uploaded to `api.kprompt.ai
 | Symptom | Check |
 |---------|--------|
 | No alerts | Gate (`min-severity` / `min-confidence`); is `--analyze` on? Open incidents? |
+| Discord silent | `--discord` plus `KPROMPT_DISCORD_WEBHOOK_URL` or `--discord-webhook-url`; check webhook permissions |
 | `degraded: prometheus\|otel\|gitops` | Backend URL / CRDs / RBAC; expected when opt-in signal missing |
 | Slack ask silent | `--slack-ask` + bot token; Events API URL / port-forward to `--slack-ask-addr` |
 | False-positive learning no-op | Need `--patterns` with ask callback |
@@ -72,7 +74,7 @@ All of the above stay **local / in-cluster** — not uploaded to `api.kprompt.ai
 
 ## Security hygiene
 
-- Rotate provider + Slack tokens via Secret; restart Deployment.
+- Rotate provider + Discord/Slack webhook URLs and tokens via Secret; restart Deployment.
 - Never enable Secret **value** reads (agent does not support it).
 - Treat InvestigationReport / Slack text as sensitive (may include log snippets).
 - Autopilot propose audit files may name workloads — protect laptop paths in shared demos.

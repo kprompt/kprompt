@@ -28,6 +28,7 @@ import (
 	"github.com/kprompt/kprompt/internal/agent/health"
 	agentlogs "github.com/kprompt/kprompt/internal/agent/logs"
 	"github.com/kprompt/kprompt/internal/agent/memory"
+	agentdiscord "github.com/kprompt/kprompt/internal/agent/notify/discord"
 	agentslack "github.com/kprompt/kprompt/internal/agent/notify/slack"
 	"github.com/kprompt/kprompt/internal/agent/notify/slack/ask"
 	agentwebhook "github.com/kprompt/kprompt/internal/agent/notify/webhook"
@@ -613,6 +614,8 @@ func newAgentRunCmd() *cobra.Command {
 		buildContext     bool
 		doAnalyze        bool
 		heuristic        bool
+		notifyDiscord    bool
+		discordURL       string
 		notifySlack      bool
 		notifyWebhook    bool
 		webhookURL       string
@@ -657,6 +660,7 @@ Pipeline flags (read-only — never mutate workload objects):
   --fetch-logs     on-demand log tail on CrashLoop/Failed/OOM
   --build-context  assemble AgentContext
   --analyze        LLM/heuristic → gated AgentAlert
+  --discord       post gated alerts to Discord webhook
   --slack          post gated alerts to Slack threads
   --webhook        POST gated AgentAlert JSON to a URL
   --health         emit namespace health score / risk_increasing
@@ -692,6 +696,9 @@ Slack credentials from env / mounted Secret:
 Generic webhook:
   KPROMPT_WEBHOOK_URL  or  --webhook-url
 
+Discord:
+  KPROMPT_DISCORD_WEBHOOK_URL  or  --discord-webhook-url
+
 KpromptAgent status sync:
   --agent-cr / KPROMPT_AGENT_CR  (+ optional --agent-cr-namespace)`,
 		Example: `  kprompt agent run -n payments --health --heuristic
@@ -708,7 +715,7 @@ KpromptAgent status sync:
 				trackHealth = true
 				doAnalyze = true
 			}
-			if notifySlack || notifyWebhook {
+			if notifyDiscord || notifySlack || notifyWebhook {
 				doAnalyze = true
 			}
 			if trackHealth && !incidents {
@@ -751,6 +758,7 @@ KpromptAgent status sync:
 			var fetcher *agentlogs.Fetcher
 			var ctxBuilder *ctxbuild.Builder
 			var analyzer *analyze.Analyzer
+			var discordClient *agentdiscord.Client
 			var slackClient *agentslack.Client
 			var webhookClient *agentwebhook.Client
 			var healthTracker *health.Tracker
@@ -888,6 +896,16 @@ KpromptAgent status sync:
 					analyzer.Patterns = patterns.New(pstore)
 				}
 			}
+			if notifyDiscord {
+				dcfg := agentdiscord.ConfigFromEnv()
+				if u := strings.TrimSpace(discordURL); u != "" {
+					dcfg.URL = u
+				}
+				if !dcfg.Enabled() {
+					return fmt.Errorf("--discord requires %s or --discord-webhook-url", agentdiscord.EnvWebhookURL)
+				}
+				discordClient = agentdiscord.New(dcfg)
+			}
 			if notifySlack {
 				scfg := agentslack.ConfigFromEnv()
 				if !scfg.Enabled() {
@@ -976,6 +994,11 @@ KpromptAgent status sync:
 						if webhookClient != nil && outcome.PassedGate {
 							if err := webhookClient.Notify(cmd.Context(), outcome.Alert); err != nil {
 								fmt.Fprintf(cmd.ErrOrStderr(), "webhook notify error: %v\n", err)
+							}
+						}
+						if discordClient != nil && outcome.PassedGate {
+							if err := discordClient.Notify(cmd.Context(), outcome.Alert); err != nil {
+								fmt.Fprintf(cmd.ErrOrStderr(), "discord notify error: %v\n", err)
 							}
 						}
 						if statusSync != nil && outcome.PassedGate {
@@ -1168,7 +1191,7 @@ KpromptAgent status sync:
 
 			mode := "Pods+Events"
 			switch {
-			case notifySlack || notifyWebhook:
+			case notifyDiscord || notifySlack || notifyWebhook:
 				mode = "watch → analyze → notify"
 			case doAnalyze:
 				mode = "watch → incidents → context → analyze"
@@ -1259,6 +1282,8 @@ KpromptAgent status sync:
 	cmd.Flags().BoolVar(&fetchLogs, "fetch-logs", false, "on CrashLoop/Failed/OOM attach a short log tail (enables --incidents)")
 	cmd.Flags().BoolVar(&buildContext, "build-context", false, "assemble AgentContext for LLM (enables --incidents)")
 	cmd.Flags().BoolVar(&doAnalyze, "analyze", false, "run LLM/heuristic analyzer → gated AgentAlert")
+	cmd.Flags().BoolVar(&notifyDiscord, "discord", false, "post gated alerts to Discord webhook (enables --analyze)")
+	cmd.Flags().StringVar(&discordURL, "discord-webhook-url", "", "override KPROMPT_DISCORD_WEBHOOK_URL for --discord")
 	cmd.Flags().BoolVar(&notifySlack, "slack", false, "post gated alerts to Slack (enables --analyze)")
 	cmd.Flags().BoolVar(&notifyWebhook, "webhook", false, "POST gated AgentAlert JSON to webhook URL (enables --analyze)")
 	cmd.Flags().StringVar(&webhookURL, "webhook-url", "", "override KPROMPT_WEBHOOK_URL for --webhook")
