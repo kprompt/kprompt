@@ -64,6 +64,14 @@ var Presets = []Preset{
 		HelpURL:      "https://console.x.ai/",
 	},
 	{
+		Name:         "cerebras",
+		Kind:         "openai",
+		BaseURL:      "https://api.cerebras.ai/v1",
+		DefaultModel: "gpt-oss-120b",
+		EnvKeys:      []string{"KPROMPT_CEREBRAS_API_KEY", "CEREBRAS_API_KEY"},
+		HelpURL:      "https://cloud.cerebras.ai/",
+	},
+	{
 		Name:         "mistral",
 		Kind:         "openai",
 		BaseURL:      "https://api.mistral.ai/v1",

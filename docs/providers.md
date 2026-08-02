@@ -17,6 +17,7 @@ Optional Team `kp_…` tokens (`kprompt login`) are for org policy/audit — not
 | Google Gemini | `gemini` | `KPROMPT_GEMINI_API_KEY` / `GEMINI_API_KEY` / `GOOGLE_API_KEY` | `gemini-2.0-flash` | AI Studio key; see free-tier notes below |
 | Groq | `groq` | `KPROMPT_GROQ_API_KEY` / `GROQ_API_KEY` | `llama-3.3-70b-versatile` | OpenAI-compatible |
 | xAI (Grok) | `xai` | `KPROMPT_XAI_API_KEY` / `XAI_API_KEY` | `grok-4.5` | OpenAI-compatible |
+| Cerebras | `cerebras` | `KPROMPT_CEREBRAS_API_KEY` / `CEREBRAS_API_KEY` | `gpt-oss-120b` | OpenAI-compatible, low-latency |
 | Mistral | `mistral` | `KPROMPT_MISTRAL_API_KEY` / `MISTRAL_API_KEY` | `mistral-small-latest` | OpenAI-compatible |
 | DeepSeek | `deepseek` | `KPROMPT_DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEY` | `deepseek-chat` | OpenAI-compatible |
 | Moonshot (Kimi K3) | `moonshot` | `KPROMPT_MOONSHOT_API_KEY` / `MOONSHOT_API_KEY` | `kimi-k3` | OpenAI-compatible |
@@ -75,6 +76,10 @@ kprompt --provider groq "scale api to 3"
 # xAI / Grok
 export KPROMPT_XAI_API_KEY=...
 kprompt --provider xai "explain why api is crashlooping"
+
+# Cerebras
+export KPROMPT_CEREBRAS_API_KEY=...
+kprompt --provider cerebras "list pods"
 
 # Moonshot / Kimi K3
 export KPROMPT_MOONSHOT_API_KEY=...

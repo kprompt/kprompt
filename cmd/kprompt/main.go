@@ -104,7 +104,7 @@ func main() {
 	root.PersistentFlags().BoolVar(&approveEachContext, "approve-each-context", false, "apply a mutating plan to every --contexts entry (explicit; not implied by --approve)")
 	root.PersistentFlags().BoolVar(&waitFlag, "wait", false, "after apply, wait for Deployment rollout to complete")
 	root.PersistentFlags().DurationVar(&timeout, "timeout", 5*time.Minute, "timeout for --wait (default 5m)")
-	root.PersistentFlags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|xai|mistral|deepseek|moonshot|openrouter|together|ollama|openai-compatible)")
+	root.PersistentFlags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|xai|cerebras|mistral|deepseek|moonshot|openrouter|together|ollama|openai-compatible)")
 	root.PersistentFlags().StringVar(&model, "model", "", "LLM model id")
 	root.PersistentFlags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
 	root.PersistentFlags().StringVar(&kubeCtxs, "contexts", "", "comma-separated contexts for read fan-out / per-context mutate (aliases ok)")

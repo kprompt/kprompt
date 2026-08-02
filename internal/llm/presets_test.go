@@ -16,6 +16,7 @@ func TestLookupPresetDefaults(t *testing.T) {
 		t.Fatal("ollama should allow empty key")
 	}
 }
+
 func TestLookupPresetXAI(t *testing.T) {
 	p, ok := LookupPreset("xai")
 	if !ok {
@@ -34,9 +35,29 @@ func TestLookupPresetXAI(t *testing.T) {
 		t.Fatalf("xai env keys = %v", p.EnvKeys)
 	}
 }
+
+func TestLookupPresetCerebras(t *testing.T) {
+	p, ok := LookupPreset("cerebras")
+	if !ok {
+		t.Fatal("cerebras preset not found")
+	}
+	if p.Kind != "openai" {
+		t.Fatalf("cerebras kind = %q, want openai", p.Kind)
+	}
+	if p.BaseURL != "https://api.cerebras.ai/v1" {
+		t.Fatalf("cerebras base URL = %q", p.BaseURL)
+	}
+	if p.DefaultModel != "gpt-oss-120b" {
+		t.Fatalf("cerebras default model = %q", p.DefaultModel)
+	}
+	if len(p.EnvKeys) != 2 || p.EnvKeys[0] != "KPROMPT_CEREBRAS_API_KEY" || p.EnvKeys[1] != "CEREBRAS_API_KEY" {
+		t.Fatalf("cerebras env keys = %v", p.EnvKeys)
+	}
+}
+
 func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
-	for _, want := range []string{"openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "moonshot", "ollama", "openrouter", "together", "xai"} {
+	for _, want := range []string{"openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "moonshot", "ollama", "openrouter", "together", "xai", "cerebras"} {
 		if !contains(s, want) {
 			t.Fatalf("%q missing from %s", want, s)
 		}

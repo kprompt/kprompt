@@ -212,6 +212,7 @@ export KPROMPT_ANTHROPIC_API_KEY=sk-ant-...   # --provider anthropic
 export KPROMPT_GEMINI_API_KEY=...             # --provider gemini
 export KPROMPT_GROQ_API_KEY=...               # --provider groq
 export KPROMPT_XAI_API_KEY=...                # --provider xai (Grok)
+export KPROMPT_CEREBRAS_API_KEY=...           # --provider cerebras
 export KPROMPT_MOONSHOT_API_KEY=...           # --provider moonshot (Kimi K3)
 ```
 
@@ -331,7 +332,7 @@ See also: [GitHub Integration MVP / GitOps PR mode](./docs/gitops-pr.md). Exampl
 | `--wait` | After apply, wait for Deployment rollout, then verify |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
-| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `ollama`, `openai-compatible` |
+| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `ollama`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |
 | `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |
