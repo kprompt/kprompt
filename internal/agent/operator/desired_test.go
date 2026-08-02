@@ -32,7 +32,7 @@ func TestBuildDesiredObserve(t *testing.T) {
 	for _, a := range args {
 		joined += a + " "
 	}
-	for _, want := range []string{"--in-cluster", "--heuristic", "--slack", "--watch", "--agent-cr"} {
+	for _, want := range []string{"--in-cluster", "--heuristic", "--slack", "--discord", "--watch", "--agent-cr"} {
 		if !strings.Contains(joined, want) {
 			t.Fatalf("args missing %s: %v", want, args)
 		}

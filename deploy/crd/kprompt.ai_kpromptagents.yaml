@@ -82,7 +82,7 @@ spec:
                 notify:
                   type: object
                   properties:
-                     discord:
+                    discord:
                       type: boolean
                       default: false
                     slack:

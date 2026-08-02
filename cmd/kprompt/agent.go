@@ -660,7 +660,7 @@ Pipeline flags (read-only — never mutate workload objects):
   --fetch-logs     on-demand log tail on CrashLoop/Failed/OOM
   --build-context  assemble AgentContext
   --analyze        LLM/heuristic → gated AgentAlert
-  --discord       post gated alerts to Discord webhook
+  --discord        post gated alerts to Discord webhook
   --slack          post gated alerts to Slack threads
   --webhook        POST gated AgentAlert JSON to a URL
   --health         emit namespace health score / risk_increasing

@@ -1,6 +1,6 @@
 // Package webhook POSTs gated AgentAlert JSON to a generic HTTPS endpoint (AG-010).
 //
-// This is the adapter hook for Teams / Discord / PagerDuty / Opsgenie / Jira
+// This is the adapter hook for Teams / PagerDuty / Opsgenie / Jira
 // without coupling those vendors into the Observe core.
 //
 //	KPROMPT_WEBHOOK_URL — destination (from Secret/env)

@@ -19,7 +19,7 @@ Contracts: [ADR-0013](https://github.com/kprompt/kprompt-architecture/blob/main/
 
 ```text
 ┌─────────────────────┐     InvestigationReport v2      ┌──────────────────┐
-│  Namespace Agent    │ ── Slack / webhook / ask ──────► │  Humans / SIEM   │
+│  Namespace Agent    │ ── Slack / Discord / webhook / ask ──► │  Humans / SIEM   │
 │  (Role, one ns)     │                                  └──────────────────┘
 │                     │  Suspect outside my ns?
 │                     │ ── CoordinatorHandoff ─────────► ┌──────────────────┐
@@ -57,7 +57,7 @@ Contracts: [ADR-0013](https://github.com/kprompt/kprompt-architecture/blob/main/
 |------------|----------------|------|
 | Watch + incidents + health | `--incidents --health` | Observe |
 | LLM / heuristic alert | `--analyze` | Observe → NA |
-| Slack / webhook | `--slack` / `--webhook` | Observe |
+| Slack / Discord / webhook | `--slack` / `--discord` / `--webhook` | Observe |
 | Slack ask | `--slack-ask` | NA surface |
 | Memory / patterns | `--memory` / `--patterns` | NA learn |
 | Prom / OTel / GitOps evidence | env / `--gitops-evidence` | NA signals |
