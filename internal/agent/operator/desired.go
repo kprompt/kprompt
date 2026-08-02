@@ -229,6 +229,9 @@ func agentArgs(cr *agentv1.KpromptAgent, watchNS string) []string {
 	if cr.Spec.LLM.Heuristic {
 		args = append(args, "--heuristic")
 	}
+	if cr.Spec.Notify.Discord {
+		args = append(args, "--discord")
+	}
 	if cr.Spec.Notify.Slack {
 		args = append(args, "--slack")
 	}

@@ -82,6 +82,9 @@ spec:
                 notify:
                   type: object
                   properties:
+                    discord:
+                      type: boolean
+                      default: false
                     slack:
                       type: boolean
                       default: false
@@ -108,7 +111,7 @@ spec:
                   default: true
                 secretRef:
                   type: object
-                  description: Secret providing LLM / Slack / webhook credentials.
+                  description: Secret providing LLM / Discord / Slack / webhook credentials.
                   properties:
                     name:
                       type: string

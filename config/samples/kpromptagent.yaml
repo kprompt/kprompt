@@ -13,6 +13,7 @@ spec:
     provider: openai
     heuristic: false
   notify:
+    discord: false
     slack: false
     webhook: false
   severity:

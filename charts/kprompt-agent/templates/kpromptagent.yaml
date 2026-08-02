@@ -20,6 +20,7 @@ spec:
     {{- end }}
     heuristic: {{ .Values.agentCR.llm.heuristic | default false }}
   notify:
+    discord: {{ .Values.agentCR.notify.discord | default false }}
     slack: {{ .Values.agentCR.notify.slack | default false }}
     webhook: {{ .Values.agentCR.notify.webhook | default false }}
   severity:

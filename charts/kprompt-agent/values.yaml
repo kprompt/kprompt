@@ -28,6 +28,7 @@ agent:
   health: true
   # Prefer LLM when provider secrets exist; set true for offline demos.
   heuristic: false
+  discord: false
   slack: false
   webhook: false
   # AG-015: discover deps into analyzer context (file or configmap backend).
@@ -62,6 +63,7 @@ secret:
   # Optional stringData when create=true (do not commit real values).
   stringData: {}
   #   OPENAI_API_KEY: ""
+  #   KPROMPT_DISCORD_WEBHOOK_URL: ""
   #   KPROMPT_SLACK_BOT_TOKEN: ""
   #   KPROMPT_SLACK_CHANNEL: ""
   #   KPROMPT_SLACK_WEBHOOK_URL: ""
@@ -104,6 +106,7 @@ agentCR:
     model: ""
     heuristic: false
   notify:
+    discord: false
     slack: false
     webhook: false
   severity:

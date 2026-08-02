@@ -52,6 +52,7 @@ type LLMSpec struct {
 type NotifySpec struct {
 	Slack   bool `json:"slack,omitempty"`
 	Webhook bool `json:"webhook,omitempty"`
+	Discord bool `json:"discord,omitempty"`
 }
 
 // SeveritySpec configures the alert gate.

@@ -15,7 +15,7 @@ func TestBuildDesiredObserve(t *testing.T) {
 		Spec: agentv1.KpromptAgentSpec{
 			Mode:      agentv1.ModeObserve,
 			LLM:       agentv1.LLMSpec{Provider: "openai", Heuristic: true},
-			Notify:    agentv1.NotifySpec{Slack: true},
+			Notify:    agentv1.NotifySpec{Slack: true, Discord: true},
 			SecretRef: &agentv1.SecretRef{Name: "kprompt-agent"},
 			Watches:   []string{"pods", "events", "deployments"},
 		},

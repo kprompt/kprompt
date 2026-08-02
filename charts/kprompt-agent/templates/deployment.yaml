@@ -76,6 +76,9 @@ spec:
             {{- if .Values.agent.heuristic }}
             - --heuristic
             {{- end }}
+            {{- if .Values.agent.discord }}
+            - --discord
+            {{- end }}
             {{- if .Values.agent.slack }}
             - --slack
             {{- end }}
