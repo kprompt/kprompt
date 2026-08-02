@@ -23,11 +23,13 @@ docker push ghcr.io/kprompt/kprompt:dev
 kubectl -n payments create secret generic kprompt-agent \
   --from-literal=OPENAI_API_KEY=sk-... \
   --from-literal=KPROMPT_SLACK_BOT_TOKEN=xoxb-... \
-  --from-literal=KPROMPT_SLACK_CHANNEL=C...
+  --from-literal=KPROMPT_SLACK_CHANNEL=C... \
+  --from-literal=KPROMPT_DISCORD_WEBHOOK_URL=https://discord.com/api/webhooks/...
 
 helm upgrade --install kprompt-agent ./charts/kprompt-agent \
   -n payments --create-namespace \
   --set image.tag=dev \
+  --set agent.discord=true \
   --set agent.slack=true
 ```
 
@@ -49,7 +51,7 @@ helm upgrade --install kprompt-agent ./charts/kprompt-agent \
 | `agent.autopilotPropose` | `false` | ADR-0015 propose-only (never apply by itself) |
 | `agent.autopilotApply` | `false` | AG-042 in-loop apply (needs policyAuto) |
 | `agent.remediationPolicy` | `false` | AG-040 create proposeOnly ConfigMap |
-| `agent.slack` / `agent.webhook` | `false` | Enable notifiers |
+| `agent.discord` / `agent.slack` / `agent.webhook` | `false` | Enable notifiers |
 | `secret.name` | `kprompt-agent` | Env-from Secret |
 | `rbac.create` | `true` | Namespace Role (get/list/watch) |
 | `agentCR.name` | `""` | Patch `KpromptAgent.status` (AG-013) |
