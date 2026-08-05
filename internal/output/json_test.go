@@ -20,7 +20,7 @@ func TestFromPlanSchema(t *testing.T) {
 			Object:   planner.ObjectRef{Kind: "Deployment", Name: "api", Namespace: "demo"},
 			Replicas: &rep,
 			Diff:     "replicas: 1 → 3",
-			Manifest: "SECRET",
+			Manifest: "apiVersion: v1\nkind: Secret\ndata:\n  password: hunter2\n",
 		}},
 		Summary:          "Scale api",
 		RequiresApproval: true,
@@ -33,7 +33,7 @@ func TestFromPlanSchema(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(raw), "SECRET") {
+	if strings.Contains(string(raw), "hunter2") || strings.Contains(strings.ToLower(string(raw)), "password") {
 		t.Fatal("manifest leaked")
 	}
 	var buf bytes.Buffer

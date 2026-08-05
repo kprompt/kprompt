@@ -75,14 +75,14 @@ func TestFromPlanOmitsManifest(t *testing.T) {
 		Actions: []planner.Action{{
 			Op:       planner.OpCreate,
 			Object:   planner.ObjectRef{Kind: "Deployment", Name: "redis", Namespace: "demo"},
-			Manifest: "apiVersion: apps/v1\nsecret: SHOULD_NOT_APPEAR\n",
+			Manifest: "apiVersion: v1\nkind: Secret\ndata:\n  token: hunter2\n",
 		}},
 	}, safety.Result{Risk: safety.RiskMedium}, true)
 	raw, err := json.Marshal(e)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(raw), "SHOULD_NOT_APPEAR") || strings.Contains(string(raw), "apiVersion") {
+	if strings.Contains(string(raw), "hunter2") || strings.Contains(strings.ToLower(string(raw)), "token") {
 		t.Fatalf("leaked manifest: %s", raw)
 	}
 	if len(e.Actions) != 1 || e.Actions[0] != "create Deployment/redis -n demo" {
