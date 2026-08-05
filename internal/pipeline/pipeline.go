@@ -64,10 +64,10 @@ type Deps struct {
 	Prometheus    toolprometheus.Querier
 	OTel          toolotel.Querier
 	Grafana       toolgrafana.Querier
-	Confirm       ConfirmFunc             // if set, used instead of TTY prompt
-	IsTerminal    *bool                   // override ui.StdinIsTerminal when non-nil
-	OnResult      func(output.PlanResult) // optional per-plan completion observer
-	SkipOrgPolicy bool                    // tests: ignore Team org policy (Free CLI path)
+	Confirm       ConfirmFunc                                        // if set, used instead of TTY prompt
+	IsTerminal    *bool                                              // override ui.StdinIsTerminal when non-nil
+	OnResult      func(output.PlanResult)                            // optional per-plan completion observer
+	SkipOrgPolicy bool                                               // tests: ignore Team org policy (Free CLI path)
 	BuildPlan     func(intent.Intent) (planner.ExecutionPlan, error) // tests: override planner.Build
 	// RouteSteps forces a multi-step route (recipe run / tests). When set, skips
 	// SplitRoutePrompt / recipe.TryRoute matching on cfg.Prompt.
@@ -1349,10 +1349,13 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		for _, t := range targets {
 			var err error
 			switch t.Kind {
+			case "Deployment":
+				err = waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout)
 			case "StatefulSet":
 				err = waiter.WaitStatefulSet(ctx, t.Namespace, t.Name, timeout)
 			default:
-				err = waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout)
+				fmt.Fprintln(out, "Skipping --wait for unsupported resource kind %s", t.Kind)
+				continue
 			}
 			if err != nil {
 				rep := verify.Report{
