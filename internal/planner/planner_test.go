@@ -67,6 +67,43 @@ func TestBuildDeployWithExplicitImage(t *testing.T) {
 	}
 }
 
+func TestBuildScaleStatefulSet(t *testing.T) {
+	plan, err := Build(intent.Intent{
+		Kind: intent.KindScale,
+		Target: intent.Target{
+			Kind:      "sts",
+			Name:      "redis",
+			Namespace: "demo",
+		},
+		Params: map[string]any{"replicas": float64(3)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("scale should require approval")
+	}
+	if len(plan.Actions) != 1 {
+		t.Fatalf("expected one action, got %d", len(plan.Actions))
+	}
+	action := plan.Actions[0]
+	if action.Op != OpScale {
+		t.Fatalf("op=%s", action.Op)
+	}
+	if action.Object.Kind != "StatefulSet" {
+		t.Fatalf("kind=%s", action.Object.Kind)
+	}
+	if action.Object.Name != "redis" || action.Object.Namespace != "demo" {
+		t.Fatalf("object=%+v", action.Object)
+	}
+	if action.Replicas == nil || *action.Replicas != 3 {
+		t.Fatalf("replicas=%v", action.Replicas)
+	}
+	if plan.Summary == "" || !strings.Contains(plan.Summary, "StatefulSet/redis") {
+		t.Fatalf("summary=%q", plan.Summary)
+	}
+}
+
 func TestBuildGetPods(t *testing.T) {
 	in := intent.Intent{
 		Kind: intent.KindGet,
