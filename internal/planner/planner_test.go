@@ -104,6 +104,38 @@ func TestBuildScaleStatefulSet(t *testing.T) {
 	}
 }
 
+func TestBuildScaleRejectsUnsupportedKinds(t *testing.T) {
+	cases := []struct {
+		name string
+		kind string
+	}{
+		{"daemonset", "DaemonSet"},
+		{"job", "Job"},
+		{"cronjob", "CronJob"},
+		{"pod", "Pod"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := Build(intent.Intent{
+				Kind: intent.KindScale,
+				Target: intent.Target{
+					Kind:      tc.kind,
+					Name:      "test-target",
+					Namespace: "demo",
+				},
+				Params: map[string]any{"replicas": float64(3)},
+			})
+			if err == nil {
+				t.Fatalf("expected error when scaling unsupported kind %s, got nil", tc.kind)
+			}
+			if !strings.Contains(err.Error(), "not supported") {
+				t.Fatalf("expected 'not supported' error message, got: %v", err)
+			}
+		})
+	}
+}
+
 func TestBuildGetPods(t *testing.T) {
 	in := intent.Intent{
 		Kind: intent.KindGet,

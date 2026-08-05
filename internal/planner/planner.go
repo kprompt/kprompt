@@ -482,6 +482,15 @@ func buildScale(in intent.Intent, ns string) (ExecutionPlan, error) {
 	if in.Target.Kind != "" {
 		kind = cluster.NormalizeKind(in.Target.Kind)
 	}
+	
+	// Gatekeeper: only allow supported scale kinds
+	switch kind {
+	case "Deployment", "StatefulSet":
+		// OK
+	default:
+		return ExecutionPlan{}, fmt.Errorf("scale kind %q not supported (Deployment, StatefulSet only)", kind)
+	}
+
 	rep := replicas
 	return ExecutionPlan{
 		Intent: in,
