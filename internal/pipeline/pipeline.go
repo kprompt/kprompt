@@ -1342,7 +1342,14 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		}
 		waiter := &cluster.Waiter{Client: client, Out: human}
 		for _, t := range targets {
-			if err := waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout); err != nil {
+			var err error
+			switch t.Kind {
+			case "StatefulSet":
+				err = waiter.WaitStatefulSet(ctx, t.Namespace, t.Name, timeout)
+			default:
+				err = waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout)
+			}
+			if err != nil {
 				rep := verify.Report{
 					Status:  verify.Failed,
 					Message: err.Error(),
@@ -1380,7 +1387,7 @@ func deploymentWaitTargets(plan planner.ExecutionPlan) []planner.ObjectRef {
 	for _, a := range plan.Actions {
 		switch a.Op {
 		case planner.OpScale, planner.OpRollback, planner.OpCreate, planner.OpUpdate:
-			if a.Object.Kind != "Deployment" && a.Object.Kind != "" {
+			if a.Object.Kind != "Deployment" && a.Object.Kind != "StatefulSet" && a.Object.Kind != "" {
 				continue
 			}
 			key := a.Object.Namespace + "/" + a.Object.Name

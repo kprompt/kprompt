@@ -135,6 +135,18 @@ func (r *Runner) scale(ctx context.Context, a planner.Action) error {
 			})
 			return err
 		})
+	case "StatefulSet", "sts":
+		return retry.RetryOnConflict(retry.DefaultRetry, func() error {
+			sts, err := r.Client.AppsV1().StatefulSets(ns).Get(ctx, name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+			sts.Spec.Replicas = &replicas
+			_, err = r.Client.AppsV1().StatefulSets(ns).Update(ctx, sts, metav1.UpdateOptions{
+				FieldManager: FieldManager,
+			})
+			return err
+		})
 	default:
 		return fmt.Errorf("scale of %s not implemented", a.Object.Kind)
 	}

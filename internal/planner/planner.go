@@ -478,9 +478,9 @@ func buildScale(in intent.Intent, ns string) (ExecutionPlan, error) {
 	if !ok || replicas < 0 {
 		return ExecutionPlan{}, fmt.Errorf("scale intent missing valid params.replicas")
 	}
-	kind := in.Target.Kind
-	if kind == "" {
-		kind = "Deployment"
+	kind := "Deployment"
+	if in.Target.Kind != "" {
+		kind = cluster.NormalizeKind(in.Target.Kind)
 	}
 	rep := replicas
 	return ExecutionPlan{

@@ -98,3 +98,73 @@ func deploymentComplete(dep *appsv1.Deployment) bool {
 func desiredReplicas(dep *appsv1.Deployment) int32 {
 	return DesiredReplicas(dep)
 }
+
+// WaitStatefulSet blocks until the StatefulSet is rolled out or timeout.
+func (w *Waiter) WaitStatefulSet(ctx context.Context, namespace, name string, timeout time.Duration) error {
+	if timeout <= 0 {
+		timeout = DefaultWaitTimeout
+	}
+	ns := namespace
+	if ns == "" {
+		ns = "default"
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	if w.Out != nil {
+		fmt.Fprintf(w.Out, "Waiting for StatefulSet/%s -n %s (timeout %s)…\n", name, ns, timeout)
+	}
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	var last *appsv1.StatefulSet
+	for {
+		sts, err := w.Client.AppsV1().StatefulSets(ns).Get(waitCtx, name, metav1.GetOptions{})
+		if err != nil {
+			if waitCtx.Err() != nil && !errors.Is(err, context.Canceled) {
+				return timeoutSTSErr(name, timeout, last)
+			}
+			return err
+		}
+		last = sts
+		if statefulSetRolledOut(sts) {
+			if w.Out != nil {
+				fmt.Fprintf(w.Out, "✓ StatefulSet/%s ready\n", name)
+			}
+			return nil
+		}
+		select {
+		case <-waitCtx.Done():
+			if errors.Is(waitCtx.Err(), context.DeadlineExceeded) {
+				return timeoutSTSErr(name, timeout, last)
+			}
+			return waitCtx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
+func timeoutSTSErr(name string, timeout time.Duration, sts *appsv1.StatefulSet) error {
+	if sts == nil {
+		return fmt.Errorf("timed out waiting for StatefulSet/%s after %s", name, timeout)
+	}
+	return fmt.Errorf("timed out waiting for StatefulSet/%s after %s (updated=%d ready=%d desired=%d)",
+		name, timeout, sts.Status.UpdatedReplicas, sts.Status.ReadyReplicas, DesiredSTSReplicas(sts))
+}
+
+// StatefulSetRolledOut reports whether a StatefulSet has finished rolling out.
+func statefulSetRolledOut(sts *appsv1.StatefulSet) bool {
+	desired := DesiredSTSReplicas(sts)
+	return sts.Status.ObservedGeneration >= sts.Generation &&
+		sts.Status.UpdatedReplicas == desired &&
+		sts.Status.ReadyReplicas == desired
+}
+
+// DesiredSTSReplicas returns the StatefulSet's desired replica count.
+func DesiredSTSReplicas(sts *appsv1.StatefulSet) int32 {
+	if sts.Spec.Replicas != nil {
+		return *sts.Spec.Replicas
+	}
+	return 1
+}
