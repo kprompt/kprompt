@@ -1354,7 +1354,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			case "StatefulSet":
 				err = waiter.WaitStatefulSet(ctx, t.Namespace, t.Name, timeout)
 			default:
-				fmt.Fprintln(out, "Skipping --wait for unsupported resource kind %s", t.Kind)
+				fmt.Fprintf(out, "Skipping --wait for unsupported resource kind %s\n", t.Kind)
 				continue
 			}
 			if err != nil {
