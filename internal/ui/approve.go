@@ -17,12 +17,17 @@ func StdinIsTerminal() bool {
 
 // ConfirmHostInstall prompts before installing local CLIs (T-063).
 func ConfirmHostInstall(in io.Reader, out io.Writer) (bool, error) {
-	return confirmYesNo(in, out, "Install missing host CLIs from this plan?")
+	return confirmYesNo(in, out, "Apply host CLI installs from this plan?")
 }
 
 // ConfirmSetupApply prompts before host+cluster setup apply (T-063/T-064).
 func ConfirmSetupApply(in io.Reader, out io.Writer) (bool, error) {
 	return confirmYesNo(in, out, "Apply host/cluster installs from this setup plan?")
+}
+
+// ConfirmClearHistory prompts before wiping local prompt history (OB-006).
+func ConfirmClearHistory(in io.Reader, out io.Writer) (bool, error) {
+	return confirmYesNo(in, out, "Clear all local history?")
 }
 
 func confirmYesNo(in io.Reader, out io.Writer, prompt string) (bool, error) {
@@ -53,23 +58,7 @@ func ConfirmApply(in io.Reader, out io.Writer) (bool, error) {
 
 // ConfirmOpenPR prompts opening a GitHub PR instead of cluster apply (T-072).
 func ConfirmOpenPR(in io.Reader, out io.Writer) (bool, error) {
-	t := themeFor(out)
-	fmt.Fprint(out, t.Bold("Open this plan as a GitHub PR?")+" [y/N]: ")
-	if f, ok := out.(*os.File); ok {
-		_ = f.Sync()
-	}
-	reader := bufio.NewReader(in)
-	line, err := reader.ReadString('\n')
-	if err != nil && err != io.EOF {
-		return false, err
-	}
-	answer := strings.TrimSpace(strings.ToLower(line))
-	switch answer {
-	case "y", "yes":
-		return true, nil
-	default:
-		return false, nil
-	}
+	return confirmYesNo(in, out, "Apply this plan as a GitHub PR?")
 }
 
 // ConfirmApplyContext prompts apply for a specific kube context (multi-mutate fan-out).

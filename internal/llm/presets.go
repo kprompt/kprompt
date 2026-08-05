@@ -123,10 +123,11 @@ var Presets = []Preset{
 }
 
 // LookupPreset finds a preset by name (case-insensitive).
+// Empty name is unconfigured (OB-002) — does not silently map to openai.
 func LookupPreset(name string) (Preset, bool) {
 	n := strings.ToLower(strings.TrimSpace(name))
 	if n == "" {
-		n = "openai"
+		return Preset{}, false
 	}
 	for _, p := range Presets {
 		if p.Name == n {
@@ -154,9 +155,16 @@ func missingKeyError(p Preset) error {
 	if len(p.EnvKeys) > 1 {
 		msg += fmt.Sprintf(" (or %s)", strings.Join(p.EnvKeys[1:], " / "))
 	}
-	msg += fmt.Sprintf("\n  export %s=...\nUsage guide: https://kprompt.ai/#usage", primary)
+	msg += fmt.Sprintf("\n  export %s=...", primary)
+	msg += "\nOr $0 local LLM: kprompt init --ollama"
+	msg += "\nDocs: https://kprompt.ai/docs/providers"
 	if p.HelpURL != "" {
 		msg += "\nKeys: " + p.HelpURL
 	}
 	return fmt.Errorf("%s", msg)
+}
+
+// ErrProviderUnconfigured is returned when no provider is set in config or flags.
+func ErrProviderUnconfigured() error {
+	return fmt.Errorf("no LLM provider configured — run: kprompt init --ollama\n  or: kprompt init --provider openai\n  or: kprompt config set provider ollama\nDocs: https://kprompt.ai/docs/providers")
 }

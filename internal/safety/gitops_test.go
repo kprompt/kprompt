@@ -7,13 +7,6 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 )
 
-func TestCheckGitOpsPromptDeniesWipe(t *testing.T) {
-	r := CheckGitOpsPrompt("delete all argocd applications")
-	if !r.Denied {
-		t.Fatal("expected deny")
-	}
-}
-
 func TestEvaluatePlanGitOpsStatusLow(t *testing.T) {
 	r := EvaluatePlan(planner.ExecutionPlan{
 		Intent: intent.Intent{Kind: intent.KindGitOps},

@@ -2,5 +2,5 @@ apiVersion: v2
 name: kprompt-operator
 description: Reconciles KpromptAgent CRs into namespace-scoped Observe agent Deployments (AG-014).
 type: application
-version: 0.8.0
-appVersion: "0.8.0"
+version: 0.9.0
+appVersion: "0.9.0"

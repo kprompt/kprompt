@@ -20,6 +20,8 @@ The file is append-only JSON Lines. Newest entries are shown first in the CLI.
 kprompt history
 kprompt history --limit 10
 kprompt history rerun 3 --approve
+kprompt history clear              # Clear all local history? [y/N]
+kprompt history clear --approve    # skip confirm (--yes is an alias)
 ```
 
 ## Listing entries

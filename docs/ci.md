@@ -43,6 +43,10 @@ When `--contexts a,b` (or NL “across …”) fans out a **read** (or optimize)
 
 Mutating multi-context runs still use per-context approval (or `--approve-each-context`). Plain `--approve` across multiple contexts is refused. Read fan-out covers get/list, explain, investigate, why, timeline, impact, audit, cleanup, search, score, architecture, logs, describe, and optimize. See [multi-cluster.md](./multi-cluster.md).
 
+## Approval vocabulary
+
+Interactive confirms use `Apply …? [y/N]`. CI / non-TTY mutates use **`--approve`** (primary flag). Multi-context mutates need `--approve-each-context`. Full table: [approval.md](./approval.md).
+
 ## Gate on risk (example)
 
 ```bash

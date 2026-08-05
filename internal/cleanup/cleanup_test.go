@@ -77,6 +77,40 @@ func TestCleanupFindsUnusedAndStale(t *testing.T) {
 			},
 			Spec: appsv1.ReplicaSetSpec{Replicas: &zero},
 		},
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{Name: "pvc-orphan", Namespace: "payments"},
+			Status:     corev1.PersistentVolumeClaimStatus{Phase: corev1.ClaimPending},
+		},
+		&corev1.PersistentVolumeClaim{
+			ObjectMeta: metav1.ObjectMeta{Name: "pvc-bound", Namespace: "payments"},
+			Status:     corev1.PersistentVolumeClaimStatus{Phase: corev1.ClaimBound},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "empty-service", Namespace: "payments"},
+			Spec:       corev1.ServiceSpec{ClusterIP: "10.0.0.1", Selector: map[string]string{"app": "nonexistent"}},
+		},
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{Name: "empty-service", Namespace: "payments"},
+			Subsets:    []corev1.EndpointSubset{},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "used-service", Namespace: "payments"},
+			Spec:       corev1.ServiceSpec{ClusterIP: "10.0.0.2", Selector: map[string]string{"app": "api"}},
+		},
+		&corev1.Endpoints{
+			ObjectMeta: metav1.ObjectMeta{Name: "used-service", Namespace: "payments"},
+			Subsets: []corev1.EndpointSubset{{
+				Addresses: []corev1.EndpointAddress{{IP: "10.244.0.5"}},
+			}},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "headless-service", Namespace: "payments"},
+			Spec:       corev1.ServiceSpec{ClusterIP: corev1.ClusterIPNone, Selector: map[string]string{"app": "api"}},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "no-selector-service", Namespace: "payments"},
+			Spec:       corev1.ServiceSpec{ClusterIP: "10.0.0.3"},
+		},
 	)
 
 	got, err := (&Analyzer{Client: client}).Run(context.Background(), Request{
@@ -91,6 +125,8 @@ func TestCleanupFindsUnusedAndStale(t *testing.T) {
 	requireFinding(t, got, "Cleanup.UnusedSecret", "orphan-secret")
 	requireFinding(t, got, "Cleanup.CompletedJob", "old-migrate")
 	requireFinding(t, got, "Cleanup.OldReplicaSet", "api-old")
+	requireFinding(t, got, "Cleanup.UnusedPVC", "pvc-orphan")
+	requireFinding(t, got, "Cleanup.EmptyService", "empty-service")
 
 	if hasFinding(got, "Cleanup.UnusedConfigMap", "app-config") {
 		t.Fatal("used configmap flagged")
@@ -107,7 +143,19 @@ func TestCleanupFindsUnusedAndStale(t *testing.T) {
 	if hasFinding(got, "Cleanup.CompletedJob", "recent-migrate") {
 		t.Fatal("recent job flagged")
 	}
-	if !strings.Contains(got.Summary, "4 cleanup candidate(s)") {
+	if hasFinding(got, "Cleanup.UnusedPVC", "pvc-bound") {
+		t.Fatal("bound PVC flagged")
+	}
+	if hasFinding(got, "Cleanup.EmptyService", "used-service") {
+		t.Fatal("used service flagged")
+	}
+	if hasFinding(got, "Cleanup.EmptyService", "headless-service") {
+		t.Fatal("headless service flagged")
+	}
+	if hasFinding(got, "Cleanup.EmptyService", "no-selector-service") {
+		t.Fatal("no selector service flagged")
+	}
+	if !strings.Contains(got.Summary, "6 cleanup candidate(s)") {
 		t.Fatalf("summary=%q", got.Summary)
 	}
 }

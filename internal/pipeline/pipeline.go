@@ -68,6 +68,7 @@ type Deps struct {
 	IsTerminal    *bool                   // override ui.StdinIsTerminal when non-nil
 	OnResult      func(output.PlanResult) // optional per-plan completion observer
 	SkipOrgPolicy bool                    // tests: ignore Team org policy (Free CLI path)
+	BuildPlan     func(intent.Intent) (planner.ExecutionPlan, error) // tests: override planner.Build
 	// RouteSteps forces a multi-step route (recipe run / tests). When set, skips
 	// SplitRoutePrompt / recipe.TryRoute matching on cfg.Prompt.
 	RouteSteps []string
@@ -259,7 +260,11 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		}
 	}
 
-	plan, err := planner.Build(in)
+	buildPlan := deps.BuildPlan
+	if buildPlan == nil {
+		buildPlan = planner.Build
+	}
+	plan, err := buildPlan(in)
 	if err != nil {
 		return err
 	}

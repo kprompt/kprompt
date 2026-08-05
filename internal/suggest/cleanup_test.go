@@ -17,6 +17,8 @@ func TestFromCleanupDeletesJobsAndReplicaSets(t *testing.T) {
 			auditFinding("Cleanup.OldReplicaSet", "ReplicaSet/api-old has 0 replicas", "ReplicaSet", "api-old", "payments"),
 			auditFinding("Cleanup.UnusedConfigMap", "ConfigMap/orphan-config appears unused", "ConfigMap", "orphan-config", "payments"),
 			auditFinding("Cleanup.UnusedSecret", "Secret/orphan-secret appears unused", "Secret", "orphan-secret", "payments"),
+			auditFinding("Cleanup.UnusedPVC", "PersistentVolumeClaim/pvc-orphan appears unused", "PersistentVolumeClaim", "pvc-orphan", "payments"),
+			auditFinding("Cleanup.EmptyService", "Service/empty-service has no active endpoints", "Service", "empty-service", "payments"),
 		},
 	}
 	suggestions, err := FromCleanup(context.Background(), inv, "cleanup payments namespace")
@@ -41,15 +43,31 @@ func TestFromCleanupDeletesJobsAndReplicaSets(t *testing.T) {
 			t.Fatalf("unexpected kind %s", a.Object.Kind)
 		}
 	}
-	if len(suggestions) < 3 {
-		t.Fatalf("expected guidance for ConfigMap/Secret: %+v", suggestions)
+	if len(suggestions) < 5 {
+		t.Fatalf("expected guidance for ConfigMap/Secret/PVC/Service: %+v", suggestions)
 	}
+	var sawPVC, sawService bool
 	for _, s := range suggestions {
-		if s.Code == "Cleanup.UnusedConfigMap" || s.Code == "Cleanup.UnusedSecret" {
+		if s.Code == "Cleanup.UnusedConfigMap" || s.Code == "Cleanup.UnusedSecret" || s.Code == "Cleanup.UnusedPVC" || s.Code == "Cleanup.EmptyService" {
 			if s.Plan != nil {
 				t.Fatalf("%s must be guidance-only", s.Code)
 			}
+			if s.Code == "Cleanup.UnusedPVC" {
+				sawPVC = true
+				if s.Title != "Review unused PVC" {
+					t.Fatalf("unexpected title for PVC: %s", s.Title)
+				}
+			}
+			if s.Code == "Cleanup.EmptyService" {
+				sawService = true
+				if s.Title != "Review empty Service" {
+					t.Fatalf("unexpected title for Service: %s", s.Title)
+				}
+			}
 		}
+	}
+	if !sawPVC || !sawService {
+		t.Fatal("expected PVC and Service guidance suggestions")
 	}
 }
 

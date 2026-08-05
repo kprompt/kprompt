@@ -27,8 +27,8 @@ type Result struct {
 }
 
 var hardDenyPatterns = []*regexp.Regexp{
-	regexp.MustCompile(`(?i)\b(delete|remove|wipe|destroy|drop)\b.*\b(cluster|everything|all\s+namespaces)\b`),
-	regexp.MustCompile(`(?i)\b(cluster)\b.*\b(delete|remove|wipe|destroy)\b`),
+	regexp.MustCompile(`(?i)\b(delete(?:d|ing)?|remove(?:d|ing)?|wipe(?:d|ing)?|destroy(?:ed|ing)?|drop(?:ped|ping)?)\b.*\b(cluster|everything|all\s+namespaces)\b`),
+	regexp.MustCompile(`(?i)\b(cluster)\b.*\b(delete(?:d|ing)?|remove(?:d|ing)?|wipe(?:d|ing)?|destroy(?:ed|ing)?)\b`),
 	regexp.MustCompile(`(?i)\bwipe\s+(the\s+)?cluster\b`),
 	regexp.MustCompile(`(?i)\bdelete\s+all\s+(pods|deployments|resources|namespaces|services)\b`),
 	regexp.MustCompile(`(?i)\b(delete|remove|wipe)\s+(the\s+)?namespace\b`),

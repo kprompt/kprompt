@@ -71,15 +71,17 @@ func (a *Analyzer) Run(ctx context.Context, req Request) (incident.Investigation
 	orphans += a.scanSecrets(ctx, ns, refs, &out)
 	jobs := a.scanJobs(ctx, ns, now, jobAge, &out)
 	rss := a.scanReplicaSets(ctx, ns, &out)
+	pvcs := a.scanPVCs(ctx, ns, &out)
+	services := a.scanServices(ctx, ns, &out)
 
-	total := orphans + jobs + rss
+	total := orphans + jobs + rss + pvcs + services
 	scope := "cluster-wide"
 	if ns != "" {
 		scope = "namespace " + ns
 	}
 	out.Summary = fmt.Sprintf(
-		"%d cleanup candidate(s) in %s: %d unused ConfigMap/Secret(s), %d completed Job(s), %d superseded ReplicaSet(s)",
-		total, scope, orphans, jobs, rss,
+		"%d cleanup candidate(s) in %s: %d unused ConfigMap/Secret(s), %d completed Job(s), %d superseded ReplicaSet(s), %d unused PVC(s), %d empty Service(s)",
+		total, scope, orphans, jobs, rss, pvcs, services,
 	)
 	if total == 0 {
 		out.Summary += "; nothing to clean up"
@@ -373,6 +375,70 @@ func isSystemSecret(sec *corev1.Secret) bool {
 		return true
 	}
 	return false
+}
+
+func (a *Analyzer) scanPVCs(ctx context.Context, ns string, out *incident.Investigation) int {
+	list, err := a.Client.CoreV1().PersistentVolumeClaims(ns).List(ctx, metav1.ListOptions{Limit: cluster.DefaultReadLimit})
+	if err != nil {
+		out.Degraded = appendUnique(out.Degraded, "persistentvolumeclaims")
+		return 0
+	}
+	count := 0
+	for i := range list.Items {
+		pvc := &list.Items[i]
+		if pvc.Status.Phase == corev1.ClaimBound {
+			continue
+		}
+		count++
+		addFinding(out, "Cleanup.UnusedPVC", incident.SeverityLow,
+			fmt.Sprintf("PersistentVolumeClaim/%s appears unused", pvc.Name),
+			fmt.Sprintf("PersistentVolumeClaim status phase is %q (not Bound)", pvc.Status.Phase),
+			"PersistentVolumeClaim", pvc.Name, pvc.Namespace, "Unused")
+	}
+	return count
+}
+
+func (a *Analyzer) scanServices(ctx context.Context, ns string, out *incident.Investigation) int {
+	list, err := a.Client.CoreV1().Services(ns).List(ctx, metav1.ListOptions{Limit: cluster.DefaultReadLimit})
+	if err != nil {
+		out.Degraded = appendUnique(out.Degraded, "services")
+		return 0
+	}
+	count := 0
+	for i := range list.Items {
+		svc := &list.Items[i]
+		if svc.Spec.ClusterIP == corev1.ClusterIPNone {
+			continue
+		}
+		if len(svc.Spec.Selector) == 0 {
+			continue
+		}
+		eps, err := a.Client.CoreV1().Endpoints(svc.Namespace).Get(ctx, svc.Name, metav1.GetOptions{})
+		if err != nil {
+			if apierrors.IsNotFound(err) {
+				// No endpoints object
+			} else {
+				continue // Skip if we get transient / forbidden errors
+			}
+		} else {
+			hasAddresses := false
+			for _, subset := range eps.Subsets {
+				if len(subset.Addresses) > 0 {
+					hasAddresses = true
+					break
+				}
+			}
+			if hasAddresses {
+				continue
+			}
+		}
+		count++
+		addFinding(out, "Cleanup.EmptyService", incident.SeverityLow,
+			fmt.Sprintf("Service/%s has no active endpoints", svc.Name),
+			fmt.Sprintf("Service has a selector but matches zero active pods in namespace %s", svc.Namespace),
+			"Service", svc.Name, svc.Namespace, "EmptyService")
+	}
+	return count
 }
 
 func roundDuration(d time.Duration) time.Duration {

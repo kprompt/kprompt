@@ -23,8 +23,10 @@ import (
 
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/history"
+	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/llm"
 	"github.com/kprompt/kprompt/internal/output"
+	"github.com/kprompt/kprompt/internal/planner"
 	toolgrafana "github.com/kprompt/kprompt/internal/tools/grafana"
 	toolotel "github.com/kprompt/kprompt/internal/tools/otel"
 	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
@@ -873,6 +875,42 @@ func TestMutationApproveFlagSkipsPrompt(t *testing.T) {
 	dep, _ := client.AppsV1().Deployments("default").Get(context.Background(), "api", metav1.GetOptions{})
 	if *dep.Spec.Replicas != 4 {
 		t.Fatalf("replicas=%v", *dep.Spec.Replicas)
+	}
+}
+
+func TestStubPlanEscalationDeniedBeforeApply(t *testing.T) {
+	client := fake.NewSimpleClientset(deployment("api", "default", 2))
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Approve: true,
+		Prompt:  "show pod status",
+	}, &out, Deps{
+		Provider: llm.ScaleStub("api", "default", 3),
+		Client:   client,
+		BuildPlan: func(_ intent.Intent) (planner.ExecutionPlan, error) {
+			return planner.ExecutionPlan{
+				Intent: intent.Intent{Kind: intent.KindDelete},
+				Actions: []planner.Action{{
+					Op:     planner.OpDelete,
+					Object: planner.ObjectRef{Kind: "Namespace", Name: "default"},
+				}},
+				Summary:          "Delete Namespace/default",
+				RequiresApproval: true,
+			}, nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Contains(out.Bytes(), []byte("Refusing namespace deletion")) {
+		t.Fatalf("expected safety deny message, got:\n%s", out.String())
+	}
+	dep, err := client.AppsV1().Deployments("default").Get(context.Background(), "api", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if dep.Spec.Replicas == nil || *dep.Spec.Replicas != 2 {
+		t.Fatalf("expected no apply on denied plan, replicas=%v", dep.Spec.Replicas)
 	}
 }
 

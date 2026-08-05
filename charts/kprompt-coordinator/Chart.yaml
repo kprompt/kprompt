@@ -3,4 +3,4 @@ name: kprompt-coordinator
 description: Thin Coordinator HTTP fan-in for kprompt Namespace Agents (AG-037; no mutate)
 type: application
 version: 0.1.0
-appVersion: "0.8.0"
+appVersion: "0.9.0"

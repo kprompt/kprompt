@@ -2,6 +2,31 @@
 
 All notable changes to kprompt are documented here. Versions follow [GitHub Releases](https://github.com/kprompt/kprompt/releases).
 
+## [v0.9.0](https://github.com/kprompt/kprompt/releases/tag/v0.9.0) — 2026-08-04
+
+Day-0 CLI onboarding pack + provider/agent follow-ups since v0.8.0.
+
+### Features
+
+- **Coach** — bare `kprompt` prints kube/LLM/cluster readiness and next steps (OB-001)
+- **`kprompt init`** — configure Ollama ($0) or BYOK without silent OpenAI default (OB-002 · OB-003)
+- **`kprompt demo`** — $0 Observe walkthrough checklist + `--check` (OB-004)
+- **Help groups** — Day-0 vs Advanced; `kprompt advanced` (OB-005)
+- **Approval vocabulary** — unified `Apply …? [y/N]` / `--approve`; history clear `--approve` (`--yes` alias) (OB-006)
+- **Wipe deny remediation** — flavor punchlines + stable `Next:` named-target hint (OB-007)
+- **Cerebras** provider preset (#95)
+- **Discord** notify wiring for Observe agent Helm/CRD (#94)
+
+### Docs
+
+- `docs/init.md` · `docs/demo.md` · `docs/approval.md`
+- Architecture [CLI-ONBOARDING-TASKS.md](https://github.com/kprompt/kprompt-architecture/blob/main/CLI-ONBOARDING-TASKS.md) (OB-001…007 Done)
+- Gemini free-tier / Team run bridge honesty notes
+
+### Notes
+
+Experimental — prefer non-production clusters. Empty config no longer implies OpenAI; run `kprompt init` first. Autopilot remains propose-only by default.
+
 ## [v0.8.0](https://github.com/kprompt/kprompt/releases/tag/v0.8.0) — 2026-08-02
 
 AI SRE intelligence pack + laptop AI Native surfaces.

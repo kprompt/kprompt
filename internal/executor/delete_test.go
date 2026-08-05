@@ -2,6 +2,7 @@ package executor
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -142,6 +143,22 @@ func TestDeleteConfigMapAndSecret(t *testing.T) {
 	}
 	if _, err := client.CoreV1().Secrets("payments").Get(context.Background(), "orphan-secret", metav1.GetOptions{}); err == nil {
 		t.Fatal("expected Secret deleted")
+	}
+}
+
+func TestDeleteUnknownKindRejected(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	err := (&Runner{Client: client}).Apply(context.Background(), planner.ExecutionPlan{
+		Actions: []planner.Action{{
+			Op:     planner.OpDelete,
+			Object: planner.ObjectRef{Kind: "CronTab", Name: "nightly", Namespace: "default"},
+		}},
+	})
+	if err == nil {
+		t.Fatal("expected unknown delete kind to fail")
+	}
+	if !strings.Contains(err.Error(), "not implemented") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

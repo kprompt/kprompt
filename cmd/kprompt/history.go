@@ -126,34 +126,38 @@ func newHistoryCmd() *cobra.Command {
 		},
 	})
 
-	var skipConfirm bool
+	var (
+		skipConfirmApprove bool
+		skipConfirmYes     bool
+	)
 	clearCmd := &cobra.Command{
-		Use:     "clear",
-		Short:   "Clear all prompt history safely",
-		Long:    "Safely truncates/clears the local history file (~/.kprompt/history.jsonl). Requires confirmation unless --yes is passed.",
-		Example: `  kprompt history clear` + "\n" + `  kprompt history clear --yes`,
-		Args:    cobra.NoArgs,
+		Use:   "clear",
+		Short: "Clear all prompt history safely",
+		Long:  "Safely truncates/clears the local history file (~/.kprompt/history.jsonl). Requires confirmation unless --approve is passed (--yes is an alias).",
+		Example: `  kprompt history clear
+  kprompt history clear --approve`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if !skipConfirm {
-				fmt.Fprint(cmd.OutOrStdout(), "Are you sure you want to clear all history? [y/N]: ")
-				var input string
-				if _, err := fmt.Fscanln(cmd.InOrStdin(), &input); err != nil {
-					input = ""
+			skip := skipConfirmApprove || skipConfirmYes
+			if !skip {
+				ok, err := ui.ConfirmClearHistory(cmd.InOrStdin(), cmd.OutOrStdout())
+				if err != nil {
+					return err
 				}
-				input = strings.ToLower(strings.TrimSpace(input))
-				if input != "y" && input != "yes" {
-					fmt.Fprintln(cmd.OutOrStdout(), "Canceled.")
+				if !ok {
+					ui.PrintAborted(cmd.OutOrStdout())
 					return nil
 				}
 			}
 			if err := history.Clear(); err != nil {
 				return fmt.Errorf("failed to clear history: %w", err)
 			}
-			fmt.Fprintln(cmd.OutOrStdout(), "History Cleared Successfully.")
+			fmt.Fprintln(cmd.OutOrStdout(), "History cleared.")
 			return nil
 		},
 	}
-	clearCmd.Flags().BoolVarP(&skipConfirm, "yes", "y", false, "skip confirmation prompt")
+	clearCmd.Flags().BoolVar(&skipConfirmApprove, "approve", false, "skip confirmation (same vocabulary as mutate apply)")
+	clearCmd.Flags().BoolVarP(&skipConfirmYes, "yes", "y", false, "alias for --approve")
 	cmd.AddCommand(clearCmd)
 
 	return cmd

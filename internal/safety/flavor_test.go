@@ -7,10 +7,15 @@ import (
 
 func TestWipeDenyMessageFormat(t *testing.T) {
 	msg := WipeDenyMessage("delete everything in the cluster")
-	if !strings.HasPrefix(msg, "🚨 Intent: destructive cluster operation\n🛡️ Safe execution: denied\n😅 ") {
+	prefix := "🚨 Intent: destructive cluster operation\n🛡️ Safe execution: denied\n😅 "
+	if !strings.HasPrefix(msg, prefix) {
 		t.Fatalf("unexpected header:\n%s", msg)
 	}
-	punch := strings.TrimPrefix(msg, "🚨 Intent: destructive cluster operation\n🛡️ Safe execution: denied\n😅 ")
+	if !strings.Contains(msg, WipeDenyRemediation) {
+		t.Fatalf("missing remediation Next line:\n%s", msg)
+	}
+	punch := strings.TrimPrefix(msg, prefix)
+	punch, _, _ = strings.Cut(punch, "\n\n")
 	found := false
 	for _, f := range wipeDenyFlavors {
 		if punch == f {

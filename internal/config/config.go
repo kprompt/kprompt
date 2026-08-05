@@ -206,11 +206,12 @@ func APIKeyFor(provider string) string {
 }
 
 // Merge builds Resolved from file defaults and CLI overrides.
+// Empty provider (no CLI flag, no config) stays unconfigured — no silent openai default (OB-002).
 func Merge(file File, provider, model, context, namespace string, approve bool, prompt string) Resolved {
-	prov := first(provider, file.Provider, "openai")
-	preset, _ := llm.LookupPreset(prov)
-	defModel := "gpt-4o-mini"
-	if preset.Name != "" {
+	prov := first(provider, file.Provider)
+	preset, ok := llm.LookupPreset(prov)
+	defModel := ""
+	if ok {
 		defModel = preset.DefaultModel
 	}
 

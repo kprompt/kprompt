@@ -3,9 +3,8 @@ package llm
 import "testing"
 
 func TestLookupPresetDefaults(t *testing.T) {
-	p, ok := LookupPreset("")
-	if !ok || p.Name != "openai" {
-		t.Fatalf("empty -> openai, got %+v ok=%v", p, ok)
+	if _, ok := LookupPreset(""); ok {
+		t.Fatal("empty name must be unconfigured, not openai")
 	}
 	g, ok := LookupPreset("Gemini")
 	if !ok || g.Kind != "gemini" {
@@ -14,6 +13,10 @@ func TestLookupPresetDefaults(t *testing.T) {
 	o, ok := LookupPreset("ollama")
 	if !ok || !o.AllowEmptyKey {
 		t.Fatal("ollama should allow empty key")
+	}
+	p, ok := LookupPreset("openai")
+	if !ok || p.Name != "openai" {
+		t.Fatalf("openai: %+v ok=%v", p, ok)
 	}
 }
 

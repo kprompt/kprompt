@@ -30,6 +30,9 @@ type Provider interface {
 // New constructs a Provider from a preset name.
 // baseURL overrides the preset default when non-empty (openai-compatible backends).
 func New(name, apiKey, baseURL, model string) (Provider, error) {
+	if strings.TrimSpace(name) == "" {
+		return nil, ErrProviderUnconfigured()
+	}
 	preset, ok := LookupPreset(name)
 	if !ok {
 		return nil, fmt.Errorf("unknown provider %q (supported: %s)", name, SupportedNames())

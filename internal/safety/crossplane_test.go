@@ -7,13 +7,6 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 )
 
-func TestCheckCrossplanePromptDeniesWipe(t *testing.T) {
-	r := CheckCrossplanePrompt("delete all crossplane claims")
-	if !r.Denied {
-		t.Fatal("expected deny")
-	}
-}
-
 func TestCheckCrossplanePromptAllowsProvision(t *testing.T) {
 	r := CheckCrossplanePrompt("provision a postgres database")
 	if r.Denied {

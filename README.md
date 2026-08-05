@@ -21,16 +21,25 @@ $ kprompt "delete everything in the cluster"
 🚨 Intent: destructive cluster operation
 🛡️ Safe execution: denied
 😅 Nice try. Named targets only — chaos needs a ticket
+
+Next: kprompt "delete deployment <name>" -n <namespace>
 ```
 
-Wipe-class denials rotate a small **flavor pack** of punchlines (stable per prompt) — same safety, less boring stdout.
+Wipe-class denials rotate a small **flavor pack** of punchlines (stable per prompt) — same safety, less boring stdout — and always end with a **Next:** remediation line.
 
 Static still of a scale plan: [plan-demo.svg](./.github/assets/plan-demo.svg).
 Open source (Apache-2.0). **Experimental.** Always review the plan before apply, prefer non-production first, and treat `--approve` with care. Safety hard-denies help; they do not make unattended production use safe.
 
 ## Try it in 60 seconds — $0, no provider key, no cloud
 
-[kprompt-examples](https://github.com/kprompt/kprompt-examples) spins up kind, breaks seven workloads on purpose, then runs the Observe agent in `--heuristic` mode: **deterministic, offline, zero LLM spend.**
+Observe agent demo (heuristic, offline, zero LLM spend). From any machine with Docker/kind:
+
+```bash
+kprompt demo              # prerequisites + exact walkthrough commands
+kprompt demo --check      # PATH tools only
+```
+
+Or clone manually:
 
 ```bash
 brew install kind kubectl
@@ -121,14 +130,14 @@ kprompt login
 
 </details>
 
-Multi-hop RCA: [docs/investigate.md](./docs/investigate.md) · Investigation Graph: [docs/investigation-graph.md](./docs/investigation-graph.md) · Reality anchors: [docs/reality-anchors.md](./docs/reality-anchors.md) · Causal why: [docs/why.md](./docs/why.md) · Timeline: [docs/timeline.md](./docs/timeline.md) · Reverse dependencies: [docs/impact.md](./docs/impact.md) · Knowledge Graph MVP: [docs/graph.md](./docs/graph.md) · Simulation MVP: [docs/simulation.md](./docs/simulation.md) · Security hygiene: [docs/audit.md](./docs/audit.md) · Cleanup: [docs/cleanup.md](./docs/cleanup.md) · Inventory search: [docs/search.md](./docs/search.md) · Scorecard: [docs/score.md](./docs/score.md) · Architecture narrative: [docs/architecture.md](./docs/architecture.md) · Watch: [docs/watch.md](./docs/watch.md) · Remember: [docs/remember.md](./docs/remember.md) · Session: [docs/session.md](./docs/session.md) · Learn profile: [docs/learn.md](./docs/learn.md) · Drift: [docs/drift.md](./docs/drift.md) · GitOps PR: [docs/gitops-pr.md](./docs/gitops-pr.md) · Recipes: [docs/recipes.md](./docs/recipes.md) · Cost Intelligence / Optimize: [docs/optimize.md](./docs/optimize.md) · Setup: [docs/setup.md](./docs/setup.md) · Doctor: [docs/doctor.md](./docs/doctor.md) · Tools: [docs/tools.md](./docs/tools.md) · History: [docs/history.md](./docs/history.md) · IDE PlanResult: [docs/ide.md](./docs/ide.md).
+Multi-hop RCA: [docs/investigate.md](./docs/investigate.md) · Investigation Graph: [docs/investigation-graph.md](./docs/investigation-graph.md) · Reality anchors: [docs/reality-anchors.md](./docs/reality-anchors.md) · Causal why: [docs/why.md](./docs/why.md) · Timeline: [docs/timeline.md](./docs/timeline.md) · Reverse dependencies: [docs/impact.md](./docs/impact.md) · Knowledge Graph MVP: [docs/graph.md](./docs/graph.md) · Simulation MVP: [docs/simulation.md](./docs/simulation.md) · Security hygiene: [docs/audit.md](./docs/audit.md) · Cleanup: [docs/cleanup.md](./docs/cleanup.md) · Inventory search: [docs/search.md](./docs/search.md) · Scorecard: [docs/score.md](./docs/score.md) · Architecture narrative: [docs/architecture.md](./docs/architecture.md) · Watch: [docs/watch.md](./docs/watch.md) · Remember: [docs/remember.md](./docs/remember.md) · Session: [docs/session.md](./docs/session.md) · Learn profile: [docs/learn.md](./docs/learn.md) · Drift: [docs/drift.md](./docs/drift.md) · GitOps PR: [docs/gitops-pr.md](./docs/gitops-pr.md) · Recipes: [docs/recipes.md](./docs/recipes.md) · Cost Intelligence / Optimize: [docs/optimize.md](./docs/optimize.md) · Setup: [docs/setup.md](./docs/setup.md) · Init: [docs/init.md](./docs/init.md) · Demo: [docs/demo.md](./docs/demo.md) · Doctor: [docs/doctor.md](./docs/doctor.md) · Approval: [docs/approval.md](./docs/approval.md) · Tools: [docs/tools.md](./docs/tools.md) · History: [docs/history.md](./docs/history.md) · IDE PlanResult: [docs/ide.md](./docs/ide.md).
 In-cluster Observe agent (Helm): [docs/agent.md](./docs/agent.md) · modes: [docs/namespace-agent.md](./docs/namespace-agent.md) · ops: [docs/agent-ops.md](./docs/agent-ops.md) · [`charts/kprompt-agent`](./charts/kprompt-agent) · Coordinator: [`charts/kprompt-coordinator`](./charts/kprompt-coordinator).
 
 Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Secret, …). See [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
 
 ## Status
 
-**v0.8.0 (experimental)** — Search / score / architecture, plus laptop `watch` · `remember` · `session` (ADR-0022). Builds on setup, GitOps PR, learn/drift/recipes, and the Namespace Agent pack. Autopilot stays **propose-only by default**. See [CHANGELOG.md](./CHANGELOG.md) · [docs/agent.md](./docs/agent.md).
+**v0.9.0 (experimental)** — Day-0 onboarding (`init` · `demo` · coach · help groups), plus Cerebras and Discord notify. Builds on search/score/architecture and laptop `watch` · `remember` · `session`. Autopilot stays **propose-only by default**. See [CHANGELOG.md](./CHANGELOG.md) · [docs/init.md](./docs/init.md).
 
 ## Install
 
@@ -147,7 +156,7 @@ brew install kprompt/tap/kprompt
 Fallback (pinned release script on jsDelivr):
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.8.0/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.9.0/install/install.sh | bash
 ```
 
 ### From source (dev)
@@ -196,27 +205,23 @@ Downloads are not unique users (re-installs, CI, checksums). Site `/install` fet
 
 No kprompt purchase — the Free CLI never sells you an API key. Natural-language plans need **your** LLM (local Ollama = **$0**, or a cloud provider key you already own). Prefer the [60-second walkthrough](#try-it-in-60-seconds--0-no-provider-key-no-cloud) first if you only want the Observe demo.
 
+After install, bare `kprompt` prints a readiness coach (kube / LLM / cluster). With no `provider` in config and no `--provider` flag, the CLI is **unconfigured** (does not silently default to OpenAI).
+
 1. Point kubeconfig at a cluster (`~/.kube/config` or `KUBECONFIG`).
-2. Pick how you plan — **Ollama first ($0)**, cloud BYOK only if you want it:
+2. Configure once — **Ollama first ($0)**, cloud BYOK only if you want it:
 
 ```bash
 # A) Local Ollama — no cloud key, $0 inference
 #    ollama serve && ollama pull llama3.2
-kprompt config set provider ollama
-kprompt config set model llama3.2
-kprompt --provider ollama "list pods"
+kprompt init --ollama
+kprompt "list pods"
 
 # B) Optional: your LLM provider key (BYOK — not a kprompt product)
-export KPROMPT_OPENAI_API_KEY=sk-...          # --provider openai (default)
-export KPROMPT_ANTHROPIC_API_KEY=sk-ant-...   # --provider anthropic
-export KPROMPT_GEMINI_API_KEY=...             # --provider gemini
-export KPROMPT_GROQ_API_KEY=...               # --provider groq
-export KPROMPT_XAI_API_KEY=...                # --provider xai (Grok)
-export KPROMPT_CEREBRAS_API_KEY=...           # --provider cerebras
-export KPROMPT_MOONSHOT_API_KEY=...           # --provider moonshot (Kimi K3)
+kprompt init --provider openai
+export KPROMPT_OPENAI_API_KEY=sk-...          # or anthropic / gemini / groq / xai / …
 ```
 
-See [docs/providers.md](./docs/providers.md) for the full list. Optional Team login (`kprompt login` → `kp_…` token) is org policy/audit only — unrelated to LLM keys.
+See [docs/init.md](./docs/init.md) and [docs/providers.md](./docs/providers.md). Optional Team login (`kprompt login` → `kp_…` token) is org policy/audit only — unrelated to LLM keys.
 
 3. Optional config at `~/.kprompt/config.yaml` (no secrets). CLI history/Team files also live under `~/.kprompt/`; Observe local stores use `~/.config/kprompt/` — see [docs/agent.md](./docs/agent.md#where-files-live).
 
@@ -264,7 +269,7 @@ kprompt history rerun                     # replay newest prompt
 kprompt history rerun 3 --approve
 kprompt history show 1                    # inspect one entry
 kprompt history clear                     # clear history with confirmation
-kprompt history clear --yes               # clear history without prompting
+kprompt history clear --approve           # clear without prompting (--yes alias ok)
 ```
 
 History stores prompt, kind, summary, and action refs — never manifests or API keys.
@@ -357,7 +362,7 @@ Package layout matches the private architecture ADRs (`cmd/kprompt`, `internal/{
 | Community | [Discussions](https://github.com/kprompt/kprompt/discussions) · [Contributing](./CONTRIBUTING.md) · [Good first issues](https://github.com/kprompt/kprompt/labels/good%20first%20issue) |
 | Social | [X @kpromptai](https://x.com/kpromptai) · [LinkedIn](https://www.linkedin.com/company/kprompt) · [Bluesky](https://bsky.app/profile/kprompt.bsky.social) · [hello@kprompt.ai](mailto:hello@kprompt.ai) |
 | Compare | [vs kubectl-ai](https://kprompt.ai/blog/kprompt-vs-kubectl-ai) · [AI tools map](https://kprompt.ai/blog/kubernetes-ai-tools-comparison) · [kubectl vs K9s](https://kprompt.ai/blog/kubectl-vs-k9s) |
-| Product | [audit](./docs/audit.md) · [impact](./docs/impact.md) · [themes](./docs/theme.md) · [doctor](./docs/doctor.md) · [tools](./docs/tools.md) · [history](./docs/history.md) · [IDE PlanResult](./docs/ide.md) · [optimize my cluster](https://kprompt.ai/blog/optimize-my-cluster) · [PlanResult JSON](https://kprompt.ai/blog/planresult-json-deep-dive) · [AI SRE](https://kprompt.ai/blog/ai-sre-not-ai-kubectl) |
+| Product | [audit](./docs/audit.md) · [impact](./docs/impact.md) · [themes](./docs/theme.md) · [init](./docs/init.md) · [doctor](./docs/doctor.md) · [tools](./docs/tools.md) · [history](./docs/history.md) · [IDE PlanResult](./docs/ide.md) · [optimize my cluster](https://kprompt.ai/blog/optimize-my-cluster) · [PlanResult JSON](https://kprompt.ai/blog/planresult-json-deep-dive) · [AI SRE](https://kprompt.ai/blog/ai-sre-not-ai-kubectl) |
 
 ## Contributors
 

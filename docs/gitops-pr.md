@@ -28,7 +28,7 @@ kprompt "deploy redis" -n demo --approve
 ```
 
 The plan banner shows **Apply target: Git PR (not cluster)** with repo / path /
-base branch. Confirm becomes “Open this plan as a GitHub PR?” (or `--approve`).
+base branch. Confirm becomes “Apply this plan as a GitHub PR?” (or `--approve`).
 
 ## Requirements
 

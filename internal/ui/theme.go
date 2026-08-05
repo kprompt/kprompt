@@ -255,6 +255,11 @@ func themeFor(w io.Writer) Theme {
 	return p
 }
 
+// ThemeForWriter returns the active Theme for writer w (colors when TTY).
+func ThemeForWriter(w io.Writer) Theme {
+	return themeFor(w)
+}
+
 func colorEnabled(name string, w io.Writer) bool {
 	if disableKeywords[name] {
 		return false

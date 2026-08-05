@@ -134,10 +134,14 @@ func BuildView() (View, error) {
 		return View{}, err
 	}
 	r := Merge(f, "", "", "", "", false, "")
+	prov := r.Provider
+	if prov == "" {
+		prov = "(unconfigured)"
+	}
 	v := View{
 		Path:              path,
-		Provider:          r.Provider,
-		Model:             r.Model,
+		Provider:          prov,
+		Model:             emptyDash(r.Model),
 		BaseURL:           r.BaseURL,
 		Context:           dash(r.Context),
 		Namespace:         r.Namespace,
@@ -165,6 +169,9 @@ func BuildView() (View, error) {
 		default:
 			v.APIKey = "unset"
 		}
+	} else if r.Provider == "" {
+		v.APIKey = "unset"
+		v.EnvHints = nil
 	} else {
 		v.APIKey = "unknown provider"
 	}

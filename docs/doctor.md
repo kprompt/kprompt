@@ -8,6 +8,8 @@ files. It never prints key or token values.
 
 **Key vocabulary:** an **LLM provider key** is yours (OpenAI/Gemini/… env var, or none for Ollama). A Team **`kp_…` token** from `kprompt login` is separate org enrollment — not required for Free CLI NL plans. kprompt does not sell either.
 
+If no provider is configured, the LLM check fails with a hint to run `kprompt init --ollama` (the CLI no longer silently defaults to OpenAI).
+
 ## What it checks
 
 - Config file path and selected provider

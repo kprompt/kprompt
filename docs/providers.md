@@ -1,11 +1,13 @@
 # LLM providers
 
-Select with `--provider` / `~/.kprompt/config.yaml` (`provider`, `model`, optional `base_url`).
+Select with `--provider` / `~/.kprompt/config.yaml` (`provider`, `model`, optional `base_url`), or run **`kprompt init`** once.
 
 kprompt does **not** sell API keys. For natural-language plans you either:
 
-1. **Ollama locally ($0)** — no cloud key
-2. **BYOK** — your own OpenAI / Gemini / … key (env vars only; never stored in the config file)
+1. **Ollama locally ($0)** — `kprompt init --ollama` (no cloud key)
+2. **BYOK** — `kprompt init --provider …` + your own env key (never stored in the config file)
+
+With **no** `provider` in config and no `--provider` flag, the CLI is **unconfigured** (it does not silently default to OpenAI). Bare `kprompt` coaches you toward `init`.
 
 Optional Team `kp_…` tokens (`kprompt login`) are for org policy/audit — not LLM inference.
 
@@ -45,8 +47,8 @@ Prefer **Ollama** when you want $0 with no cloud quota:
 
 ```bash
 ollama pull llama3.2
-kprompt config set provider ollama
-kprompt config set model llama3.2
+kprompt init --ollama
+# equivalent: kprompt config set provider ollama && kprompt config set model llama3.2
 ```
 
 Monitor Google quotas: [ai.dev/rate-limit](https://ai.dev/rate-limit).
@@ -55,10 +57,13 @@ Monitor Google quotas: [ai.dev/rate-limit](https://ai.dev/rate-limit).
 
 ```bash
 # Local Ollama ($0 — ollama serve + ollama pull llama3.2)
-kprompt --provider ollama --model llama3.2 "list pods"
+kprompt init --ollama
+kprompt "list pods"
+# or one-shot: kprompt --provider ollama --model llama3.2 "list pods"
 
 # OpenAI
 export KPROMPT_OPENAI_API_KEY=sk-...
+kprompt init --provider openai
 kprompt "list deployments"
 
 # Anthropic

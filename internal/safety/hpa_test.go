@@ -7,12 +7,8 @@ import (
 	"github.com/kprompt/kprompt/internal/planner"
 )
 
-func TestCheckHPAPromptWipe(t *testing.T) {
-	got := CheckHPAPrompt("delete all hpas")
-	if !got.Denied {
-		t.Fatalf("%+v", got)
-	}
-	got = CheckHPAPrompt("add HPA for redis")
+func TestCheckHPAPromptAllowsCreate(t *testing.T) {
+	got := CheckHPAPrompt("add HPA for redis")
 	if got.Denied {
 		t.Fatalf("%+v", got)
 	}

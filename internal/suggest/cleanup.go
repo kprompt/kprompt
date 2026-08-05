@@ -88,6 +88,11 @@ func FromCleanup(_ context.Context, inv incident.Investigation, prompt string) (
 				},
 				Diff: fmt.Sprintf("- ReplicaSet/%s -n %s (superseded, 0 replicas)", ref.Name, ref.Namespace),
 			})
+		case "Cleanup.UnusedPVC", "Cleanup.EmptyService":
+			addAuditGuidance(&guidance, seenGuidance, f.Code,
+				cleanupGuidanceTitle(f.Code),
+				fmt.Sprintf("describe %s/%s", strings.ToLower(ref.Kind), ref.Name),
+				cleanupGuidanceSummary(f.Code))
 		case "Cleanup.UnusedConfigMap", "Cleanup.UnusedSecret":
 			if !confirmOrphans {
 				addAuditGuidance(&guidance, seenGuidance, f.Code,
@@ -195,6 +200,10 @@ func cleanupGuidanceTitle(code string) string {
 		return "Review unused ConfigMap"
 	case "Cleanup.UnusedSecret":
 		return "Review unused Secret"
+	case "Cleanup.UnusedPVC":
+		return "Review unused PVC"
+	case "Cleanup.EmptyService":
+		return "Review empty Service"
 	default:
 		return "Review cleanup candidate"
 	}
@@ -206,6 +215,10 @@ func cleanupGuidanceSummary(code string) string {
 		return "ConfigMaps stay guidance-only unless you confirm orphans (e.g. \"cleanup … and confirm orphans\"); CRD/GitOps refs may be unscanned"
 	case "Cleanup.UnusedSecret":
 		return "Secrets stay guidance-only unless you confirm orphans; false positives are common — confirm then delete"
+	case "Cleanup.UnusedPVC":
+		return "PersistentVolumeClaim is not Bound; verify if it is needed or if storage provisioning failed"
+	case "Cleanup.EmptyService":
+		return "Service has a selector but zero active endpoints; traffic to this service will fail"
 	default:
 		return "Review the finding before deleting"
 	}

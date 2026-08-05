@@ -23,11 +23,15 @@ var wipeDenyFlavors = []string{
 	"Nice try. Named targets only — chaos needs a ticket",
 }
 
+// WipeDenyRemediation is the stable next-step line appended to wipe-class denies (OB-007).
+const WipeDenyRemediation = `Next: kprompt "delete deployment <name>" -n <namespace>`
+
 // WipeDenyMessage builds the human TTY/JSON message for a wipe-class prompt deny.
 func WipeDenyMessage(prompt string) string {
 	return fmt.Sprintf(
-		"🚨 Intent: destructive cluster operation\n🛡️ Safe execution: denied\n😅 %s",
+		"🚨 Intent: destructive cluster operation\n🛡️ Safe execution: denied\n😅 %s\n\n%s",
 		wipeDenyPunchline(prompt),
+		WipeDenyRemediation,
 	)
 }
 

@@ -35,11 +35,14 @@ func TestRunLLMKeyRequired(t *testing.T) {
 		t.Fatal(err)
 	}
 	if rep.OK {
-		t.Fatal("expected fail without API key")
+		t.Fatal("expected fail without provider")
 	}
 	llm := find(rep, "llm")
-	if llm.Status != Fail || !strings.Contains(llm.Hint, "KPROMPT_OPENAI_API_KEY") {
+	if llm.Status != Fail || !strings.Contains(llm.Hint, "init --ollama") {
 		t.Fatalf("llm=%+v", llm)
+	}
+	if !strings.Contains(llm.Detail, "no provider configured") {
+		t.Fatalf("llm detail=%+v", llm)
 	}
 	kube := find(rep, "kubernetes")
 	if kube.Status != Pass {
@@ -71,6 +74,39 @@ func TestRunLLMKeyRequired(t *testing.T) {
 	}
 	if !strings.Contains(out, "Overall: FAIL") {
 		t.Fatalf("out=%s", out)
+	}
+}
+
+func TestRunLLMKeyRequiredWithOpenAI(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("KPROMPT_HOME", filepath.Join(dir, ".kprompt"))
+	t.Setenv("KPROMPT_OPENAI_API_KEY", "")
+	t.Setenv("OPENAI_API_KEY", "")
+
+	if _, err := config.SetField("provider", "openai"); err != nil {
+		t.Fatal(err)
+	}
+
+	rep, err := Run(context.Background(), Options{
+		Detect: func(context.Context, tools.DetectOptions) (*tools.Registry, error) {
+			return tools.NewRegistry([]tools.Result{
+				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusAvailable, Detail: "ok"},
+			}), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if rep.OK {
+		t.Fatal("expected fail without API key")
+	}
+	llm := find(rep, "llm")
+	if llm.Status != Fail || !strings.Contains(llm.Hint, "KPROMPT_OPENAI_API_KEY") {
+		t.Fatalf("llm=%+v", llm)
+	}
+	if !strings.Contains(llm.Hint, "init --ollama") {
+		t.Fatalf("hint should mention ollama: %+v", llm)
 	}
 }
 

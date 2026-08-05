@@ -119,7 +119,7 @@ func checkConfig(file config.File) Check {
 	}
 	prov := strings.TrimSpace(file.Provider)
 	if prov == "" {
-		prov = "openai (default)"
+		prov = "(unconfigured)"
 	}
 	return Check{
 		ID: "config", Name: "Config", Status: Pass, Required: true,
@@ -128,17 +128,22 @@ func checkConfig(file config.File) Check {
 }
 
 func checkLLM(file config.File) Check {
+	c := Check{ID: "llm", Name: "LLM provider", Required: true}
+	if strings.TrimSpace(file.Provider) == "" {
+		c.Status = Fail
+		c.Detail = "no provider configured"
+		c.Hint = "kprompt init --ollama  ($0)  or  kprompt init --provider openai"
+		return c
+	}
 	r := config.Merge(file, "", "", "", "", false, "")
 	preset, ok := llm.LookupPreset(r.Provider)
 	if !ok {
-		return Check{
-			ID: "llm", Name: "LLM provider", Status: Fail, Required: true,
-			Detail: fmt.Sprintf("unknown provider %q", r.Provider),
-			Hint:   "kprompt config set provider openai",
-		}
+		c.Status = Fail
+		c.Detail = fmt.Sprintf("unknown provider %q", r.Provider)
+		c.Hint = "kprompt init --ollama  or  kprompt config set provider <name>"
+		return c
 	}
 	key := config.APIKeyFor(r.Provider)
-	c := Check{ID: "llm", Name: "LLM provider", Required: true}
 	if preset.AllowEmptyKey {
 		c.Status = Pass
 		c.Detail = fmt.Sprintf("%s · model %s · key optional (local)", r.Provider, r.Model)
@@ -148,7 +153,7 @@ func checkLLM(file config.File) Check {
 		c.Status = Fail
 		c.Detail = fmt.Sprintf("%s · model %s · API key unset", r.Provider, r.Model)
 		hints := strings.Join(preset.EnvKeys, " or ")
-		c.Hint = fmt.Sprintf("export %s=… (or save a key at app.kprompt.ai/secrets and: kprompt secrets pull)", hints)
+		c.Hint = fmt.Sprintf("export %s=…  or: kprompt init --ollama", hints)
 		return c
 	}
 	c.Status = Pass
