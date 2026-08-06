@@ -13,6 +13,7 @@ Related: [investigation-graph.md](./investigation-graph.md) · [ci.md](./ci.md) 
 | Anchor | What it freezes | Who may change it | LLM / agent may… |
 |--------|-----------------|-------------------|------------------|
 | **Hard deny / safety policy** | Wipe-class, delete-namespace, cluster destroy intents | Humans via `internal/safety` + ADR-0003; optional org deny lists | Never waive; denied plans do not apply |
+| **Generated command boundary** | Helm/GitOps host exec argv + Argo/Tekton generated command interpolation | Humans via `internal/tools/{helm,argo,tekton}` + setup allowlist rules | Keep argv slice-only host exec; reject `/bin/sh -c` launcher in workflow params; quote injected script literals. Residual risk: intentional container args still run in-cluster after explicit approval |
 | **CLI pre-trust verify (T-089)** | EvidenceRef + optional re-read before high confidence / approve UX | Humans via `internal/pretrust` | Never raise confidence; soft-agree caps at 0.4 |
 | **PlanResult schema** | `apiVersion` / `kind` / `schemaVersion` / risk / actions | Humans via product schema bumps | Emit into schema; not redefine fields mid-run |
 | **Investigation / InvestigationReport schema** | Findings, EvidenceRef, Unknowns, confidence | Humans via ADR-0014 / schemaVersion | Fill fields; not drop Unknowns to fake certainty |

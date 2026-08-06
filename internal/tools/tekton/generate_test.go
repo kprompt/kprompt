@@ -48,3 +48,22 @@ func TestInferRepoFromPrompt(t *testing.T) {
 		t.Fatalf("got=%q", got)
 	}
 }
+
+func TestGeneratePipelineRunQuotesInjectionShapedRepo(t *testing.T) {
+	repo := "https://github.com/acme/app$(touch /tmp/pwn).git"
+	manifest, _, err := GeneratePipelineRun(PipelineRequest{
+		Name: "ci-app", Namespace: "default", Repo: repo, Task: "ci",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(manifest, `echo "repo=`) {
+		t.Fatalf("repo echo should be single-quoted in script:\n%s", manifest)
+	}
+	if !strings.Contains(manifest, "echo 'repo=https://github.com/acme/app$(touch /tmp/pwn).git'") {
+		t.Fatalf("manifest=%s", manifest)
+	}
+	if !strings.Contains(manifest, "git clone --depth 1 'https://github.com/acme/app$(touch /tmp/pwn).git' /workspace/src") {
+		t.Fatalf("manifest=%s", manifest)
+	}
+}

@@ -139,6 +139,12 @@ func TestApplyHostLinuxGetHelm3(t *testing.T) {
 	if len(rep.Applied) != 1 || rep.Applied[0].Status != "installed" || rep.Applied[0].Method != "get-helm-3" {
 		t.Fatalf("%+v ran=%v", rep, r.ran)
 	}
+	if len(r.ran) < 2 {
+		t.Fatalf("expected curl + installer runs, got %v", r.ran)
+	}
+	if !strings.Contains(r.ran[0], "curl -fsSL -o ") || !strings.Contains(r.ran[0], "https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3") {
+		t.Fatalf("unexpected curl invocation: %v", r.ran[0])
+	}
 }
 
 func TestApplyHostIgnoresClusterSteps(t *testing.T) {

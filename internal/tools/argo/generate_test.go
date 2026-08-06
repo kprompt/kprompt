@@ -44,3 +44,31 @@ func TestGenerateWorkflowRequiresImageOrModel(t *testing.T) {
 		t.Fatal("expected error")
 	}
 }
+
+func TestGenerateWorkflowRejectsShellLauncherCommand(t *testing.T) {
+	_, _, err := GenerateWorkflow(WorkflowRequest{
+		Name:    "train",
+		Image:   "python:3.11-slim",
+		Command: []string{"/bin/sh", "-c"},
+		Args:    []string{"echo hi"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestGenerateWorkflowUnknownModelDoesNotUseShell(t *testing.T) {
+	manifest, _, err := GenerateWorkflow(WorkflowRequest{
+		Name:  "train-custom",
+		Model: "custom-model-1",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if strings.Contains(manifest, "/bin/sh") || strings.Contains(manifest, " -c") {
+		t.Fatalf("manifest should avoid shell launcher:\n%s", manifest)
+	}
+	if !strings.Contains(manifest, "command:") || !strings.Contains(manifest, "- echo") {
+		t.Fatalf("manifest=%s", manifest)
+	}
+}

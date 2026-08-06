@@ -70,7 +70,10 @@ func GenerateWorkflow(req WorkflowRequest) (manifest string, summary string, err
 		req.Namespace = "default"
 	}
 
-	image, command, args, gpu := resolveContainer(req)
+	image, command, args, gpu, err := resolveContainer(req)
+	if err != nil {
+		return "", "", err
+	}
 	if image == "" {
 		return "", "", fmt.Errorf("workflow container image is required (set params.image or params.model)")
 	}
@@ -158,13 +161,16 @@ func normalizeRequest(req WorkflowRequest) WorkflowRequest {
 	return req
 }
 
-func resolveContainer(req WorkflowRequest) (image string, command, args []string, gpu bool) {
+func resolveContainer(req WorkflowRequest) (image string, command, args []string, gpu bool, err error) {
 	if req.Image != "" {
+		if isShellLauncher(req.Command) {
+			return "", nil, nil, false, fmt.Errorf("workflow params.command may not use shell launcher (/bin/sh -c, sh -c, bash -c)")
+		}
 		image = req.Image
 		command = append([]string(nil), req.Command...)
 		args = append([]string(nil), req.Args...)
 		gpu = req.GPU
-		return image, command, args, gpu
+		return image, command, args, gpu, nil
 	}
 	if recipe, ok := modelRecipes[req.Model]; ok {
 		image = recipe.Image
@@ -174,16 +180,33 @@ func resolveContainer(req WorkflowRequest) (image string, command, args []string
 			args = appendDatasetArg(args, req.Dataset)
 		}
 		gpu = recipe.GPU || req.GPU
-		return image, command, args, gpu
+		return image, command, args, gpu, nil
 	}
 	if req.Model != "" {
-		image = "python:3.11-slim"
-		command = []string{"/bin/sh", "-c"}
-		args = []string{fmt.Sprintf("echo 'Training %s (placeholder)' && sleep 30", req.Model)}
+		image = "alpine:3.20"
+		command = []string{"echo"}
+		args = []string{fmt.Sprintf("Training %s (placeholder)", req.Model)}
 		gpu = req.GPU
-		return image, command, args, gpu
+		return image, command, args, gpu, nil
 	}
-	return "", nil, nil, false
+	return "", nil, nil, false, nil
+}
+
+func isShellLauncher(command []string) bool {
+	if len(command) < 2 {
+		return false
+	}
+	name := strings.ToLower(strings.TrimSpace(command[0]))
+	flag := strings.TrimSpace(command[1])
+	if flag != "-c" {
+		return false
+	}
+	switch name {
+	case "sh", "/bin/sh", "bash", "/bin/bash", "zsh", "/bin/zsh":
+		return true
+	default:
+		return false
+	}
 }
 
 func appendDatasetArg(args []string, dataset string) []string {

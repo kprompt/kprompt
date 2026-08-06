@@ -43,9 +43,10 @@ func GeneratePipelineRun(req PipelineRequest) (manifest string, summary string, 
 		task = "ci"
 	}
 
-	script := "#!/bin/sh\nset -eu\necho \"kprompt Tekton CI task=" + task + "\"\n"
+	script := "#!/bin/sh\nset -eu\n"
+	script += "echo " + shellQuote("kprompt Tekton CI task="+task) + "\n"
 	if req.Repo != "" {
-		script += "echo \"repo=" + req.Repo + "\"\n"
+		script += "echo " + shellQuote("repo="+req.Repo) + "\n"
 		script += "git clone --depth 1 " + shellQuote(req.Repo) + " /workspace/src\n"
 		script += "ls -la /workspace/src\n"
 	} else {
