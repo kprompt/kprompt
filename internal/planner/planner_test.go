@@ -67,6 +67,43 @@ func TestBuildDeployWithExplicitImage(t *testing.T) {
 	}
 }
 
+func TestBuildScaleStatefulSet(t *testing.T) {
+	plan, err := Build(intent.Intent{
+		Kind: intent.KindScale,
+		Target: intent.Target{
+			Kind:      "sts",
+			Name:      "redis",
+			Namespace: "demo",
+		},
+		Params: map[string]any{"replicas": float64(3)},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("scale should require approval")
+	}
+	if len(plan.Actions) != 1 {
+		t.Fatalf("expected one action, got %d", len(plan.Actions))
+	}
+	action := plan.Actions[0]
+	if action.Op != OpScale {
+		t.Fatalf("op=%s", action.Op)
+	}
+	if action.Object.Kind != "StatefulSet" {
+		t.Fatalf("kind=%s", action.Object.Kind)
+	}
+	if action.Object.Name != "redis" || action.Object.Namespace != "demo" {
+		t.Fatalf("object=%+v", action.Object)
+	}
+	if action.Replicas == nil || *action.Replicas != 3 {
+		t.Fatalf("replicas=%v", action.Replicas)
+	}
+	if plan.Summary == "" || !strings.Contains(plan.Summary, "StatefulSet/redis") {
+		t.Fatalf("summary=%q", plan.Summary)
+	}
+}
+
 func TestBuildGetPods(t *testing.T) {
 	in := intent.Intent{
 		Kind: intent.KindGet,
@@ -466,6 +503,59 @@ func TestBuildDeleteRejectsUnscoped(t *testing.T) {
 	})
 	if err == nil {
 		t.Fatal("expected error for Namespace")
+	}
+}
+
+func TestBuildDeleteJobAndReplicaSet(t *testing.T) {
+	// 1. Test Job deletion
+	plan, err := Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "my-job", Namespace: "default", Kind: "Job"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("Job delete requires approval")
+	}
+	if len(plan.Actions) != 1 {
+		t.Fatalf("want 1 action, got %d", len(plan.Actions))
+	}
+	a := plan.Actions[0]
+	if a.Op != OpDelete || a.Object.Kind != "Job" || a.Object.APIVersion != "batch/v1" {
+		t.Fatalf("unexpected action: %+v", a)
+	}
+
+	// 2. Test ReplicaSet deletion
+	plan, err = Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "my-rs", Namespace: "default", Kind: "ReplicaSet"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("ReplicaSet delete requires approval")
+	}
+	if len(plan.Actions) != 1 {
+		t.Fatalf("want 1 action, got %d", len(plan.Actions))
+	}
+	a = plan.Actions[0]
+	if a.Op != OpDelete || a.Object.Kind != "ReplicaSet" || a.Object.APIVersion != "apps/v1" {
+		t.Fatalf("unexpected action: %+v", a)
+	}
+}
+
+func TestBuildDeleteUnsupportedKind(t *testing.T) {
+	_, err := Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "my-config", Kind: "ConfigMap"},
+	})
+	if err == nil {
+		t.Fatal("expected error for ConfigMap deletion")
+	}
+	if !strings.Contains(err.Error(), "not supported") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

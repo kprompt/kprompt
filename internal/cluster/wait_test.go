@@ -75,3 +75,67 @@ func TestDeploymentComplete(t *testing.T) {
 		t.Fatal("expected incomplete")
 	}
 }
+
+func TestWaitStatefulSetAlreadyReady(t *testing.T) {
+	replicas := int32(2)
+	client := fake.NewSimpleClientset(&appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "redis", Namespace: "default", Generation: 1},
+		Spec:       appsv1.StatefulSetSpec{Replicas: &replicas},
+		Status: appsv1.StatefulSetStatus{
+			ObservedGeneration: 1,
+			Replicas:           2,
+			UpdatedReplicas:    2,
+			ReadyReplicas:      2,
+		},
+	})
+	var out bytes.Buffer
+	err := (&Waiter{Client: client, Out: &out}).WaitStatefulSet(context.Background(), "default", "redis", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "ready") {
+		t.Fatalf("output=%q", out.String())
+	}
+}
+
+func TestWaitStatefulSetTimeout(t *testing.T) {
+	replicas := int32(2)
+	client := fake.NewSimpleClientset(&appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "redis", Namespace: "default", Generation: 2},
+		Spec:       appsv1.StatefulSetSpec{Replicas: &replicas},
+		Status: appsv1.StatefulSetStatus{
+			ObservedGeneration: 1,
+			Replicas:           1,
+			UpdatedReplicas:    1,
+			ReadyReplicas:      1,
+		},
+	})
+	err := (&Waiter{Client: client}).WaitStatefulSet(context.Background(), "default", "redis", 200*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected timeout")
+	}
+	if !strings.Contains(err.Error(), "timed out waiting for StatefulSet/redis") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestStatefulSetComplete(t *testing.T) {
+	replicas := int32(1)
+	sts := &appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Generation: 3},
+		Spec:       appsv1.StatefulSetSpec{Replicas: &replicas},
+		Status: appsv1.StatefulSetStatus{
+			ObservedGeneration: 3,
+			Replicas:           1,
+			UpdatedReplicas:    1,
+			ReadyReplicas:      1,
+		},
+	}
+	if !statefulSetRolledOut(sts) {
+		t.Fatal("expected complete")
+	}
+	sts.Status.ReadyReplicas = 0
+	if statefulSetRolledOut(sts) {
+		t.Fatal("expected incomplete")
+	}
+}

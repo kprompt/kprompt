@@ -1,0 +1,17 @@
+---
+description: Helm charts and CRD defaults for Observe agent — no silent mutate
+globs: charts/**/*,deploy/crd/**/*
+alwaysApply: false
+---
+
+# Helm / CRD rules
+
+When editing `charts/` or `deploy/crd`:
+
+- Observe is the default. `autopilotApply` (or equivalent) stays **false** unless documenting an explicit policy-gated path.
+- Namespace Role stays read/propose; do not grant cluster-admin “for convenience.”
+- Keep values, NOTES.txt, and `docs/agent*.md` aligned when flags/defaults change.
+- Secrets: chart references Secret keys only — never commit real tokens or example `sk-` values that look live.
+- CRD changes: update both `deploy/crd` and chart `crds/` (or document the single source of truth).
+- Coordinator chart stays non-mutating (merge/handoff only).
+- Prefer `helm template` / dry-run mentally against Role rules after RBAC edits.

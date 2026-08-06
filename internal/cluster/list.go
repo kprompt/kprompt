@@ -200,6 +200,8 @@ func NormalizeKind(k string) string {
 		return "Pod"
 	case "deployment", "deployments", "deploy", "deploy.apps", "deployments.apps":
 		return "Deployment"
+	case "statefulset", "statefulsets", "sts", "statefulsets.apps", "sts.apps":
+		return "StatefulSet"
 	case "service", "services", "svc":
 		return "Service"
 	case "workflow", "workflows", "wf":

@@ -107,7 +107,7 @@ Bare kprompt (no args) prints a readiness coach. Full help: kprompt --help · kp
 
 	root.PersistentFlags().BoolVar(&approve, "approve", false, "apply the plan without interactive confirmation")
 	root.PersistentFlags().BoolVar(&approveEachContext, "approve-each-context", false, "apply a mutating plan to every --contexts entry (explicit; not implied by --approve)")
-	root.PersistentFlags().BoolVar(&waitFlag, "wait", false, "after apply, wait for Deployment rollout to complete")
+	root.PersistentFlags().BoolVar(&waitFlag, "wait", false, "after apply, wait for Deployment/StatefulSet rollout to complete")
 	root.PersistentFlags().DurationVar(&timeout, "timeout", 5*time.Minute, "timeout for --wait (default 5m)")
 	root.PersistentFlags().StringVar(&provider, "provider", "", "LLM provider (openai|anthropic|gemini|groq|xai|cerebras|mistral|deepseek|moonshot|openrouter|together|ollama|openai-compatible)")
 	root.PersistentFlags().StringVar(&model, "model", "", "LLM model id")

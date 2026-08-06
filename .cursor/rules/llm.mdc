@@ -1,0 +1,18 @@
+---
+description: Multi-provider LLM interface — BYOK, no silent OpenAI default, stub for tests
+globs: internal/llm/**/*
+alwaysApply: false
+---
+
+# LLM provider package rules
+
+When editing `internal/llm`:
+
+- kprompt does **not** sell API keys. BYOK + optional local Ollama (`$0` path).
+- No configured provider → stay **unconfigured**; do not silently default to OpenAI.
+- Keys live in env (`KPROMPT_*` / vendor vars) or Team secrets pull — never write secrets into `~/.kprompt/config.yaml` or the repo.
+- New vendors: prefer OpenAI-compatible adapter + preset row; update `docs/providers.md` and `kprompt init` help.
+- Unit/CI paths use `stub` provider — tests must stay keyless.
+- Team `kp_…` tokens are org policy/audit, not inference credentials.
+- Preserve honest Gemini free-tier / 429 messaging when touching Gemini paths.
+- Run `go test ./internal/llm/` after changes.

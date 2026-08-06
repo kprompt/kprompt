@@ -21,6 +21,8 @@ Nothing applies silently, and `-o json` stays report-only.
 |------|----------------|-----------|
 | `Cleanup.UnusedConfigMap` | ConfigMap not referenced by any Pod, workload template, or ServiceAccount | Guidance, or approve-gated delete when orphans are confirmed |
 | `Cleanup.UnusedSecret` | Secret not referenced by env/envFrom/volumes/imagePullSecrets/ServiceAccount | Guidance, or approve-gated delete when orphans are confirmed |
+| `Cleanup.UnusedPVC` | PersistentVolumeClaim is not in the Bound phase | Guidance-only |
+| `Cleanup.EmptyService` | Service has a selector but zero active Endpoint addresses | Guidance-only |
 | `Cleanup.CompletedJob` | Job finished more than 24h ago (no `ttlSecondsAfterFinished`) | Approve-gated delete |
 | `Cleanup.OldReplicaSet` | Deployment-owned ReplicaSet scaled to zero (superseded revision) | Approve-gated delete |
 

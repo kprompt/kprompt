@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
+	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -274,5 +275,36 @@ func TestPlanDeleteStatefulSetGone(t *testing.T) {
 	})
 	if report.Status != OK {
 		t.Fatalf("expected OK, got: %+v", report)
+	}
+}
+
+func TestPlanDeleteJobAndReplicaSet(t *testing.T) {
+	// 1. Verify Job and ReplicaSet deleted successfully (NotFound)
+	clientEmpty := fake.NewSimpleClientset()
+	report1 := Plan(context.Background(), clientEmpty, planner.ExecutionPlan{
+		RequiresApproval: true,
+		Actions: []planner.Action{
+			{Op: planner.OpDelete, Object: planner.ObjectRef{Kind: "Job", Name: "old-migrate", Namespace: "demo"}},
+			{Op: planner.OpDelete, Object: planner.ObjectRef{Kind: "ReplicaSet", Name: "api-old", Namespace: "demo"}},
+		},
+	})
+	if report1.Status != OK {
+		t.Fatalf("expected OK when resources are gone, got: %+v", report1)
+	}
+
+	// 2. Verify deletion fails if still present
+	clientPresent := fake.NewSimpleClientset(
+		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "old-migrate", Namespace: "demo"}},
+		&appsv1.ReplicaSet{ObjectMeta: metav1.ObjectMeta{Name: "api-old", Namespace: "demo"}},
+	)
+	report2 := Plan(context.Background(), clientPresent, planner.ExecutionPlan{
+		RequiresApproval: true,
+		Actions: []planner.Action{
+			{Op: planner.OpDelete, Object: planner.ObjectRef{Kind: "Job", Name: "old-migrate", Namespace: "demo"}},
+			{Op: planner.OpDelete, Object: planner.ObjectRef{Kind: "ReplicaSet", Name: "api-old", Namespace: "demo"}},
+		},
+	})
+	if report2.Status != Failed {
+		t.Fatalf("expected Failed when resources are still present, got: %+v", report2)
 	}
 }

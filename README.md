@@ -10,6 +10,10 @@
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue)](./LICENSE)
 [![Stars](https://img.shields.io/github/stars/kprompt/kprompt?style=flat&logo=github)](https://github.com/kprompt/kprompt/stargazers)
 
+<p align="center">
+  <img src="./.github/assets/kprompt-mascot-run.gif" alt="kprompt mascot — Border Collie running" width="280" />
+</p>
+
 > The AI Runtime for Kubernetes.
 
 ![kprompt hard-denies wipe prompts, then turns scale into a reviewable plan waiting at Apply this plan? y/N](./.github/assets/kprompt-plan-deny.gif)

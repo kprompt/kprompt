@@ -1,0 +1,40 @@
+---
+description: kprompt CLI defaults — Go build/test, plan→approve safety, package layout
+alwaysApply: true
+---
+
+# kprompt CLI rules
+
+## Repo
+
+Public Go CLI + Observe agent (`github.com/kprompt/kprompt`). See `AGENTS.md` and `docs/dev.md`.
+
+## Product constraints
+
+- PlanResult → approve → apply. No silent cluster mutate.
+- Observe / agent: propose / notify first; Autopilot only behind explicit policy gates.
+- Hard-deny wipe-class intents; be careful with `--approve` in docs and demos.
+- Do not commit secrets, API keys, or kubeconfigs.
+
+## Commands
+
+```bash
+go test ./...
+go build -o bin/kprompt ./cmd/kprompt
+# kind E2E when needed:
+go test -tags=e2e ./test/e2e/ -count=1 -v -timeout 10m
+```
+
+Prefer package-scoped tests while iterating.
+
+## Style
+
+- `gofmt`; packages under `internal/`; Cobra commands under `cmd/kprompt`.
+- Agent edits to `*.go` are auto-formatted by the project `afterFileEdit` hook when enabled.
+- Match existing error/UI patterns in `internal/ui` and neighboring packages.
+- Update `docs/*.md` when flags or behavior change.
+- No drive-by refactors; keep PRs focused.
+
+## Commits
+
+Only commit or open PRs when the user asks.

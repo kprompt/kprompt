@@ -64,10 +64,10 @@ type Deps struct {
 	Prometheus    toolprometheus.Querier
 	OTel          toolotel.Querier
 	Grafana       toolgrafana.Querier
-	Confirm       ConfirmFunc             // if set, used instead of TTY prompt
-	IsTerminal    *bool                   // override ui.StdinIsTerminal when non-nil
-	OnResult      func(output.PlanResult) // optional per-plan completion observer
-	SkipOrgPolicy bool                    // tests: ignore Team org policy (Free CLI path)
+	Confirm       ConfirmFunc                                        // if set, used instead of TTY prompt
+	IsTerminal    *bool                                              // override ui.StdinIsTerminal when non-nil
+	OnResult      func(output.PlanResult)                            // optional per-plan completion observer
+	SkipOrgPolicy bool                                               // tests: ignore Team org policy (Free CLI path)
 	BuildPlan     func(intent.Intent) (planner.ExecutionPlan, error) // tests: override planner.Build
 	// RouteSteps forces a multi-step route (recipe run / tests). When set, skips
 	// SplitRoutePrompt / recipe.TryRoute matching on cfg.Prompt.
@@ -1347,7 +1347,17 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 		}
 		waiter := &cluster.Waiter{Client: client, Out: human}
 		for _, t := range targets {
-			if err := waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout); err != nil {
+			var err error
+			switch t.Kind {
+			case "Deployment":
+				err = waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout)
+			case "StatefulSet":
+				err = waiter.WaitStatefulSet(ctx, t.Namespace, t.Name, timeout)
+			default:
+				fmt.Fprintf(out, "Skipping --wait for unsupported resource kind %s\n", t.Kind)
+				continue
+			}
+			if err != nil {
 				rep := verify.Report{
 					Status:  verify.Failed,
 					Message: err.Error(),
@@ -1385,7 +1395,7 @@ func deploymentWaitTargets(plan planner.ExecutionPlan) []planner.ObjectRef {
 	for _, a := range plan.Actions {
 		switch a.Op {
 		case planner.OpScale, planner.OpRollback, planner.OpCreate, planner.OpUpdate:
-			if a.Object.Kind != "Deployment" && a.Object.Kind != "" {
+			if a.Object.Kind != "Deployment" && a.Object.Kind != "StatefulSet" && a.Object.Kind != "" {
 				continue
 			}
 			key := a.Object.Namespace + "/" + a.Object.Name

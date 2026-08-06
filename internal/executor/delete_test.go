@@ -73,6 +73,35 @@ func TestApplyStatefulSetAndDaemonSet(t *testing.T) {
 	}
 }
 
+func TestScaleStatefulSet(t *testing.T) {
+	replicas := int32(1)
+	client := fake.NewSimpleClientset(&appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "redis", Namespace: "demo"},
+		Spec:       appsv1.StatefulSetSpec{Replicas: &replicas},
+	})
+	err := (&Runner{Client: client}).Apply(context.Background(), planner.ExecutionPlan{
+		Actions: []planner.Action{{
+			Op: planner.OpScale,
+			Object: planner.ObjectRef{
+				Kind:      "StatefulSet",
+				Name:      "redis",
+				Namespace: "demo",
+			},
+			Replicas: int32Ptr(3),
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	sts, err := client.AppsV1().StatefulSets("demo").Get(context.Background(), "redis", metav1.GetOptions{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if sts.Spec.Replicas == nil || *sts.Spec.Replicas != 3 {
+		t.Fatalf("replicas=%v", sts.Spec.Replicas)
+	}
+}
+
 func TestDeleteJobAndReplicaSet(t *testing.T) {
 	client := fake.NewSimpleClientset(
 		&batchv1.Job{ObjectMeta: metav1.ObjectMeta{Name: "old-migrate", Namespace: "payments"}},
@@ -132,3 +161,5 @@ func TestDeleteUnknownKindRejected(t *testing.T) {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }
+
+func int32Ptr(v int32) *int32 { return &v }

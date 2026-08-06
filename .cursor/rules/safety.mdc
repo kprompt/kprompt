@@ -1,0 +1,16 @@
+---
+description: Hard-deny and PlanResult safety invariants for internal/safety
+globs: internal/safety/**/*
+alwaysApply: false
+---
+
+# Safety package rules
+
+When editing `internal/safety`:
+
+- Wipe / unbounded delete / “everything in the cluster” stays **hard-denied** — do not soften into warn-and-continue.
+- Named single-resource delete is the allowed delete shape; keep corpus coverage for adversarial prompts (`deny_corpus_test.go`, SEC-* cases).
+- Deny UX: punchline flavor pack + stable **Next:** remediation line; do not remove that contract for “cleaner” errors.
+- Safety gates PlanResult before apply — never bypass from executor or agent notify paths.
+- Prefer extending regex/checkers + table tests over one-off string equals.
+- Run `go test ./internal/safety/` after changes.

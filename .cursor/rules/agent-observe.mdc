@@ -1,0 +1,18 @@
+---
+description: Observe / Namespace Agent propose-first invariants for internal/agent
+globs: internal/agent/**/*
+alwaysApply: false
+---
+
+# Agent package rules
+
+When editing `internal/agent`:
+
+- Default mode is **Observe**: watch → correlate → analyze → notify. **Never** silent mutate.
+- Autopilot stays propose-only / policy-gated; do not wire apply without an explicit Autopilot + policy path.
+- Namespace Role is read/propose; cross-ns and apply sit outside (Coordinator / remediation policy).
+- Memory and patterns are **evidence, not proof** — never sole justification for high confidence or mutate.
+- Slack/webhook notifiers alert only; ask listeners stay read-only unless a gated path already exists.
+- Prefer reusing Investigation / PlanResult types over new parallel alert schemas.
+- Docs: `docs/agent.md`, `docs/namespace-agent.md`, `docs/agent-ops.md` when flags or Helm defaults change.
+- Run package tests under the touched `internal/agent/...` subtree.

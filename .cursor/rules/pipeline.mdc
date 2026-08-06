@@ -1,0 +1,18 @@
+---
+description: PlanResult → approve → apply invariants for pipeline and mutate packages
+globs: internal/pipeline/**/*,internal/planner/**/*,internal/intent/**/*,internal/executor/**/*,internal/verify/**/*,internal/pretrust/**/*
+alwaysApply: false
+---
+
+# Pipeline / mutate package rules
+
+When editing plan or apply paths:
+
+- Default is **plan-only** (dry-run). Apply requires interactive `y/N` or explicit `--approve`.
+- Typed **PlanResult** is the IR — keep JSON/`--output json` fields stable or document breaks in `docs/` + changelog notes.
+- Safety runs before apply; do not short-circuit deny into executor.
+- Post-apply **verify** (and pretrust evidence) stays honest — no fake success if the cluster did not converge.
+- Multi-context mutates: per-context approve; do not fan-out `--approve` silently across contexts.
+- Stub LLM in unit/E2E tests; never require a live provider key for CI paths.
+- Docs: `docs/approval.md`, `docs/architecture.md`, command help when flags change.
+- Test the touched package(s); use kind E2E only when live apiserver behavior is required.

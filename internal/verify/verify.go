@@ -109,6 +109,10 @@ func verifyDeleted(ctx context.Context, client kubernetes.Interface, base Check)
 		_, err = client.CoreV1().Services(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
 	case "pod":
 		_, err = client.CoreV1().Pods(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
+	case "job":
+		_, err = client.BatchV1().Jobs(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
+	case "replicaset":
+		_, err = client.AppsV1().ReplicaSets(base.Namespace).Get(ctx, base.Name, metav1.GetOptions{})
 	default:
 		base.Status = Skipped
 		base.Detail = "delete verify not supported for kind"

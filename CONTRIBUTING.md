@@ -33,6 +33,8 @@ Newcomers are especially welcome on **docs**, **flag help text**, **Helm NOTES**
 2. For non-trivial features, open an issue first.
 3. Keep PRs focused — one concern per PR.
 
+Agent / Cursor contributors: see [AGENTS.md](./AGENTS.md) for build commands, package map, and safety invariants (plan → approve, Observe propose-first).
+
 ## Development (CLI)
 
 ```bash
