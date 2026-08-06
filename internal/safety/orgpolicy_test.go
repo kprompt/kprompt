@@ -80,6 +80,67 @@ func TestApplyOrgPolicyDenyIntent(t *testing.T) {
 	}
 }
 
+func TestApplyOrgPolicyCannotLoosenLocalHardDeny(t *testing.T) {
+	tests := []struct {
+		name string
+		plan planner.ExecutionPlan
+	}{
+		{
+			name: "wipe intent stays denied",
+			plan: planner.ExecutionPlan{
+				Intent: intent.Intent{
+					Kind: intent.KindDeny,
+				},
+			},
+		},
+		{
+			name: "namespace delete stays denied",
+			plan: planner.ExecutionPlan{
+				Intent: intent.Intent{
+					Kind:   intent.KindDelete,
+					Target: intent.Target{Kind: "Namespace", Name: "prod"},
+				},
+				Actions: []planner.Action{{
+					Op:     planner.OpDelete,
+					Object: planner.ObjectRef{Kind: "Namespace", Name: "prod"},
+				}},
+			},
+		},
+	}
+
+	org := &OrgPolicy{
+		MaxRisk:         "high",
+		AllowNamespaces: []string{"*"},
+		RequireApprove:  false,
+		DenyIntents:     nil,
+		ChangeWindows: []ChangeWindow{{
+			Contexts: []string{"*"},
+			TZ:       "UTC",
+			Days:     []string{"mon", "tue", "wed", "thu", "fri", "sat", "sun"},
+			Start:    "00:00",
+			End:      "23:59",
+		}},
+		ApproveByRole: map[string][]string{
+			"viewer":   {"low", "medium", "high"},
+			"operator": {"low", "medium", "high"},
+			"admin":    {"low", "medium", "high"},
+		},
+	}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			base := EvaluatePlan(tc.plan)
+			if !base.Denied {
+				t.Fatalf("expected local hard-deny base result, got %+v", base)
+			}
+			got := ApplyOrgPolicy(base, tc.plan, org, "prod-main")
+			if got != base {
+				t.Fatalf("org policy must not loosen or rewrite local deny: got %+v want %+v", got, base)
+			}
+		})
+	}
+}
+
 func TestApplyOrgPolicyNilPassthrough(t *testing.T) {
 	plan := planner.ExecutionPlan{Intent: intent.Intent{Kind: intent.KindGet}}
 	base := EvaluatePlan(plan)
@@ -154,7 +215,19 @@ func TestRoleMayApprove(t *testing.T) {
 	if !RoleMayApprove(nil, "viewer", RiskHigh) {
 		t.Fatal("empty matrix = no constraint")
 	}
+	if RoleMayApprove(matrix, "auditor", RiskLow) {
+		t.Fatal("unknown role must fail closed")
+	}
+	if RoleMayApprove(matrix, "admin", RiskDenied) {
+		t.Fatal("denied risk must never be approvable")
+	}
+	if RoleMayApprove(matrix, "", RiskLow) {
+		t.Fatal("empty role must fail closed")
+	}
 	if msg := RoleApproveDenyMessage(matrix, "viewer", RiskLow); msg == "" {
 		t.Fatal("expected deny message for viewer/low")
+	}
+	if msg := RoleApproveDenyMessage(matrix, "auditor", RiskHigh); msg == "" {
+		t.Fatal("expected deny message for unknown role/high")
 	}
 }

@@ -316,7 +316,7 @@ kprompt run listen       # CLI bridge: claim app /run jobs; plan locally (never 
 kprompt logout           # revoke token + clear credentials/policy/secrets
 ```
 
-Override API with `KPROMPT_API_URL` / `KPROMPT_API_TOKEN` if needed. The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config.yaml`. Cached org policy only **tightens** local hard-denies (namespaces, max risk, deny intents, optional **change windows**, **approve-by-role**, and **context aliases** / org `require_alias_match`). Provider keys: env vars always win over pulled secrets. When enrolled, each plan also best-effort pushes an audit event (`planned` / `denied` / `applied`) to the control plane — disable with `KPROMPT_DISABLE_AUDIT=1`. App `/run` jobs stay **queued** until `kprompt run listen` claims them — see [docs/runs.md](./docs/runs.md).
+Override API with `KPROMPT_API_URL` / `KPROMPT_API_TOKEN` if needed. The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config.yaml`. Cached org policy only **tightens** local hard-denies (namespaces, max risk, deny intents, optional **change windows**, **approve-by-role**, and **context aliases** / org `require_alias_match`), and can never waive local wipe-class or namespace-delete denies. Provider keys: env vars always win over pulled secrets. When enrolled, each plan also best-effort pushes an audit event (`planned` / `denied` / `applied`) to the control plane — disable with `KPROMPT_DISABLE_AUDIT=1`. App `/run` jobs stay **queued** until `kprompt run listen` claims them — see [docs/runs.md](./docs/runs.md).
 
 ## CI
 
