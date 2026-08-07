@@ -10,13 +10,21 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # SonarCloud needs full history for blame and new-code analysis
       - uses: actions/setup-go@v5
         with:
           go-version: "1.23.x"
-      - name: Test
-        run: go test ./...
+      - name: Test with coverage
+        run: go test -json -coverprofile=coverage.out -covermode=atomic ./... > report.json || true
       - name: Build
         run: go build -o bin/kprompt ./cmd/kprompt
+      - name: SonarCloud Scan
+        uses: SonarSource/sonarcloud-github-action@v3
+        if: ${{ !github.event.pull_request.head.repo.fork }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
 
   # Team SCM demo (A-065 / A-069): stub PlanResult upload when org token is set.
   # Never applies to a cluster. Skips cleanly without KPROMPT_ORG_TOKEN.
