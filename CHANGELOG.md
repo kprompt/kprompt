@@ -2,6 +2,13 @@
 
 All notable changes to kprompt are documented here. Versions follow [GitHub Releases](https://github.com/kprompt/kprompt/releases).
 
+## [Unreleased]
+
+### Security
+
+- **CLI security pack complete (SEC-001..SEC-007)** — deny/escalation adversarial coverage, tighten-only org policy invariants, generated command boundary hardening (Argo/Tekton/Helm), and Autopilot deny+allowlist re-check protections are now fully landed across the security task series (#102, #115, #116)
+- **Provider default drift fix (P-007)** — refreshed stale BYOK defaults to current vendor-supported IDs for Anthropic/Gemini/Together and aligned provider docs/tests (#117)
+
 ## [v0.9.0](https://github.com/kprompt/kprompt/releases/tag/v0.9.0) — 2026-08-04
 
 Day-0 CLI onboarding pack + provider/agent follow-ups since v0.8.0.
