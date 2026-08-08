@@ -293,7 +293,7 @@ func RoleMayApprove(matrix map[string][]string, role string, risk Risk) bool {
 	if !ok {
 		return false
 	}
-	want := strings.ToLower(string(risk))
+	want := strings.ToLower(strings.TrimSpace(string(risk)))
 	for _, a := range allowed {
 		if strings.EqualFold(strings.TrimSpace(a), want) {
 			return true
