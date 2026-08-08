@@ -24,7 +24,7 @@ jobs:
       # Skipped for forks and Dependabot PRs: GitHub does not expose SONAR_TOKEN
       # to those runs, so the scan would fail on a missing token.
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838 # v3.1.0
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8 # v5.0.0
         if: ${{ !github.event.pull_request.head.repo.fork && github.actor != 'dependabot[bot]' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
