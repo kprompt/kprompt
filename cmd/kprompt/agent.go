@@ -347,6 +347,8 @@ func newAgentCoordinatorCmd() *cobra.Command {
 		tickBudget         int
 		maxHops            int
 		meshOTel           bool
+		outcomeMax         int
+		outcomeTTL         time.Duration
 	)
 	cmd := &cobra.Command{
 		Use:   "coordinator",
@@ -369,6 +371,8 @@ Endpoints:
   GET  /v1/recent        — recent handoffs
   GET  /v1/knowledge     — Shared Knowledge summary (namespace edges)
   GET  /v1/blast-radius  — blast-radius hops (?namespace= filter)
+  POST /v1/outcome       — record cross-ns outcome (action/ns/result; RT-021)
+  GET  /v1/outcomes      — durable outcome ring summary (evidence-not-proof)
 
 Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 		Example: `  kprompt agent coordinator --addr :9090
@@ -384,6 +388,7 @@ Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 				svc.MaxHops = maxHops
 			}
 			svc.MeshConfigured = meshOTel
+			svc.SetOutcomeLimits(outcomeMax, outcomeTTL)
 			backend := strings.ToLower(strings.TrimSpace(knowledgeBackend))
 			needKube := probeKube || backend == "configmap"
 			var clients *cluster.Clients
@@ -433,8 +438,13 @@ Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 				}
 				if err := svc.Restore(); err != nil {
 					fmt.Fprintf(cmd.ErrOrStderr(), "warning: restore knowledge: %v\n", err)
-				} else if n := len(svc.Recent()); n > 0 {
-					fmt.Fprintf(cmd.ErrOrStderr(), "kprompt agent coordinator: restored %d handoff(s)\n", n)
+				} else {
+					if n := len(svc.Recent()); n > 0 {
+						fmt.Fprintf(cmd.ErrOrStderr(), "kprompt agent coordinator: restored %d handoff(s)\n", n)
+					}
+					if n := len(svc.Outcomes()); n > 0 {
+						fmt.Fprintf(cmd.ErrOrStderr(), "kprompt agent coordinator: restored %d outcome(s)\n", n)
+					}
 				}
 			}
 			h := &coordinator.Handler{
@@ -471,9 +481,46 @@ Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 	cmd.Flags().IntVar(&tickBudget, "tick-budget", coordinator.DefaultTickBudget, "max edges re-probed per tick")
 	cmd.Flags().IntVar(&maxHops, "max-hops", coordinator.DefaultMaxHops, "blast-radius cascade hop cap (RT-011)")
 	cmd.Flags().BoolVar(&meshOTel, "mesh-otel", false, "mark blast-radius mesh/OTel enrichment available (else status=degraded; RT-010)")
+	cmd.Flags().IntVar(&outcomeMax, "outcome-max", coordinator.DefaultOutcomeMaxKeep, "cross-ns outcome ring size cap (RT-021)")
+	cmd.Flags().DurationVar(&outcomeTTL, "outcome-ttl", coordinator.DefaultOutcomeTTL, "cross-ns outcome ring TTL (0=default; RT-021)")
 	cmd.AddCommand(newAgentCoordinatorKnowledgeCmd())
 	cmd.AddCommand(newAgentCoordinatorBlastRadiusCmd())
 	cmd.AddCommand(newAgentCoordinatorRecentCmd())
+	cmd.AddCommand(newAgentCoordinatorOutcomesCmd())
+	return cmd
+}
+
+func newAgentCoordinatorOutcomesCmd() *cobra.Command {
+	var (
+		baseURL string
+		asJSON  bool
+	)
+	cmd := &cobra.Command{
+		Use:   "outcomes",
+		Short: "Fetch Coordinator cross-ns outcome ring summary",
+		Long: `GET /v1/outcomes from a running Coordinator — durable cross-namespace
+action/result outcomes (RT-021). Evidence-not-proof: bias only, never sole
+root-cause proof (AG-034 / RT-022).`,
+		Example: `  kprompt agent coordinator outcomes --url http://127.0.0.1:9090`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			body, err := fetchCoordinatorJSON(cmd.Context(), baseURL, "/v1/outcomes")
+			if err != nil {
+				return err
+			}
+			if asJSON {
+				_, err = cmd.OutOrStdout().Write(append(body, '\n'))
+				return err
+			}
+			var sum coordinator.OutcomeSummary
+			if err := json.Unmarshal(body, &sum); err != nil {
+				return fmt.Errorf("decode outcomes: %w", err)
+			}
+			fmt.Fprintln(cmd.OutOrStdout(), coordinator.FormatOutcomeSummary(sum))
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&baseURL, "url", "http://127.0.0.1:9090", "Coordinator base URL (no path)")
+	cmd.Flags().BoolVar(&asJSON, "json", false, "print raw JSON")
 	return cmd
 }
 

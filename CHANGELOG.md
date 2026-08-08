@@ -16,6 +16,7 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 - **RT-008 Slack approve bridge** — `--slack-ask` `approve [proposal-id]` applies durable proposals under policyAuto (ADR-0015)
 - **RT-013…016 Topology KG** — ExternalName/env `depends_on`, ready EndpointSlice routes, NetworkPolicy peer `allows`, Autopilot `expectedImpact` graph notes ([docs/graph.md](./docs/graph.md))
 - **RT-009…012 Continuous Coordinator** — opt-in `--tick-interval` proactive correlation; blast-radius `status=degraded` without `--mesh-otel`; `--max-hops` + audit ([docs/coordinator-knowledge.md](./docs/coordinator-knowledge.md))
+- **RT-021 Coordinator outcome ring** — durable cross-ns outcomes (action/ns/result) beside Shared Knowledge with TTL + size cap; `POST /v1/outcome`, `GET /v1/outcomes`, `agent coordinator outcomes`; coexists in the knowledge ConfigMap/file; evidence-not-proof summary for fleet bias ([docs/coordinator-knowledge.md](./docs/coordinator-knowledge.md))
 
 ## [v0.9.0](https://github.com/kprompt/kprompt/releases/tag/v0.9.0) — 2026-08-04
 
