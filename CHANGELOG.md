@@ -18,6 +18,8 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 - **RT-009…012 Continuous Coordinator** — opt-in `--tick-interval` proactive correlation; blast-radius `status=degraded` without `--mesh-otel`; `--max-hops` + audit ([docs/coordinator-knowledge.md](./docs/coordinator-knowledge.md))
 - **RT-021 Coordinator outcome ring** — durable cross-ns outcomes (action/ns/result) beside Shared Knowledge with TTL + size cap; `POST /v1/outcome`, `GET /v1/outcomes`, `agent coordinator outcomes`; coexists in the knowledge ConfigMap/file; evidence-not-proof summary for fleet bias ([docs/coordinator-knowledge.md](./docs/coordinator-knowledge.md))
 - **RT-022 Fleet pattern read (evidence-not-proof)** — `agent run --coordinator-url` reads the Coordinator outcome summary and nudges Autopilot `ActionConfidence` only (bounded ±0.05, ≥3 samples, cached), applied ONLY when local Learn already matched — never gates apply, never invents candidates (AG-034); proposals carry a `Fleet evidence (not proof)` note
+- **RT-023 Export / backup Incident Memory** — `agent memory export -n <ns>` (restorable Snapshot) or `--fleet` (NamespaceMemoryExport bundle); file backend scans the memory dir, ConfigMap backend lists labelled `kprompt-namespace-memory`; `--out` writes a local file (0600), never uploaded to api.kprompt.ai
+- **RT-024 Docs cluster memory vs laptop remember** — new [docs/cluster-memory.md](./docs/cluster-memory.md) contrasts ADR-0022 laptop `remember` vs in-cluster Incident Memory (namespace facts + patterns + RT-021 outcome ring), cross-linked from `remember.md` / `agent.md`
 
 ## [v0.9.0](https://github.com/kprompt/kprompt/releases/tag/v0.9.0) — 2026-08-04
 

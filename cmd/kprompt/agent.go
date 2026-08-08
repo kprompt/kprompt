@@ -1949,6 +1949,83 @@ func newAgentMemoryCmd() *cobra.Command {
 	cmd.AddCommand(newAgentMemoryListCmd())
 	cmd.AddCommand(newAgentMemorySetCmd())
 	cmd.AddCommand(newAgentMemoryDiscoverCmd())
+	cmd.AddCommand(newAgentMemoryExportCmd())
+	return cmd
+}
+
+func newAgentMemoryExportCmd() *cobra.Command {
+	var ns, backend, dir, kubeCtx, out string
+	var inCluster, fleet bool
+	cmd := &cobra.Command{
+		Use:   "export",
+		Short: "Export/backup namespace memory offline (no upload to control plane)",
+		Long: `Write remembered namespace facts to a local file (or stdout) for backup.
+
+Modes:
+  -n <ns>   export one namespace's memory.Snapshot (restorable unit)
+  --fleet   export every stored namespace as a NamespaceMemoryExport bundle
+            (file backend: scan memory dir; configmap: list labelled ConfigMaps)
+
+Privacy: this command never uploads to api.kprompt.ai — it writes locally only
+(RT-023 / ADR-0022 remember-on-laptop vs in-cluster Incident Memory).`,
+		Example: `  kprompt agent memory export -n payments --out payments-memory.json
+  kprompt agent memory export --fleet --memory-backend configmap --in-cluster --out fleet-memory.json`,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ns = strings.TrimSpace(ns)
+			if !fleet && ns == "" {
+				return fmt.Errorf("provide -n <namespace> or --fleet")
+			}
+			clients, err := connectOptional(kubeCtx, inCluster, backend == "configmap")
+			if err != nil {
+				return err
+			}
+			store, err := openMemoryStore(backend, dir, ns, inCluster, clients)
+			if err != nil {
+				return err
+			}
+			var payload any
+			if fleet {
+				src := strings.ToLower(strings.TrimSpace(backend))
+				if src == "" {
+					src = "file"
+				}
+				bundle, err := memory.ExportFleet(store, src)
+				if err != nil {
+					return err
+				}
+				payload = bundle
+				fmt.Fprintf(cmd.ErrOrStderr(), "exported %d namespace(s), %d fact(s) (local only)\n",
+					bundle.Summary.Namespaces, bundle.Summary.Facts)
+			} else {
+				snap, err := memory.New(store).List(ns)
+				if err != nil {
+					return err
+				}
+				payload = snap
+				fmt.Fprintf(cmd.ErrOrStderr(), "exported namespace %q, %d fact(s) (local only)\n", ns, len(snap.Facts))
+			}
+			raw, err := json.MarshalIndent(payload, "", "  ")
+			if err != nil {
+				return err
+			}
+			if o := strings.TrimSpace(out); o != "" {
+				if err := os.WriteFile(o, append(raw, '\n'), 0o600); err != nil {
+					return err
+				}
+				fmt.Fprintf(cmd.ErrOrStderr(), "wrote %s\n", o)
+				return nil
+			}
+			_, err = cmd.OutOrStdout().Write(append(raw, '\n'))
+			return err
+		},
+	}
+	cmd.Flags().StringVarP(&ns, "namespace", "n", "", "namespace to export (omit with --fleet)")
+	cmd.Flags().BoolVar(&fleet, "fleet", false, "export all stored namespaces as a bundle")
+	cmd.Flags().StringVar(&out, "out", "", "output file (default stdout)")
+	cmd.Flags().StringVar(&backend, "memory-backend", "file", "file|configmap")
+	cmd.Flags().StringVar(&dir, "memory-dir", "", "file backend directory")
+	cmd.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
+	cmd.Flags().BoolVar(&inCluster, "in-cluster", false, "use InClusterConfig")
 	return cmd
 }
 
