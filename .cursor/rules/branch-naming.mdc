@@ -1,0 +1,40 @@
+---
+description: Git branch naming convention for kprompt (type/kebab-summary[-issue])
+alwaysApply: true
+---
+
+# Branch naming
+
+`main` is protected: push access is restricted to maintainers, who may push small changes directly. Everyone else branches off the latest `main` and opens a PR.
+
+## Format
+
+```
+<type>/<kebab-summary>[-<issue-number>]
+```
+
+- **type**: one of `feat` `fix` `docs` `test` `chore` `refactor` `perf` `build` `ci` `sec` `hotfix`
+- **summary**: lowercase kebab-case; only `a-z0-9` and `._-`; no spaces or uppercase
+- **issue** (optional but encouraged): trailing `-<number>` tied to the issue you're closing
+
+Regex the hook enforces:
+
+```
+^(feat|fix|docs|test|chore|refactor|perf|build|ci|sec|hotfix)/[a-z0-9][a-z0-9._-]*$
+```
+
+## Examples
+
+```
+feat/daemonset-wait-106      # ✅ feature tied to issue #106
+fix/plan-deny-gif-spacing    # ✅ bug fix
+docs/cobra-examples-107      # ✅ docs
+test/shellquote-sanitize-109 # ✅ unit tests
+sec/exec-injection-111       # ✅ security hardening
+
+Feature/DaemonSet_Wait       # ❌ uppercase + underscore + wrong type
+fix                          # ❌ missing /summary
+my-cool-branch               # ❌ no type prefix
+```
+
+The pipeline for creation is `git switch -c <name>` (or `git checkout -b <name>`). A `beforeShellExecution` hook (`.cursor/hooks/branch-name.sh`) asks for confirmation when a new branch name doesn't match. Link the issue in the PR body with `Fixes #N`.

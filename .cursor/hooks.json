@@ -6,6 +6,13 @@
         "command": ".cursor/hooks/gofmt.sh",
         "timeout": 30
       }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": ".cursor/hooks/branch-name.sh",
+        "matcher": "checkout\\s+-b|switch\\s+-[cC]|git\\s+branch",
+        "timeout": 10
+      }
     ]
   }
 }
