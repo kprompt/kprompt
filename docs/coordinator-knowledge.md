@@ -54,6 +54,21 @@ proposal ranking, never as sole root-cause proof. The ring stores only
 `action/namespace/result` (+ optional action/incident IDs) — never Secret values
 or full manifests.
 
+### Fleet read from the namespace agent (RT-022)
+
+`kprompt agent run --coordinator-url http://<coord>:9090/v1/handoff` reuses the
+same URL to `GET /v1/outcomes` and feed Autopilot a **bounded** bias:
+
+- Nudges `ActionConfidence` only — never the raw `confidence` that drives the
+  `MinConfidence` apply gate, and never creates a candidate `detectCandidates`
+  didn't already produce.
+- Delta capped at ±0.05, requires ≥3 fleet samples for the action, and is
+  applied **only when local Learn already matched** (AG-034: fleet can nudge an
+  already-locally-supported proposal, never stand alone).
+- Cached for a short TTL to avoid a network call per proposal.
+- The proposal records a `Fleet evidence (not proof): … — bias only (AG-034/RT-022)`
+  note in `expectedImpact` / `learnNote` so audit shows fleet data was advisory.
+
 Helm (`charts/kprompt-coordinator`): `knowledge.enabled=true` (default); set `continuous.tickInterval` (e.g. `5m`) to enable RT-009.
 
 Kind demo: `make coordinator-e2e` in [kprompt-examples](https://github.com/kprompt/kprompt-examples) asserts `/v1/knowledge` durable + restore after restart (AG-061).

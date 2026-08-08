@@ -937,6 +937,10 @@ KpromptAgent status sync:
 				} else {
 					fmt.Fprintf(cmd.ErrOrStderr(), "autopilot graph snapshot: %v\n", gerr)
 				}
+				if u := strings.TrimSpace(coordinatorURL); u != "" {
+					apEngine.Fleet = &coordinator.HTTPClient{BaseURL: coordinator.NormalizeBaseURL(u)}
+					fmt.Fprintf(cmd.ErrOrStderr(), "autopilot fleet bias: reading Coordinator outcomes (evidence-not-proof; RT-022)\n")
+				}
 			}
 			crCfg := crdstatus.FromEnv()
 			if n := strings.TrimSpace(agentCR); n != "" {

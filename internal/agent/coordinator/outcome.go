@@ -210,6 +210,37 @@ func (s *Service) OutcomeSummarize() OutcomeSummary {
 	return sum
 }
 
+// LookupAction returns aggregated fleet stats for an action (RT-022 bias read).
+// If namespace is non-empty, that namespace is preferred; otherwise (or when the
+// namespace has no record) all namespaces for the action are summed. ok is false
+// when the action has no fleet history at all.
+func (s OutcomeSummary) LookupAction(action, namespace string) (stat OutcomeActionStat, ok bool) {
+	action = strings.TrimSpace(action)
+	namespace = strings.TrimSpace(namespace)
+	if action == "" {
+		return OutcomeActionStat{}, false
+	}
+	agg := OutcomeActionStat{Action: action, Namespace: namespace}
+	for _, st := range s.ByAction {
+		if st.Action != action {
+			continue
+		}
+		if namespace != "" && st.Namespace == namespace {
+			return st, true
+		}
+		agg.Success += st.Success
+		agg.Failed += st.Failed
+		agg.Partial += st.Partial
+		agg.Total += st.Total
+		ok = true
+	}
+	if !ok {
+		return OutcomeActionStat{}, false
+	}
+	agg.Namespace = "" // aggregated across namespaces
+	return agg, true
+}
+
 // FormatOutcomeSummary renders a compact human view (RT-021 CLI).
 func FormatOutcomeSummary(s OutcomeSummary) string {
 	var b strings.Builder
