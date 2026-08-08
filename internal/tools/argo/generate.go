@@ -163,7 +163,7 @@ func normalizeRequest(req WorkflowRequest) WorkflowRequest {
 
 func resolveContainer(req WorkflowRequest) (image string, command, args []string, gpu bool, err error) {
 	if req.Image != "" {
-		if isShellLauncher(req.Command) {
+		if isShellLauncher(req.Command, req.Args) {
 			return "", nil, nil, false, fmt.Errorf("workflow params.command may not use shell launcher (/bin/sh -c, sh -c, bash -c)")
 		}
 		image = req.Image
@@ -192,15 +192,34 @@ func resolveContainer(req WorkflowRequest) (image string, command, args []string
 	return "", nil, nil, false, nil
 }
 
-func isShellLauncher(command []string) bool {
-	if len(command) < 2 {
+func isShellLauncher(command, args []string) bool {
+	if len(command) == 0 {
 		return false
 	}
 	name := strings.ToLower(strings.TrimSpace(command[0]))
-	flag := strings.TrimSpace(command[1])
-	if flag != "-c" {
+	if len(command) >= 2 {
+		flag := strings.TrimSpace(command[1])
+		if isExecuteFlag(flag) && isShellName(name) {
+			return true
+		}
+	}
+	if len(command) == 1 && len(args) > 0 {
+		flag := strings.TrimSpace(args[0])
+		if isExecuteFlag(flag) && isShellName(name) {
+			return true
+		}
+	}
+	return false
+}
+
+func isExecuteFlag(flag string) bool {
+	if !strings.HasPrefix(flag, "-") || strings.HasPrefix(flag, "--") {
 		return false
 	}
+	return strings.HasSuffix(flag, "c")
+}
+
+func isShellName(name string) bool {
 	switch name {
 	case "sh", "/bin/sh", "bash", "/bin/bash", "zsh", "/bin/zsh":
 		return true

