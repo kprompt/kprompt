@@ -1353,6 +1353,8 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				err = waiter.WaitDeployment(ctx, t.Namespace, t.Name, timeout)
 			case "StatefulSet":
 				err = waiter.WaitStatefulSet(ctx, t.Namespace, t.Name, timeout)
+			case "DaemonSet":
+				err = waiter.WaitDaemonSet(ctx, t.Namespace, t.Name, timeout)
 			default:
 				fmt.Fprintf(out, "Skipping --wait for unsupported resource kind %s\n", t.Kind)
 				continue
@@ -1395,21 +1397,21 @@ func deploymentWaitTargets(plan planner.ExecutionPlan) []planner.ObjectRef {
 	for _, a := range plan.Actions {
 		switch a.Op {
 		case planner.OpScale, planner.OpRollback, planner.OpCreate, planner.OpUpdate:
-			if a.Object.Kind != "Deployment" && a.Object.Kind != "StatefulSet" && a.Object.Kind != "" {
+			if a.Object.Kind != "Deployment" && a.Object.Kind != "StatefulSet" && a.Object.Kind != "DaemonSet" && a.Object.Kind != "" {
 				continue
 			}
-			key := a.Object.Namespace + "/" + a.Object.Name
-			if a.Object.Name == "" {
-				continue
-			}
-			if _, ok := seen[key]; ok {
-				continue
-			}
-			seen[key] = struct{}{}
 			ref := a.Object
 			if ref.Kind == "" {
 				ref.Kind = "Deployment"
 			}
+			if ref.Name == "" {
+				continue
+			}
+			key := ref.Kind + "/" + ref.Namespace + "/" + ref.Name
+			if _, ok := seen[key]; ok {
+				continue
+			}
+			seen[key] = struct{}{}
 			out = append(out, ref)
 		}
 	}
