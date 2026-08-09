@@ -2,6 +2,7 @@ package argo
 
 import (
 	"fmt"
+	"path"
 	"regexp"
 	"strings"
 
@@ -164,7 +165,7 @@ func normalizeRequest(req WorkflowRequest) WorkflowRequest {
 func resolveContainer(req WorkflowRequest) (image string, command, args []string, gpu bool, err error) {
 	if req.Image != "" {
 		if isShellLauncher(req.Command, req.Args) {
-			return "", nil, nil, false, fmt.Errorf("workflow params.command may not use shell launcher (/bin/sh -c, sh -c, bash -c)")
+			return "", nil, nil, false, fmt.Errorf("workflow params.command/params.args may not use shell launcher (/bin/sh -c, bash -lc, sh -i -c)")
 		}
 		image = req.Image
 		command = append([]string(nil), req.Command...)
@@ -192,26 +193,25 @@ func resolveContainer(req WorkflowRequest) (image string, command, args []string
 	return "", nil, nil, false, nil
 }
 
+// isShellLauncher reports whether command+args invoke a shell that evaluates a
+// command string. The runtime concatenates the two slices into one argv, so any
+// flag position may hold the execute flag: /bin/sh -i -c payload splits either way.
 func isShellLauncher(command, args []string) bool {
-	if len(command) == 0 {
+	argv := make([]string, 0, len(command)+len(args))
+	argv = append(argv, command...)
+	argv = append(argv, args...)
+	if len(argv) == 0 || !isShellName(argv[0]) {
 		return false
 	}
-	name := strings.ToLower(strings.TrimSpace(command[0]))
-	if len(command) >= 2 {
-		flag := strings.TrimSpace(command[1])
-		if isExecuteFlag(flag) && isShellName(name) {
-			return true
-		}
-	}
-	if len(command) == 1 && len(args) > 0 {
-		flag := strings.TrimSpace(args[0])
-		if isExecuteFlag(flag) && isShellName(name) {
+	for _, tok := range argv[1:] {
+		if isExecuteFlag(strings.TrimSpace(tok)) {
 			return true
 		}
 	}
 	return false
 }
 
+// isExecuteFlag matches -c and clustered forms such as -lc, -ec, -xc.
 func isExecuteFlag(flag string) bool {
 	if !strings.HasPrefix(flag, "-") || strings.HasPrefix(flag, "--") {
 		return false
@@ -219,9 +219,11 @@ func isExecuteFlag(flag string) bool {
 	return strings.HasSuffix(flag, "c")
 }
 
+// isShellName matches by base name so absolute paths like /usr/bin/bash count.
+// Container paths are slash-separated, so path.Base is correct on any host OS.
 func isShellName(name string) bool {
-	switch name {
-	case "sh", "/bin/sh", "bash", "/bin/bash", "zsh", "/bin/zsh":
+	switch path.Base(strings.ToLower(strings.TrimSpace(name))) {
+	case "sh", "bash", "zsh", "dash", "ash", "ksh", "busybox":
 		return true
 	default:
 		return false
