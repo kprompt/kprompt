@@ -71,7 +71,9 @@ jobs:
           - Write "No blocking issues found." if nothing significant stands out.
           EOP
           )"
-          agent -p "$PROMPT" --output-format text --model gpt-5 < pr.diff > review.md || true
+          # --trust suppresses the headless "Workspace Trust Required" prompt.
+          # No --force, so the agent only reads/writes stdout (never edits files).
+          agent -p "$PROMPT" --trust --output-format text --model gpt-5 < pr.diff > review.md || true
           test -s review.md || echo "_Cursor review produced no output._" > review.md
 
       - name: Post review comment
