@@ -95,9 +95,9 @@ jobs:
         run: |
           PROMPT="$(cat <<'EOP'
           You are the kprompt project's GitHub assistant, responding to a maintainer's
-          request on an issue or pull request. The stdin contains, in order: the
-          maintainer's REQUEST, then the ITEM CONTEXT (title, body, and — for a PR — the
-          unified diff).
+          request on an issue or pull request. Below (after the marker) you are given,
+          in order: the maintainer's REQUEST, then the ITEM CONTEXT (title, body, and —
+          for a PR — the unified diff).
 
           - If it is a PR and the request is a review, review the diff for real bugs,
             security issues (secrets in code/logs, shell/exec injection, unsafe input),
@@ -109,9 +109,15 @@ jobs:
           markdown only.
           EOP
           )"
+          # cursor-agent -p does not read piped stdin, so embed the input in the prompt.
+          # Passed as a double-quoted shell var (no eval) -> safe from injection.
+          INPUT="$(cat input.md)"
           # --trust suppresses the headless "Workspace Trust Required" prompt.
           # No --force, so the agent only reads/writes stdout (never edits files).
-          agent -p "$PROMPT" --trust --output-format text --model auto < input.md > answer.md || true
+          agent -p "$PROMPT
+
+          --- BEGIN DATA ---
+          $INPUT" --trust --output-format text --model auto > answer.md || true
           test -s answer.md || echo "_Cursor produced no output._" > answer.md
 
       - name: Post reply
