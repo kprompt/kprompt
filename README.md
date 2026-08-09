@@ -444,7 +444,7 @@ Full docs live at [kprompt.ai/docs](https://kprompt.ai/docs). Source guides in t
 | **Investigate & RCA** | [investigate](./docs/investigate.md) · [investigation-graph](./docs/investigation-graph.md) · [why](./docs/why.md) · [timeline](./docs/timeline.md) · [impact](./docs/impact.md) · [reality-anchors](./docs/reality-anchors.md) |
 | **Knowledge & analysis** | [graph](./docs/graph.md) · [simulation](./docs/simulation.md) · [search](./docs/search.md) · [score](./docs/score.md) · [architecture](./docs/architecture.md) |
 | **Hygiene & day-2** | [audit](./docs/audit.md) · [cleanup](./docs/cleanup.md) · [optimize](./docs/optimize.md) · [drift](./docs/drift.md) · [gitops-pr](./docs/gitops-pr.md) · [recipes](./docs/recipes.md) |
-| **Workflow** | [approval](./docs/approval.md) · [history](./docs/history.md) · [watch](./docs/watch.md) · [remember](./docs/remember.md) · [session](./docs/session.md) · [learn](./docs/learn.md) · [ide](./docs/ide.md) |
+| **Workflow** | [approval](./docs/approval.md) · [history](./docs/history.md) · [watch](./docs/watch.md) · [remember](./docs/remember.md) · [session](./docs/session.md) · [learn](./docs/learn.md) · [ide](./docs/ide.md) · [mcp](./docs/mcp.md) |
 | **Observe agent** | [agent](./docs/agent.md) · [namespace-agent](./docs/namespace-agent.md) · [agent-ops](./docs/agent-ops.md) · [coordinator-knowledge](./docs/coordinator-knowledge.md) |
 | **Fleet & CI** | [ci](./docs/ci.md) · [multi-cluster](./docs/multi-cluster.md) · [runs](./docs/runs.md) · [kubernetes-reads](./docs/kubernetes-reads.md) |
 

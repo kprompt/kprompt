@@ -147,6 +147,7 @@ Bare kprompt (no args) prints a readiness coach. Full help: kprompt --help · kp
 	root.AddCommand(withGroup(newForgetCmd(), groupAdvanced))
 	root.AddCommand(withGroup(newSessionCmd(), groupAdvanced))
 	root.AddCommand(withGroup(newToolsCmd(), groupAdvanced))
+	root.AddCommand(withGroup(newMCPCmd(), groupAdvanced))
 	root.AddCommand(withGroup(newSetupCmd(), groupAdvanced))
 	root.AddCommand(withGroup(newLearnCmd(), groupAdvanced))
 	root.AddCommand(withGroup(newRecipeCmd(), groupAdvanced))
