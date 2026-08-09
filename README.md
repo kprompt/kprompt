@@ -480,6 +480,6 @@ If the plan-before-apply contract is useful in your own workflow, a ⭐ helps ot
 
 <div align="center">
 
-[Website](https://kprompt.ai) · [X @kpromptai](https://x.com/kpromptai) · [LinkedIn](https://www.linkedin.com/company/kprompt) · [Bluesky](https://bsky.app/profile/kprompt.bsky.social) · [hello@kprompt.ai](mailto:hello@kprompt.ai)
+[Website](https://kprompt.ai) · [X @kpromptai](https://x.com/kpromptai) · [LinkedIn](https://www.linkedin.com/company/kprompt) · [YouTube](https://www.youtube.com/@kprompt-ai) · [Instagram](https://www.instagram.com/kprompt.ai) · [Bluesky](https://bsky.app/profile/kprompt.bsky.social) · [hello@kprompt.ai](mailto:hello@kprompt.ai)
 
 </div>
