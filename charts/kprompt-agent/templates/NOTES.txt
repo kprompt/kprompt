@@ -13,11 +13,10 @@ kprompt-agent installed.
 5. Discord notifications are enabled (`agent.discord=true` / `--discord`):
    - Put `KPROMPT_DISCORD_WEBHOOK_URL` in Secret {{ include "kprompt-agent.secretName" . }}.
    - The Deployment imports this key automatically when `envFromSecret=true`.
-   - To create or update the Secret without committing the webhook:
+   - To set or update the webhook key without overwriting other keys in that Secret (merge patch):
        export DISCORD_WEBHOOK_URL='<set-out-of-band>'
-       kubectl -n {{ include "kprompt-agent.watchNamespace" . }} create secret generic {{ include "kprompt-agent.secretName" . }} \
-         --from-literal=KPROMPT_DISCORD_WEBHOOK_URL="$DISCORD_WEBHOOK_URL" \
-         --dry-run=client -o yaml | kubectl apply -f -
+       kubectl -n {{ include "kprompt-agent.watchNamespace" . }} patch secret {{ include "kprompt-agent.secretName" . }} \
+         --type merge -p "{\"stringData\":{\"KPROMPT_DISCORD_WEBHOOK_URL\":\"$DISCORD_WEBHOOK_URL\"}}"
 {{ else }}
 5. Discord notifications are disabled by default. Set `agent.discord=true` to enable them.
 {{ end }}
