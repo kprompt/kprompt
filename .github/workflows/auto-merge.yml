@@ -1,0 +1,39 @@
+name: auto-merge
+
+# Enable GitHub's native auto-merge on eligible PRs. This does NOT bypass any
+# gate: GitHub still waits for branch protection to be satisfied (required
+# approving review + the required "test" status check) before merging. We only
+# remove the manual "click Merge" step once a human has approved and CI is green.
+#
+# Security model:
+# - Runs from the base branch (pull_request_target) and never checks out or runs
+#   the PR head code — it only calls the `gh` API. A malicious fork cannot change
+#   what runs here or force a merge without passing branch protection.
+# - Drafts and Dependabot PRs are skipped.
+
+on:
+  pull_request_target:
+    types: [opened, reopened, ready_for_review]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: auto-merge-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  enable:
+    if: >-
+      github.event.pull_request.draft == false &&
+      github.event.pull_request.user.login != 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enable auto-merge (squash)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --repo "${{ github.repository }}" \
+            --auto --squash
