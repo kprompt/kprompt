@@ -15,8 +15,9 @@ func newSecretsCmd() *cobra.Command {
 		Long:  "Caches keys at ~/.kprompt/provider-secrets.yaml (0600). Env vars always override pulled keys. Does not print secret values.",
 	}
 	cmd.AddCommand(&cobra.Command{
-		Use:   "pull",
-		Short: "Fetch org provider keys and cache them locally",
+		Use:     "pull",
+		Short:   "Fetch org provider keys and cache them locally",
+		Example: `  kprompt secrets pull`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			secrets, err := team.PullSecrets(cmd.Context())
 			if err != nil {
