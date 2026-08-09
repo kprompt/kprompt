@@ -8,9 +8,22 @@ kprompt-agent installed.
    - Helm defaults keep apply=false. There is no silent LLM-said-so apply.
 4. Secret {{ include "kprompt-agent.secretName" . }} — put LLM / Slack / webhook keys, then restart if needed:
      kubectl -n {{ include "kprompt-agent.watchNamespace" . }} rollout restart deploy/{{ include "kprompt-agent.fullname" . }}
-5. Logs:
+{{ if .Values.agent.discord }}
+
+5. Discord notifications are enabled (`agent.discord=true` / `--discord`):
+   - Put `KPROMPT_DISCORD_WEBHOOK_URL` in Secret {{ include "kprompt-agent.secretName" . }}.
+   - The Deployment imports this key automatically when `envFromSecret=true`.
+   - To create or update the Secret without committing the webhook:
+       export DISCORD_WEBHOOK_URL='<set-out-of-band>'
+       kubectl -n {{ include "kprompt-agent.watchNamespace" . }} create secret generic {{ include "kprompt-agent.secretName" . }} \
+         --from-literal=KPROMPT_DISCORD_WEBHOOK_URL="$DISCORD_WEBHOOK_URL" \
+         --dry-run=client -o yaml | kubectl apply -f -
+{{ else }}
+5. Discord notifications are disabled by default. Set `agent.discord=true` to enable them.
+{{ end }}
+6. Logs:
      kubectl -n {{ include "kprompt-agent.watchNamespace" . }} logs -l app.kubernetes.io/instance={{ .Release.Name }} -f
-6. Docs:
+7. Docs:
      https://github.com/kprompt/kprompt/blob/main/docs/agent.md
      https://github.com/kprompt/kprompt/blob/main/docs/namespace-agent.md
      https://github.com/kprompt/kprompt/blob/main/docs/agent-ops.md
