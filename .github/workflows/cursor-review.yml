@@ -41,8 +41,16 @@ jobs:
           echo "diff bytes: $(wc -c < pr.diff)"
 
       - name: Install Cursor CLI
+        env:
+          # Pinned checksum of https://cursor.com/install. Never pipe the installer
+          # straight into a shell — download it, verify its integrity, then run it.
+          # If Cursor rotates the installer this step fails loudly; re-run
+          # `sha256sum` on the script, review the diff, and update this value.
+          CURSOR_INSTALL_SHA256: a51ebedf2a13bc073d994a6f2defbd1f4d976a6cf116ad678d071c6a363bf3e4
         run: |
-          curl https://cursor.com/install -fsS | bash
+          curl -fsS https://cursor.com/install -o install-cursor.sh
+          echo "${CURSOR_INSTALL_SHA256}  install-cursor.sh" | sha256sum -c -
+          bash install-cursor.sh
           echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
 
       - name: Generate review
@@ -73,7 +81,7 @@ jobs:
           )"
           # --trust suppresses the headless "Workspace Trust Required" prompt.
           # No --force, so the agent only reads/writes stdout (never edits files).
-          agent -p "$PROMPT" --trust --output-format text --model gpt-5 < pr.diff > review.md || true
+          agent -p "$PROMPT" --trust --output-format text --model auto < pr.diff > review.md || true
           test -s review.md || echo "_Cursor review produced no output._" > review.md
 
       - name: Post review comment
