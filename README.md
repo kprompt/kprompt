@@ -342,7 +342,7 @@ See also: [GitHub Integration MVP / GitOps PR mode](./docs/gitops-pr.md). Exampl
 | `--wait` | After apply, wait for Deployment rollout, then verify |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
-| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `ollama`, `openai-compatible` |
+| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `ollama`, `azure`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |
 | `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |
