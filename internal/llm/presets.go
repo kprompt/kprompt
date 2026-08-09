@@ -34,6 +34,14 @@ var Presets = []Preset{
 		EnvKeys:      []string{"KPROMPT_OPENAI_API_KEY", "OPENAI_API_KEY"},
 	},
 	{
+		Name:         "azure",
+		Kind:         "openai",
+		BaseURL:      "", // must set base_url / KPROMPT_OPENAI_BASE_URL
+		DefaultModel: "gpt-4o",
+		EnvKeys:      []string{"KPROMPT_AZURE_API_KEY", "AZURE_OPENAI_API_KEY", "KPROMPT_OPENAI_API_KEY"},
+		HelpURL:      "https://learn.microsoft.com/azure/ai-foundry/",
+	},
+	{
 		Name:         "anthropic",
 		Kind:         "anthropic",
 		DefaultModel: "claude-sonnet-4-6",
