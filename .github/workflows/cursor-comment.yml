@@ -101,7 +101,9 @@ jobs:
           markdown only.
           EOP
           )"
-          agent -p "$PROMPT" --output-format text --model gpt-5 < input.md > answer.md || true
+          # --trust suppresses the headless "Workspace Trust Required" prompt.
+          # No --force, so the agent only reads/writes stdout (never edits files).
+          agent -p "$PROMPT" --trust --output-format text --model gpt-5 < input.md > answer.md || true
           test -s answer.md || echo "_Cursor produced no output._" > answer.md
 
       - name: Post reply
