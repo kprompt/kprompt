@@ -400,7 +400,7 @@ The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config
 |------|-------------|
 | `--approve` | Apply without interactive confirmation |
 | `--approve-each-context` | Apply a mutating plan to every `--contexts` entry (explicit; not implied by `--approve`) |
-| `--wait` | After apply, wait for Deployment rollout, then verify |
+| `--wait` | After apply, wait for Deployment / StatefulSet / DaemonSet rollout, then verify |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
 | `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `ollama`, `openai-compatible` |

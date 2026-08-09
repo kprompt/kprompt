@@ -168,3 +168,67 @@ func DesiredSTSReplicas(sts *appsv1.StatefulSet) int32 {
 	}
 	return 1
 }
+
+// WaitDaemonSet blocks until the DaemonSet is fully available or timeout.
+func (w *Waiter) WaitDaemonSet(ctx context.Context, namespace, name string, timeout time.Duration) error {
+	if timeout <= 0 {
+		timeout = DefaultWaitTimeout
+	}
+	ns := namespace
+	if ns == "" {
+		ns = "default"
+	}
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	if w.Out != nil {
+		fmt.Fprintf(w.Out, "Waiting for DaemonSet/%s -n %s (timeout %s)…\n", name, ns, timeout)
+	}
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	var last *appsv1.DaemonSet
+	for {
+		ds, err := w.Client.AppsV1().DaemonSets(ns).Get(waitCtx, name, metav1.GetOptions{})
+		if err != nil {
+			if waitCtx.Err() != nil && !errors.Is(err, context.Canceled) {
+				return timeoutDSErr(name, timeout, last)
+			}
+			return err
+		}
+		last = ds
+		if daemonSetReady(ds) {
+			if w.Out != nil {
+				fmt.Fprintf(w.Out, "✓ DaemonSet/%s ready\n", name)
+			}
+			return nil
+		}
+		select {
+		case <-waitCtx.Done():
+			if errors.Is(waitCtx.Err(), context.DeadlineExceeded) {
+				return timeoutDSErr(name, timeout, last)
+			}
+			return waitCtx.Err()
+		case <-ticker.C:
+		}
+	}
+}
+
+func timeoutDSErr(name string, timeout time.Duration, ds *appsv1.DaemonSet) error {
+	if ds == nil {
+		return fmt.Errorf("timed out waiting for DaemonSet/%s after %s", name, timeout)
+	}
+	return fmt.Errorf("timed out waiting for DaemonSet/%s after %s (updated=%d ready=%d desired=%d)",
+		name, timeout, ds.Status.UpdatedNumberScheduled, ds.Status.NumberReady, ds.Status.DesiredNumberScheduled)
+}
+
+func daemonSetReady(ds *appsv1.DaemonSet) bool {
+	desired := ds.Status.DesiredNumberScheduled
+	if desired == 0 {
+		return false
+	}
+	return ds.Status.ObservedGeneration >= ds.Generation &&
+		ds.Status.UpdatedNumberScheduled == desired &&
+		ds.Status.NumberReady == desired
+}
