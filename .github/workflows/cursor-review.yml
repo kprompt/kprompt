@@ -59,7 +59,8 @@ jobs:
         run: |
           PROMPT="$(cat <<'EOP'
           You are a senior code reviewer for the kprompt project (a Go CLI + in-cluster
-          Kubernetes agent). Review ONLY the unified diff provided on stdin.
+          Kubernetes agent). Review ONLY the unified diff provided below (after the
+          "UNIFIED DIFF:" marker).
 
           Focus on high-signal issues:
           - Real bugs, nil derefs, error handling, concurrency/goroutine leaks.
@@ -79,9 +80,15 @@ jobs:
           - Write "No blocking issues found." if nothing significant stands out.
           EOP
           )"
+          # cursor-agent -p does not read piped stdin, so embed the diff in the prompt.
+          # Passed as a double-quoted shell var (no eval) -> safe from injection.
+          DIFF="$(cat pr.diff)"
           # --trust suppresses the headless "Workspace Trust Required" prompt.
           # No --force, so the agent only reads/writes stdout (never edits files).
-          agent -p "$PROMPT" --trust --output-format text --model auto < pr.diff > review.md || true
+          agent -p "$PROMPT
+
+          UNIFIED DIFF:
+          $DIFF" --trust --output-format text --model auto > review.md || true
           test -s review.md || echo "_Cursor review produced no output._" > review.md
 
       - name: Post review comment
