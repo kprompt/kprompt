@@ -132,7 +132,7 @@ func TestGenerateWorkflowRejectsShellLauncher(t *testing.T) {
 // TestGenerateWorkflowRejectsClusteredShellFlags checks flag clusters that still
 // make the shell evaluate the next argument as a command string.
 func TestGenerateWorkflowRejectsClusteredShellFlags(t *testing.T) {
-	for _, flag := range []string{"-lc", "-ec", "-elc", "-xc"} {
+	for _, flag := range []string{"-lc", "-ec", "-elc", "-xc", "-cx", "-ce", "-cl", "-icx"} {
 		shapes := []struct {
 			command []string
 			args    []string
@@ -166,6 +166,7 @@ func TestGenerateWorkflowAllowsNonShellEntrypoints(t *testing.T) {
 		{"python with own -c flag", []string{"python"}, []string{"train.py", "-c", "config.yaml"}},
 		{"shell running a script", []string{"/bin/sh"}, []string{"/app/run.sh"}},
 		{"shell with long flag only", []string{"bash"}, []string{"--login", "/app/run.sh"}},
+		{"uppercase noclobber flag", []string{"/bin/sh"}, []string{"-C", "/app/run.sh"}},
 		{"no command or args", nil, nil},
 	}
 	for _, tc := range cases {

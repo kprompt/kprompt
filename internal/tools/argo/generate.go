@@ -211,12 +211,13 @@ func isShellLauncher(command, args []string) bool {
 	return false
 }
 
-// isExecuteFlag matches -c and clustered forms such as -lc, -ec, -xc.
+// isExecuteFlag matches any short-flag cluster carrying -c: -lc, -cx and -ce all
+// execute. Case-sensitive, since -C is noclobber rather than execute.
 func isExecuteFlag(flag string) bool {
 	if !strings.HasPrefix(flag, "-") || strings.HasPrefix(flag, "--") {
 		return false
 	}
-	return strings.HasSuffix(flag, "c")
+	return strings.ContainsRune(flag[1:], 'c')
 }
 
 // isShellName matches by base name so absolute paths like /usr/bin/bash count.
