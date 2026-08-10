@@ -173,3 +173,56 @@ func TestHostNeeded(t *testing.T) {
 		t.Fatalf("%+v", got)
 	}
 }
+
+type captureRunner struct {
+	fakeRunner
+	lastCommand string
+	lastArgs    []string
+}
+
+func (c *captureRunner) Run(ctx context.Context, name string, args []string, env []string) error {
+	c.lastCommand = name
+	c.lastArgs = append([]string(nil), args...)
+	return c.fakeRunner.Run(ctx, name, args, env)
+}
+
+func TestHostSetupOnlyAllowsHardcodedURLs(t *testing.T) {
+	method := getHelm3Method()
+	if method.ID != "get-helm-3" {
+		t.Fatalf("unexpected method ID: %s", method.ID)
+	}
+	r := &captureRunner{
+		fakeRunner: fakeRunner{
+			goos:     "linux",
+			paths:    map[string]string{"curl": "/usr/bin/curl"},
+			lookMiss: map[string]bool{"helm": true},
+			tempDir:  t.TempDir(),
+		},
+	}
+	script, _, _, err := method.Prepare(context.Background(), r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(script, "get-helm-3") {
+		t.Fatalf("unexpected script file path: %q", script)
+	}
+
+	// Verify the exact curl invocation token-by-token as requested in review
+	if r.lastCommand != "curl" {
+		t.Fatalf("expected command 'curl', got %q", r.lastCommand)
+	}
+	expectedArgs := []string{
+		"-fsSL",
+		"-o",
+		script,
+		"https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3",
+	}
+	if len(r.lastArgs) != len(expectedArgs) {
+		t.Fatalf("expected exactly %d args, got %d: %v", len(expectedArgs), len(r.lastArgs), r.lastArgs)
+	}
+	for i, arg := range expectedArgs {
+		if r.lastArgs[i] != arg {
+			t.Fatalf("argument %d mismatch: got %q, want %q", i, r.lastArgs[i], arg)
+		}
+	}
+}
