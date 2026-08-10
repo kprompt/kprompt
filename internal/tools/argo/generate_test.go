@@ -113,6 +113,11 @@ func TestGenerateWorkflowRejectsShellLauncher(t *testing.T) {
 		{"ksh", []string{"ksh"}, []string{"-c", shellPayload}},
 		{"busybox", []string{"busybox"}, []string{"sh", "-c", shellPayload}},
 		{"zsh", []string{"zsh"}, []string{"-c", shellPayload}},
+		{"env wrapper", []string{"env"}, []string{"sh", "-c", shellPayload}},
+		{"absolute env wrapper", []string{"/usr/bin/env"}, []string{"bash", "-c", shellPayload}},
+		{"nice wrapper with own flags", []string{"nice", "-n", "10"}, []string{"bash", "-c", shellPayload}},
+		{"timeout wrapper", []string{"timeout", "5"}, []string{"sh", "-lc", shellPayload}},
+		{"env with assignment", []string{"env", "FOO=bar"}, []string{"sh", "-c", shellPayload}},
 	}
 	for _, tc := range cases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -152,6 +157,21 @@ func TestGenerateWorkflowRejectsClusteredShellFlags(t *testing.T) {
 				t.Fatalf("command=%v args=%v: err=%v", shape.command, shape.args, err)
 			}
 		}
+	}
+}
+
+// TestGenerateWorkflowRejectsShellScriptWithOwnCFlag pins a deliberate false
+// positive: a -c belonging to the script a shell runs is indistinguishable from
+// the shell's own, so the check fails closed. Set the image entrypoint instead.
+func TestGenerateWorkflowRejectsShellScriptWithOwnCFlag(t *testing.T) {
+	_, _, err := GenerateWorkflow(WorkflowRequest{
+		Name:    "train",
+		Image:   "python:3.11-slim",
+		Command: []string{"/bin/sh"},
+		Args:    []string{"app.sh", "-c", "config.yaml"},
+	})
+	if err == nil || !strings.Contains(err.Error(), "may not use shell launcher") {
+		t.Fatalf("err=%v", err)
 	}
 }
 

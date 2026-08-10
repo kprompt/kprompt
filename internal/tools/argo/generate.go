@@ -194,18 +194,23 @@ func resolveContainer(req WorkflowRequest) (image string, command, args []string
 }
 
 // isShellLauncher reports whether command+args invoke a shell that evaluates a
-// command string. The runtime concatenates the two slices into one argv, so any
-// flag position may hold the execute flag: /bin/sh -i -c payload splits either way.
+// command string. The runtime concatenates the two slices into one argv, and a
+// shell can sit at any position -- exec wrappers such as env, nice and timeout
+// hide it -- so every token is a candidate, with its execute flag anywhere after.
+// Deliberately fail-closed: a shell's own -c is indistinguishable here from one
+// meant for the script it runs, so sh app.sh -c cfg is rejected too.
 func isShellLauncher(command, args []string) bool {
 	argv := make([]string, 0, len(command)+len(args))
 	argv = append(argv, command...)
 	argv = append(argv, args...)
-	if len(argv) == 0 || !isShellName(argv[0]) {
-		return false
-	}
-	for _, tok := range argv[1:] {
-		if isExecuteFlag(strings.TrimSpace(tok)) {
-			return true
+	for i, tok := range argv {
+		if !isShellName(tok) {
+			continue
+		}
+		for _, rest := range argv[i+1:] {
+			if isExecuteFlag(strings.TrimSpace(rest)) {
+				return true
+			}
 		}
 	}
 	return false
