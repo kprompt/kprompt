@@ -117,6 +117,8 @@ model: llama3.2
 # provider: azure
 # model: gpt-4o   # deployment name
 # base_url: https://YOUR_RESOURCE.openai.azure.com/openai/v1
-# base_url: https://api.groq.com/openai/v1   # optional override for openai-compatible presets
+#
+# base_url is required for azure / openai-compatible, and optionally overrides the
+# endpoint of any other openai-compatible preset (e.g. https://api.groq.com/openai/v1)
 namespace: default
 ```
