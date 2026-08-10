@@ -19,8 +19,9 @@ func newPolicyCmd() *cobra.Command {
 		},
 	}
 	cmd.AddCommand(&cobra.Command{
-		Use:   "pull",
-		Short: "Fetch org policy from the control plane and cache it",
+		Use:     "pull",
+		Short:   "Fetch org policy from the control plane and cache it",
+		Example: `  kprompt policy pull`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			pol, err := team.PullPolicy(cmd.Context())
 			if err != nil {
@@ -32,8 +33,9 @@ func newPolicyCmd() *cobra.Command {
 		},
 	})
 	cmd.AddCommand(&cobra.Command{
-		Use:   "show",
-		Short: "Show the cached org policy",
+		Use:     "show",
+		Short:   "Show the cached org policy",
+		Example: `  kprompt policy show`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return showPolicy(cmd)
 		},

@@ -26,7 +26,9 @@ func newConfigCmd() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "set <key> <value>",
 		Short: "Set a config value (provider|model|base_url|context|namespace|require_alias_match|tools.*|gitops.*)",
-		Args:  cobra.ExactArgs(2),
+		Example: `  kprompt config set provider anthropic
+  kprompt config set model gpt-5`,
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			f, err := config.SetField(args[0], args[1])
 			if err != nil {
@@ -68,6 +70,8 @@ func newConfigAliasCmd() *cobra.Command {
 		Use:   "set <name> <kube-context>",
 		Short: "Map an alias to a kubeconfig context",
 		Args:  cobra.ExactArgs(2),
+		Example: `  kprompt config alias set prod gke_myproj_us-central1_prod
+  kprompt config alias set staging kind-staging`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			f, err := config.SetAlias(args[0], args[1])
 			if err != nil {
@@ -82,7 +86,9 @@ func newConfigAliasCmd() *cobra.Command {
 	cmd.AddCommand(&cobra.Command{
 		Use:   "unset <name>",
 		Short: "Remove a context alias",
-		Args:  cobra.ExactArgs(1),
+		Example: `kprompt config alias unset prod
+  kprompt config alias unset staging`,
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if _, err := config.UnsetAlias(args[0]); err != nil {
 				return err

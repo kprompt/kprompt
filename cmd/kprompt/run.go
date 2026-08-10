@@ -38,6 +38,9 @@ POST /v1/runs/{id}/result.
 
 Requires kprompt login (operator or admin). Empty state in the app:
 "Enroll a CLI worker (kprompt login + kprompt run listen)".`,
+		Example: `  kprompt run listen
+  kprompt run listen --interval 5s
+  kprompt run listen --worker-label my-worker-123`,
 		RunE: func(cmd *cobra.Command, _ []string) error {
 			creds, ok, err := team.LoadCredentials()
 			if err != nil {

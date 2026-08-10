@@ -19,6 +19,8 @@ func newLoginCmd() *cobra.Command {
 		Use:   "login",
 		Short: "Enroll this CLI with a Team org (device login)",
 		Long:  "Starts a device-code flow against the control plane. Approve the user code at app.kprompt.ai/connect, then a kp_… token is stored in ~/.kprompt/credentials.yaml (0600).",
+		Example: `  kprompt login
+  kprompt login --open`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			url := strings.TrimSpace(apiURL)
 			if url == "" {
@@ -67,8 +69,9 @@ func newLoginCmd() *cobra.Command {
 
 func newLogoutCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "logout",
-		Short: "Revoke the local Team API token and clear credentials",
+		Use:     "logout",
+		Short:   "Revoke the local Team API token and clear credentials",
+		Example: `  kprompt logout`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, _, err := team.LoadCredentials()
 			if err != nil {
@@ -94,8 +97,9 @@ func newLogoutCmd() *cobra.Command {
 
 func newWhoamiCmd() *cobra.Command {
 	return &cobra.Command{
-		Use:   "whoami",
-		Short: "Show Team enrollment status",
+		Use:     "whoami",
+		Short:   "Show Team enrollment status",
+		Example: `  kprompt whoami`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			creds, ok, err := team.LoadCredentials()
 			if err != nil {

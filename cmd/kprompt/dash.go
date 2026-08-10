@@ -20,6 +20,17 @@ func newDashCmd() *cobra.Command {
 		Use:   "dash",
 		Short: "Open the local read-only cluster dashboard",
 		Long:  "Starts kprompt-dash on localhost (kubeconfig stays on this machine). Install: go install github.com/kprompt/kprompt-dash/cmd/kprompt-dash@latest",
+		Example: `  # Basic launch
+  kprompt dash
+  
+  # Disable automatic open behavior
+  kprompt dash --open=false
+
+  # Different address / port
+  kprompt dash --addr 127.0.0.1:8080
+
+  # Target a specific kubeconfig context
+  kprompt dash --context staging`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			bin, err := lookDashBinary()
 			if err != nil {
