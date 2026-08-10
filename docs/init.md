@@ -43,4 +43,5 @@ Interactive TTY with bare `kprompt init` walks provider → model → optional c
 - Bare `kprompt` — readiness coach (points here when unconfigured)
 - [providers.md](./providers.md) — full preset list
 - [doctor.md](./doctor.md) — health report
+- [adopt.md](./adopt.md) — brownfield ~15 min on an existing cluster
 - [setup.md](./setup.md) — Helm / Argo / Prom bootstrap (not LLM onboarding)

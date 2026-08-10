@@ -10,7 +10,8 @@ When a tool is missing, a **Next steps (unavailable)** section lists install or
 config hints: **`kprompt setup`** for components that setup can plan (Helm, Argo
 Workflows, Prometheus) or config-lane URL steps (Grafana / OTel), plus
 copy-pasteable defaults for operators setup does not install (GitOps, Tekton,
-KEDA, …). See [setup.md](./setup.md).
+KEDA, …). On an existing cluster, prefer bind-over-install — see
+[adopt.md](./adopt.md) and [setup.md](./setup.md).
 
 ## What it detects
 

@@ -440,7 +440,7 @@ Full docs live at [kprompt.ai/docs](https://kprompt.ai/docs). Source guides in t
 
 | Area | Guides |
 |------|--------|
-| **Getting started** | [setup](./docs/setup.md) · [init](./docs/init.md) · [demo](./docs/demo.md) · [doctor](./docs/doctor.md) · [providers](./docs/providers.md) · [tools](./docs/tools.md) |
+| **Getting started** | [adopt](./docs/adopt.md) · [setup](./docs/setup.md) · [init](./docs/init.md) · [demo](./docs/demo.md) · [doctor](./docs/doctor.md) · [providers](./docs/providers.md) · [tools](./docs/tools.md) |
 | **Investigate & RCA** | [investigate](./docs/investigate.md) · [investigation-graph](./docs/investigation-graph.md) · [why](./docs/why.md) · [timeline](./docs/timeline.md) · [impact](./docs/impact.md) · [reality-anchors](./docs/reality-anchors.md) |
 | **Knowledge & analysis** | [graph](./docs/graph.md) · [simulation](./docs/simulation.md) · [search](./docs/search.md) · [score](./docs/score.md) · [architecture](./docs/architecture.md) |
 | **Hygiene & day-2** | [audit](./docs/audit.md) · [cleanup](./docs/cleanup.md) · [optimize](./docs/optimize.md) · [drift](./docs/drift.md) · [gitops-pr](./docs/gitops-pr.md) · [recipes](./docs/recipes.md) |

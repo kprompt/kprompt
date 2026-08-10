@@ -73,3 +73,4 @@ OK.
 - Team enrollment is optional; missing `kp_…` is not a Free CLI failure
 - Prefer Ollama ($0) or the zero-LLM walkthrough before buying a cloud provider key
 - Integration summaries point you to `kprompt tools` for deeper inspection
+- Existing cluster playbook: [adopt.md](./adopt.md)

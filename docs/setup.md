@@ -76,5 +76,6 @@ kprompt config set tools.prometheus.url http://kprompt-prom-kube-prometheus-stac
 
 ## Related
 
+- Prefer bind-over-install on existing clusters: [adopt.md](./adopt.md)
 - `kprompt tools` · `kprompt doctor` · `kprompt learn`
 - Product docs mirror: [kprompt.ai/docs/setup](https://kprompt.ai/docs/setup)
