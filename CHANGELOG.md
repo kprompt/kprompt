@@ -4,6 +4,30 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+## [v0.11.0](https://github.com/kprompt/kprompt/releases/tag/v0.11.0) — 2026-08-10
+
+MCP editor interop + provider/wait follow-ups since v0.10.0.
+
+### Features
+
+- **`kprompt mcp serve`** — read/plan-only Model Context Protocol server over stdio for Cursor, Claude Desktop, and other IDE assistants; mutations return a `PlanResult` and never auto-apply ([ADR-0024](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0024-mcp-interop.md) · [docs/mcp.md](./docs/mcp.md))
+- **Azure OpenAI** named preset (`--provider azure`) — OpenAI-compatible; requires resource `base_url`; `--model` is the deployment name (P-006)
+- **`--wait` DaemonSet** — after apply, wait for DaemonSet rollout readiness alongside Deployment / StatefulSet (#148)
+
+### Security
+
+- **SEC-006** — Helm / generate exec injection boundary coverage: malicious release/chart/repo-looking args stay argv-only (no shell) (#121)
+
+### Docs
+
+- Cobra examples for team / utility commands (#139)
+- Helm chart NOTES for Discord notify + Coordinator knowledge APIs (#147)
+- README restructure + YouTube / Instagram footer links
+
+### Notes
+
+Experimental — prefer non-production clusters. Autopilot remains propose-only by default. MCP is IDE interop, not an in-cluster agent platform.
+
 ## [v0.10.0](https://github.com/kprompt/kprompt/releases/tag/v0.10.0) — 2026-08-08
 
 **AI Runtime product closure** — the motto loop (Observe → Reason → Plan → Validate → Approve → Execute → **Learn**) is now real **in-cluster**, not only on a laptop. Closes all six closure pillars ([RUNTIME-TASKS RT-001…RT-024](https://github.com/kprompt/kprompt-architecture/blob/main/RUNTIME-TASKS.md) · AG-071…AG-076). Default stays Observe + propose-only Autopilot — never silent fleet heal; Secret **values** stay out of the Knowledge Graph.

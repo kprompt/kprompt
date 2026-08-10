@@ -164,7 +164,7 @@ brew install kprompt/tap/kprompt
 ### Pinned fallback (jsDelivr)
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.10.0/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.11.0/install/install.sh | bash
 ```
 
 ### From source
@@ -470,7 +470,7 @@ If the plan-before-apply contract is useful in your own workflow, a ⭐ helps ot
 
 [![Contributors](https://contrib.rocks/image?repo=kprompt/kprompt)](https://github.com/kprompt/kprompt/graphs/contributors)
 
-**Status:** `v0.10.0` (experimental) — the full AI Runtime loop (Observe → Reason → Plan → Validate → Approve → Execute → **Learn**) now runs in-cluster, not only on a laptop. Autopilot stays propose-only by default. See [CHANGELOG.md](./CHANGELOG.md).
+**Status:** `v0.11.0` (experimental) — AI Runtime loop in-cluster (v0.10) plus `kprompt mcp serve` for read/plan-only IDE interop, Azure OpenAI preset, and DaemonSet `--wait`. Autopilot stays propose-only by default. See [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
