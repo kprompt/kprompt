@@ -65,7 +65,7 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is the actionable install guidance for operators.
 func InstallHint() string {
-	return "Install KEDA in the cluster (https://keda.sh/docs/deploy/) or use plain Deployment scale without event triggers."
+	return "Default: helm repo add kedacore https://kedacore.github.io/charts && helm install keda kedacore/keda --namespace keda --create-namespace (https://keda.sh/docs/deploy/). setup does not install KEDA — or use plain Deployment scale without event triggers."
 }
 
 // NotInstalledError is returned when KEDA operations are requested without KEDA.

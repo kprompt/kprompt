@@ -76,7 +76,7 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is the actionable install guidance for operators.
 func InstallHint() string {
-	return "Install Flux (https://fluxcd.io/flux/installation/) and/or Argo CD (https://argo-cd.readthedocs.io/en/stable/getting_started/) to manage GitOps sync and health."
+	return "Default (Flux): brew install fluxcd/tap/flux && flux bootstrap github --owner=<org> --repository=<repo> --branch=main --path=clusters/dev --personal (https://fluxcd.io/flux/installation/). Alt (Argo CD): kubectl create namespace argocd && kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml (https://argo-cd.readthedocs.io/en/stable/getting_started/). setup does not install GitOps controllers."
 }
 
 // NotInstalledError is returned when GitOps operations are requested without Flux or Argo CD.

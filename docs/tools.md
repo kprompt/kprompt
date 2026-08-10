@@ -6,9 +6,11 @@ and current cluster.
 It probes local binaries, configured HTTP backends, and Kubernetes CRDs. The
 command is **read-only** and does not call an LLM.
 
-When a tool is missing, the `DETAIL` / hint column points at **`kprompt setup`**
-for components that setup can plan (Helm, Argo Workflows, Prometheus) or at
-config URLs for Grafana / OTel. See [setup.md](./setup.md).
+When a tool is missing, a **Next steps (unavailable)** section lists install or
+config hints: **`kprompt setup`** for components that setup can plan (Helm, Argo
+Workflows, Prometheus) or config-lane URL steps (Grafana / OTel), plus
+copy-pasteable defaults for operators setup does not install (GitOps, Tekton,
+KEDA, …). See [setup.md](./setup.md).
 
 ## What it detects
 
@@ -62,7 +64,13 @@ Default output is a table:
 - `STATUS`
 - `DETAIL`
 
-Use JSON for scripting or debugging:
+Then, when any tool is `unavailable` with a hint:
+
+- **Next steps (unavailable)** — one line per missing tool (`Name: hint`)
+- **Try: kprompt setup** — only if a setup-backed gap exists (Helm / Argo Workflows / Prometheus / Grafana / OTel)
+- URL/env footer — only if Prometheus / Grafana / OTel is missing
+
+JSON includes a `hint` field per tool:
 
 ```bash
 kprompt tools --json
@@ -105,4 +113,4 @@ kprompt tools
 ```
 
 If a tool is disabled or not configured, `kprompt tools` reports that in the
-`DETAIL` column and may include a hint.
+`DETAIL` column and lists actionable install/config guidance under **Next steps**.

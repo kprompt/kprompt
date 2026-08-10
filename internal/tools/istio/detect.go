@@ -65,7 +65,7 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is the actionable install guidance for operators.
 func InstallHint() string {
-	return "Install Istio in the cluster (https://istio.io/latest/docs/setup/install/) or use generic get for non-mesh traffic."
+	return "Default: istioctl install --set profile=default -y (https://istio.io/latest/docs/setup/install/). setup does not install Istio — or use generic get for non-mesh traffic."
 }
 
 // NotInstalledError is returned when Istio operations are requested without Istio.

@@ -53,5 +53,5 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is actionable guidance when cert-manager is absent.
 func InstallHint() string {
-	return "Install cert-manager (https://cert-manager.io/docs/installation/) for Certificate / Issuer APIs."
+	return "Default: kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.16.2/cert-manager.yaml (https://cert-manager.io/docs/installation/). setup does not install cert-manager."
 }

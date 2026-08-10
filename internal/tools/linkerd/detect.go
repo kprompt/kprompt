@@ -53,5 +53,5 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is actionable guidance when Linkerd is absent.
 func InstallHint() string {
-	return "Install Linkerd (https://linkerd.io/2/getting-started/) when the mesh is policy.linkerd.io based."
+	return "Default: linkerd install --crds | kubectl apply -f - && linkerd install | kubectl apply -f - (https://linkerd.io/2/getting-started/). setup does not install Linkerd."
 }

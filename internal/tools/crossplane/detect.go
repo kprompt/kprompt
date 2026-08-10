@@ -65,7 +65,7 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is the actionable install guidance for operators.
 func InstallHint() string {
-	return "Install Crossplane in the cluster (https://docs.crossplane.io/latest/software/install/) and configure Providers/Compositions before provisioning claims."
+	return "Default: helm repo add crossplane-stable https://charts.crossplane.io/stable && helm install crossplane --namespace crossplane-system --create-namespace crossplane-stable/crossplane (https://docs.crossplane.io/latest/software/install/). Then configure Providers/Compositions. setup does not install Crossplane."
 }
 
 // NotInstalledError is returned when Crossplane operations are requested without Crossplane.

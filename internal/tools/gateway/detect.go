@@ -53,5 +53,5 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is actionable guidance when Gateway API is absent.
 func InstallHint() string {
-	return "Install Gateway API CRDs (https://gateway-api.sigs.k8s.io/) plus a controller (e.g. Istio, Contour, Envoy Gateway)."
+	return "Default CRDs: kubectl apply -f https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.2.1/standard-install.yaml (https://gateway-api.sigs.k8s.io/), then install a controller (Istio, Contour, Envoy Gateway). setup does not install Gateway API."
 }

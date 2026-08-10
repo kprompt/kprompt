@@ -3,6 +3,7 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"strings"
 	"text/tabwriter"
 
@@ -47,7 +48,7 @@ func newToolsCmd() *cobra.Command {
 			if jsonOut {
 				return encodeToolsJSON(cmd, reg)
 			}
-			return printToolsTable(cmd, reg)
+			return printToolsTable(cmd.OutOrStdout(), reg)
 		},
 	}
 
@@ -57,8 +58,8 @@ func newToolsCmd() *cobra.Command {
 	return cmd
 }
 
-func printToolsTable(cmd *cobra.Command, reg *tools.Registry) error {
-	w := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
+func printToolsTable(out io.Writer, reg *tools.Registry) error {
+	w := tabwriter.NewWriter(out, 0, 0, 2, ' ', 0)
 	fmt.Fprintln(w, "TOOL\tSTATUS\tDETAIL")
 	for _, r := range reg.All() {
 		fmt.Fprintf(w, "%s\t%s\t%s\n", r.Name, r.Status, sanitizeTab(r.Detail))
@@ -66,7 +67,41 @@ func printToolsTable(cmd *cobra.Command, reg *tools.Registry) error {
 	if err := w.Flush(); err != nil {
 		return err
 	}
-	fmt.Fprintln(cmd.OutOrStdout(), "\nConfigure URLs via env (KPROMPT_PROMETHEUS_URL, KPROMPT_GRAFANA_URL, KPROMPT_OTEL_ENDPOINT) or kprompt config set tools.prometheus.url …")
+
+	var next []tools.Result
+	setupGap := false
+	urlGap := false
+	for _, r := range reg.All() {
+		if r.Status != tools.StatusUnavailable {
+			continue
+		}
+		hint := strings.TrimSpace(r.Hint)
+		if hint == "" {
+			continue
+		}
+		next = append(next, r)
+		switch r.ID {
+		case tools.IDHelm, tools.IDArgoWorkflows, tools.IDPrometheus, tools.IDGrafana, tools.IDOpenTelemetry:
+			setupGap = true
+		}
+		switch r.ID {
+		case tools.IDPrometheus, tools.IDGrafana, tools.IDOpenTelemetry:
+			urlGap = true
+		}
+	}
+
+	if len(next) > 0 {
+		fmt.Fprintln(out, "\nNext steps (unavailable):")
+		for _, r := range next {
+			fmt.Fprintf(out, "  - %s: %s\n", r.Name, strings.TrimSpace(r.Hint))
+		}
+	}
+	if setupGap {
+		fmt.Fprintln(out, "\nTry: kprompt setup   # dry-run plan for Helm / Argo Workflows / Prometheus (approve-gated)")
+	}
+	if urlGap {
+		fmt.Fprintln(out, "Configure URLs via env (KPROMPT_PROMETHEUS_URL, KPROMPT_GRAFANA_URL, KPROMPT_OTEL_ENDPOINT) or kprompt config set tools.prometheus.url …")
+	}
 	return nil
 }
 

@@ -65,7 +65,7 @@ func DetailLabel(av Availability) string {
 
 // InstallHint is the actionable install guidance for operators.
 func InstallHint() string {
-	return "Install Tekton Pipelines in the cluster (https://tekton.dev/docs/getting-started/) or pick a Kubernetes-only prompt."
+	return "Default: kubectl apply --filename https://storage.googleapis.com/tekton-releases/pipeline/latest/release.yaml (https://tekton.dev/docs/getting-started/). setup does not install Tekton — or pick a Kubernetes-only prompt."
 }
 
 // NotInstalledError is returned when Tekton operations are requested without Tekton.
