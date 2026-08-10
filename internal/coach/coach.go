@@ -111,6 +111,10 @@ func llmStatus(file config.File) (ok bool, detail string) {
 	if preset.AllowEmptyKey {
 		return true, fmt.Sprintf("%s · %s", r.Provider, r.Model)
 	}
+	// Same rule as doctor: azure / openai-compatible carry no built-in endpoint.
+	if preset.Kind == "openai" && preset.BaseURL == "" && strings.TrimSpace(r.BaseURL) == "" {
+		return false, fmt.Sprintf("%s · base_url unset", r.Provider)
+	}
 	if config.APIKeyFor(r.Provider) == "" {
 		return false, fmt.Sprintf("%s · API key unset", r.Provider)
 	}

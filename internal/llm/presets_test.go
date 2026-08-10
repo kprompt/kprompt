@@ -1,6 +1,9 @@
 package llm
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
 
 func TestLookupPresetDefaults(t *testing.T) {
 	if _, ok := LookupPreset(""); ok {
@@ -60,7 +63,7 @@ func TestLookupPresetCerebras(t *testing.T) {
 
 func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
-	for _, want := range []string{"openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "moonshot", "ollama", "openrouter", "together", "xai", "cerebras"} {
+	for _, want := range []string{"openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "moonshot", "ollama", "openrouter", "together", "xai", "cerebras", "azure"} {
 		if !contains(s, want) {
 			t.Fatalf("%q missing from %s", want, s)
 		}
@@ -123,4 +126,50 @@ func indexOf(s, sub string) int {
 		}
 	}
 	return -1
+}
+
+func TestLookupPresetAzure(t *testing.T) {
+	p, ok := LookupPreset("azure")
+	if !ok {
+		t.Fatal("azure preset not found")
+	}
+	if p.Kind != "openai" {
+		t.Fatalf("azure kind = %q, want openai", p.Kind)
+	}
+	if p.BaseURL != "" {
+		t.Fatalf("azure base URL = %q, want empty", p.BaseURL)
+	}
+	if p.DefaultModel != "gpt-4o" {
+		t.Fatalf("azure default model = %q, want gpt-4o", p.DefaultModel)
+	}
+	if len(p.EnvKeys) != 3 || p.EnvKeys[0] != "KPROMPT_AZURE_API_KEY" || p.EnvKeys[1] != "AZURE_OPENAI_API_KEY" || p.EnvKeys[2] != "KPROMPT_OPENAI_API_KEY" {
+		t.Fatalf("azure env keys = %v", p.EnvKeys)
+	}
+}
+
+func TestAzureRequiresBaseURL(t *testing.T) {
+	t.Setenv("KPROMPT_OPENAI_BASE_URL", "")
+	_, err := New("azure", "fake-key", "", "")
+	if err == nil || !strings.Contains(err.Error(), "provider azure requires base_url") {
+		t.Fatalf("expected error requiring base_url, got %v", err)
+	}
+}
+
+// Azure routes on the deployment name, so --model must reach the adapter verbatim.
+func TestAzureUsesResourceBaseURLAndDeploymentModel(t *testing.T) {
+	t.Setenv("KPROMPT_OPENAI_BASE_URL", "https://r.openai.azure.com/openai/v1/")
+	p, err := New("azure", "fake-key", "", "my-gpt4o-deploy")
+	if err != nil {
+		t.Fatalf("New(azure) = %v", err)
+	}
+	o, ok := p.(*OpenAI)
+	if !ok {
+		t.Fatalf("azure provider type = %T, want *OpenAI", p)
+	}
+	if o.baseURL != "https://r.openai.azure.com/openai/v1" {
+		t.Fatalf("azure base URL = %q, want trailing slash trimmed", o.baseURL)
+	}
+	if o.model != "my-gpt4o-deploy" {
+		t.Fatalf("azure model = %q, want my-gpt4o-deploy", o.model)
+	}
 }

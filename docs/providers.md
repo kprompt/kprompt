@@ -26,6 +26,7 @@ Optional Team `kp_…` tokens (`kprompt login`) are for org policy/audit — not
 | OpenRouter | `openrouter` | `KPROMPT_OPENROUTER_API_KEY` / `OPENROUTER_API_KEY` | `openai/gpt-4o-mini` | OpenAI-compatible |
 | Together | `together` | `KPROMPT_TOGETHER_API_KEY` / `TOGETHER_API_KEY` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` | OpenAI-compatible |
 | Generic OpenAI-compat | `openai-compatible` | `KPROMPT_OPENAI_API_KEY` | — | **Requires** `base_url` |
+| Azure OpenAI | `azure` | `KPROMPT_AZURE_API_KEY` / `AZURE_OPENAI_API_KEY` / `KPROMPT_OPENAI_API_KEY` | `gpt-4o` | OpenAI-compatible; **Requires** `base_url` (resource URL). `--model` is your **deployment name**, not an OpenAI model id |
 
 ## Gemini free tier (honest)
 
@@ -90,11 +91,21 @@ kprompt --provider cerebras "list pods"
 export KPROMPT_MOONSHOT_API_KEY=...
 kprompt --provider moonshot "explain why api is crashlooping"
 
-# Azure / custom gateway
+# Custom gateway / any OpenAI-compatible endpoint
 export KPROMPT_OPENAI_API_KEY=...
+export KPROMPT_OPENAI_BASE_URL=https://llm-gateway.internal/v1
+kprompt --provider openai-compatible --model gpt-4o-mini "list services"
+
+# Azure OpenAI
+export KPROMPT_AZURE_API_KEY=...
 export KPROMPT_OPENAI_BASE_URL=https://YOUR_RESOURCE.openai.azure.com/openai/v1
-kprompt --provider openai-compatible --model gpt-4o "list services"
+kprompt --provider azure --model my-gpt4o-deploy "list services"
 ```
+
+On Azure, `--model` carries the **deployment name** you chose in the portal — not an OpenAI
+model id. They match only if you named the deployment after the model. The preset default
+(`gpt-4o`) is a placeholder: set `--model` / `kprompt config set model …` to your own
+deployment, or requests fail with a deployment-not-found error from Azure.
 
 ## Config file (`~/.kprompt/config.yaml`)
 
@@ -103,6 +114,11 @@ provider: ollama
 model: llama3.2
 # provider: gemini
 # model: gemini-3.6-flash
-# base_url: https://api.groq.com/openai/v1   # optional override for openai-compatible presets
+# provider: azure
+# model: gpt-4o   # deployment name
+# base_url: https://YOUR_RESOURCE.openai.azure.com/openai/v1
+#
+# base_url is required for azure / openai-compatible, and optionally overrides the
+# endpoint of any other openai-compatible preset (e.g. https://api.groq.com/openai/v1)
 namespace: default
 ```

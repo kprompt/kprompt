@@ -63,8 +63,8 @@ func New(name, apiKey, baseURL, model string) (Provider, error) {
 		if bu == "" {
 			bu = strings.TrimRight(os.Getenv("KPROMPT_OPENAI_BASE_URL"), "/")
 		}
-		if bu == "" && preset.Name == "openai-compatible" {
-			return nil, fmt.Errorf("provider openai-compatible requires base_url (config or KPROMPT_OPENAI_BASE_URL)")
+		if bu == "" && (preset.Name == "openai-compatible" || preset.Name == "azure") {
+			return nil, fmt.Errorf("provider %s requires base_url (config or KPROMPT_OPENAI_BASE_URL)", preset.Name)
 		}
 		if bu == "" {
 			bu = "https://api.openai.com/v1"

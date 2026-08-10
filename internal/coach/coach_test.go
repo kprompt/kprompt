@@ -122,6 +122,33 @@ func TestGatherOllamaReady(t *testing.T) {
 	}
 }
 
+func TestGatherAzureWithoutBaseURLNotReady(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("KPROMPT_HOME", dir+"/.kprompt")
+	t.Setenv("KPROMPT_OPENAI_BASE_URL", "")
+	t.Setenv("KPROMPT_AZURE_API_KEY", "sk-azure")
+
+	if _, err := config.SetField("provider", "azure"); err != nil {
+		t.Fatal(err)
+	}
+
+	st, err := Gather(context.Background(), "test", Options{
+		CurrentContext: func() (string, error) { return "c", nil },
+		Detect: func(context.Context, tools.DetectOptions) (*tools.Registry, error) {
+			return tools.NewRegistry([]tools.Result{
+				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusAvailable, Detail: "ok"},
+			}), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.LLMOK || !strings.Contains(st.LLMDetail, "base_url unset") {
+		t.Fatalf("want llm not ready on missing base_url: %+v", st)
+	}
+}
+
 func TestFormatBrief(t *testing.T) {
 	var buf bytes.Buffer
 	if err := FormatBrief(&buf, Status{}); err != nil {

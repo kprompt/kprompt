@@ -143,6 +143,14 @@ func checkLLM(file config.File) Check {
 		c.Hint = "kprompt init --ollama  or  kprompt config set provider <name>"
 		return c
 	}
+	// Presets with no built-in endpoint (azure, openai-compatible) are unusable
+	// without base_url — catch it here instead of at the first request.
+	if preset.Kind == "openai" && preset.BaseURL == "" && strings.TrimSpace(r.BaseURL) == "" {
+		c.Status = Fail
+		c.Detail = fmt.Sprintf("%s · model %s · base_url unset", r.Provider, r.Model)
+		c.Hint = fmt.Sprintf("kprompt config set base_url https://…  or: export %s=…", config.EnvOpenAIBaseURL)
+		return c
+	}
 	key := config.APIKeyFor(r.Provider)
 	if preset.AllowEmptyKey {
 		c.Status = Pass
