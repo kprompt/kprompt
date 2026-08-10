@@ -140,6 +140,63 @@ func TestRunOKWithOllama(t *testing.T) {
 	}
 }
 
+func TestRunLLMBaseURLRequiredForAzure(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("KPROMPT_HOME", filepath.Join(dir, ".kprompt"))
+	t.Setenv("KPROMPT_OPENAI_BASE_URL", "")
+	t.Setenv("KPROMPT_AZURE_API_KEY", "sk-azure")
+
+	if _, err := config.SetField("provider", "azure"); err != nil {
+		t.Fatal(err)
+	}
+
+	rep, err := Run(context.Background(), Options{
+		Detect: func(context.Context, tools.DetectOptions) (*tools.Registry, error) {
+			return tools.NewRegistry([]tools.Result{
+				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusAvailable, Detail: "ok"},
+			}), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	llm := find(rep, "llm")
+	if llm.Status != Fail || !strings.Contains(llm.Detail, "base_url unset") {
+		t.Fatalf("llm=%+v", llm)
+	}
+	if !strings.Contains(llm.Hint, "KPROMPT_OPENAI_BASE_URL") {
+		t.Fatalf("hint should name the env var: %+v", llm)
+	}
+}
+
+// Providers with no base_url concept must not trip the check above.
+func TestRunLLMBaseURLNotRequiredForAnthropic(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("KPROMPT_HOME", filepath.Join(dir, ".kprompt"))
+	t.Setenv("KPROMPT_OPENAI_BASE_URL", "")
+	t.Setenv("KPROMPT_ANTHROPIC_API_KEY", "sk-ant")
+
+	if _, err := config.SetField("provider", "anthropic"); err != nil {
+		t.Fatal(err)
+	}
+
+	rep, err := Run(context.Background(), Options{
+		Detect: func(context.Context, tools.DetectOptions) (*tools.Registry, error) {
+			return tools.NewRegistry([]tools.Result{
+				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusAvailable, Detail: "ok"},
+			}), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if llm := find(rep, "llm"); llm.Status != Pass {
+		t.Fatalf("llm=%+v", llm)
+	}
+}
+
 func find(rep Report, id string) Check {
 	for _, c := range rep.Checks {
 		if c.ID == id {
