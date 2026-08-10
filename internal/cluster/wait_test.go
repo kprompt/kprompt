@@ -139,3 +139,76 @@ func TestStatefulSetComplete(t *testing.T) {
 		t.Fatal("expected incomplete")
 	}
 }
+
+func TestWaitDaemonSetAlreadyReady(t *testing.T) {
+	client := fake.NewSimpleClientset(&appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "fluentd", Namespace: "default", Generation: 1},
+		Status: appsv1.DaemonSetStatus{
+			ObservedGeneration:     1,
+			DesiredNumberScheduled: 3,
+			UpdatedNumberScheduled: 3,
+			NumberReady:            3,
+		},
+	})
+	var out bytes.Buffer
+	err := (&Waiter{Client: client, Out: &out}).WaitDaemonSet(context.Background(), "default", "fluentd", time.Second)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(out.String(), "ready") {
+		t.Fatalf("output=%q", out.String())
+	}
+}
+
+func TestWaitDaemonSetTimeout(t *testing.T) {
+	client := fake.NewSimpleClientset(&appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "fluent-log", Namespace: "default", Generation: 2},
+		Status: appsv1.DaemonSetStatus{
+			ObservedGeneration:     1,
+			DesiredNumberScheduled: 3,
+			UpdatedNumberScheduled: 1,
+			NumberReady:            1,
+		},
+	})
+	err := (&Waiter{Client: client}).WaitDaemonSet(context.Background(), "default", "fluent-log", 200*time.Millisecond)
+	if err == nil {
+		t.Fatal("expected timeout")
+	}
+	if !strings.Contains(err.Error(), "timed out waiting for DaemonSet/fluent-log") {
+		t.Fatalf("err=%v", err)
+	}
+}
+
+func TestDaemonSetReady(t *testing.T) {
+	ds := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Generation: 2},
+		Status: appsv1.DaemonSetStatus{
+			ObservedGeneration:     2,
+			DesiredNumberScheduled: 5,
+			UpdatedNumberScheduled: 5,
+			NumberReady:            5,
+		},
+	}
+	if !daemonSetReady(ds) {
+		t.Fatal("expected ready")
+	}
+	ds.Status.NumberReady = 3
+	if daemonSetReady(ds) {
+		t.Fatal("expected not ready")
+	}
+}
+
+func TestDaemonSetReadyDesiredZero(t *testing.T) {
+	ds := &appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Generation: 1},
+		Status: appsv1.DaemonSetStatus{
+			ObservedGeneration:     1,
+			DesiredNumberScheduled: 0,
+			UpdatedNumberScheduled: 0,
+			NumberReady:            0,
+		},
+	}
+	if daemonSetReady(ds) {
+		t.Fatal("expected not ready when desired=0")
+	}
+}

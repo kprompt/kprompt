@@ -13,6 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"context"
+
+	"github.com/kprompt/kprompt/internal/agent/coordinator"
 	"github.com/kprompt/kprompt/internal/agent/ctxbuild"
 	"github.com/kprompt/kprompt/internal/agent/patterns"
 	"github.com/kprompt/kprompt/internal/graph"
@@ -158,6 +161,15 @@ type Engine struct {
 	Patterns *patterns.Library
 	// Graph is optional namespace service-graph snapshot for ExpectedImpact notes (RT-015).
 	Graph *graph.Report
+	// Fleet is optional Coordinator outcome reader for cross-ns bias (RT-022).
+	// Evidence-not-proof: only nudges ActionConfidence when local Learn already
+	// matched; never gates apply and never creates candidates (AG-034).
+	Fleet coordinator.OutcomeReader
+	// FleetTTL caches the fleet summary between fetches. 0 → DefaultFleetTTL.
+	FleetTTL time.Duration
+
+	fleetCache   *coordinator.OutcomeSummary
+	fleetFetched time.Time
 
 	mu sync.Mutex
 }
@@ -288,6 +300,7 @@ func (e *Engine) ProposeFromContext(agentCtx ctxbuild.AgentContext, confidence f
 		p.LearnNote = note
 		p.Why = strings.TrimSpace(p.Why + "; " + note)
 	}
+	e.attachFleetOutcome(&p, matched)
 	p.Decision = DecisionProposed
 	p.Risk = riskFor(action)
 	p.Reason = "proposeOnly (ADR-0015 default); human apply via CLI or policyAuto"
@@ -323,6 +336,92 @@ func (e *Engine) attachGraphImpact(p *Proposal) {
 		return
 	}
 	p.ExpectedImpact = strings.TrimSpace(p.ExpectedImpact) + "; " + note
+}
+
+const (
+	// DefaultFleetTTL caches the Coordinator outcome summary between fetches (RT-022).
+	DefaultFleetTTL = 60 * time.Second
+	// fleetMinSamples requires this much fleet history before biasing (RT-022).
+	fleetMinSamples = 3
+	// fleetMaxDelta caps the additive fleet bias well under patterns.MaxBoost (RT-022).
+	fleetMaxDelta = 0.05
+)
+
+// fleetSummary returns a short-TTL cached Coordinator outcome summary (RT-022).
+func (e *Engine) fleetSummary() (coordinator.OutcomeSummary, bool) {
+	if e == nil || e.Fleet == nil {
+		return coordinator.OutcomeSummary{}, false
+	}
+	ttl := e.FleetTTL
+	if ttl <= 0 {
+		ttl = DefaultFleetTTL
+	}
+	e.mu.Lock()
+	if e.fleetCache != nil && time.Since(e.fleetFetched) < ttl {
+		sum := *e.fleetCache
+		e.mu.Unlock()
+		return sum, true
+	}
+	e.mu.Unlock()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	sum, err := e.Fleet.Outcomes(ctx)
+	if err != nil {
+		return coordinator.OutcomeSummary{}, false
+	}
+	e.mu.Lock()
+	e.fleetCache = &sum
+	e.fleetFetched = time.Now()
+	e.mu.Unlock()
+	return sum, true
+}
+
+// attachFleetOutcome nudges ActionConfidence from cross-ns fleet outcomes (RT-022).
+// Evidence-not-proof (AG-034): applies ONLY when local Learn already matched, caps
+// the delta hard, requires a minimum fleet sample, touches ActionConfidence only
+// (never the raw confidence gate), and always labels the note as advisory.
+func (e *Engine) attachFleetOutcome(p *Proposal, localMatched bool) {
+	if e == nil || e.Fleet == nil || p == nil {
+		return
+	}
+	// AG-034 guard: fleet data can only nudge a locally-supported proposal.
+	if !localMatched {
+		return
+	}
+	sum, ok := e.fleetSummary()
+	if !ok {
+		return
+	}
+	stat, ok := sum.LookupAction(p.ActionID, p.Namespace)
+	if !ok || stat.Total < fleetMinSamples {
+		return
+	}
+	// Success ratio in [0,1]; center at 0.5 so a strong track record nudges up,
+	// a poor one nudges down, both bounded by fleetMaxDelta.
+	ratio := float64(stat.Success) / float64(stat.Total)
+	delta := fleetMaxDelta * (ratio*2 - 1)
+	base := p.ActionConfidence
+	if base <= 0 {
+		base = p.Confidence
+	}
+	p.ActionConfidence = clamp01(base + delta)
+	scope := "fleet"
+	if stat.Namespace != "" {
+		scope = "ns=" + stat.Namespace
+	}
+	note := fmt.Sprintf("Fleet evidence (not proof): %s success=%d/%d %s Δ=%+.2f — bias only (AG-034/RT-022)",
+		p.ActionID, stat.Success, stat.Total, scope, delta)
+	if strings.TrimSpace(p.ExpectedImpact) == "" {
+		p.ExpectedImpact = note
+	} else {
+		p.ExpectedImpact = strings.TrimSpace(p.ExpectedImpact) + "; " + note
+	}
+	if strings.TrimSpace(p.LearnNote) == "" {
+		p.LearnNote = note
+	} else {
+		p.LearnNote = strings.TrimSpace(p.LearnNote) + "; " + note
+	}
 }
 
 func baseProposal(agentCtx ctxbuild.AgentContext, action, kind, name string, confidence float64, replicas *int32) Proposal {

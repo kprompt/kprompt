@@ -74,6 +74,31 @@ func (s ConfigMapStore) ns(namespace string) string {
 	return namespace
 }
 
+// ListNamespaces enumerates namespaces holding a namespace-memory ConfigMap (RT-023).
+// Lists across all namespaces by the managed-by/component labels; requires
+// cluster-wide ConfigMap list RBAC (offline export/backup path only).
+func (s ConfigMapStore) ListNamespaces() ([]string, error) {
+	list, err := s.Client.CoreV1().ConfigMaps(metav1.NamespaceAll).List(context.Background(), metav1.ListOptions{
+		LabelSelector: "app.kubernetes.io/component=namespace-memory,app.kubernetes.io/managed-by=kprompt",
+	})
+	if err != nil {
+		return nil, err
+	}
+	seen := map[string]bool{}
+	var out []string
+	for _, cm := range list.Items {
+		if cm.Name != ConfigMapName {
+			continue
+		}
+		if seen[cm.Namespace] {
+			continue
+		}
+		seen[cm.Namespace] = true
+		out = append(out, cm.Namespace)
+	}
+	return out, nil
+}
+
 // Discover scans Services and Deployments for known dependency signals (read-only).
 func Discover(ctx context.Context, client kubernetes.Interface, namespace string) ([]Fact, error) {
 	if client == nil {

@@ -274,8 +274,12 @@ Secrets are never watched implicitly and only metadata (type + key count) is emi
 | Namespace facts | `--memory` · `agent memory list` | Redis/Postgres/… deps (evidence, not proof) |
 | Incident patterns | `--patterns` · `agent patterns list` | Signatures → “Seen before (N×)” + outcome weights |
 | Durable incidents | `--incidents-backend` | Open incidents + Slack thread ts across restarts |
+| Fleet outcomes | Coordinator outcome ring (RT-021) | Cross-ns `action/result` for bounded bias (RT-022) |
 
 Helm chart defaults (`charts/kprompt-agent`) persist all three via ConfigMaps so pod restarts do not wipe memory.
+
+Back it up offline with `agent memory export` (local file, never uploaded). Laptop
+`remember` vs in-cluster memory is contrasted in [cluster-memory.md](./cluster-memory.md).
 
 ```bash
 # Laptop (file backends)

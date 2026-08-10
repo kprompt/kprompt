@@ -8,13 +8,17 @@ kprompt-coordinator installed.
      http://{{ include "kprompt-coordinator.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1/handoff
 2. On each Namespace Agent, point handoff traffic at the Coordinator:
      --coordinator-url http://{{ include "kprompt-coordinator.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1/handoff
-3. RBAC / safety:
+3. Check the Coordinator APIs from inside the cluster:
+     curl -fsS http://{{ include "kprompt-coordinator.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1/knowledge
+     curl -fsS "http://{{ include "kprompt-coordinator.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}/v1/blast-radius?namespace=<namespace>"
+   Shared Knowledge persistence is {{ if .Values.knowledge.enabled }}enabled{{ else }}disabled{{ end }} (`knowledge.enabled={{ .Values.knowledge.enabled }}`).
+4. RBAC / safety:
    - Coordinator is ServiceAccount-only by default.
    - rbac.clusterRole.create={{ .Values.rbac.clusterRole.create | default false }} keeps cluster-wide reads off unless you opt in.
    - Coordinator never mutates workloads. Do not grant create/update/patch/delete on workloads.
-4. Logs:
+5. Logs:
      kubectl -n {{ .Release.Namespace }} logs -l app.kubernetes.io/instance={{ .Release.Name }} -f
-5. Docs:
+6. Docs:
      https://github.com/kprompt/kprompt/blob/main/charts/kprompt-coordinator/README.md
      https://github.com/kprompt/kprompt/blob/main/docs/namespace-agent.md
      https://github.com/kprompt/kprompt/blob/main/docs/agent-ops.md

@@ -14,4 +14,10 @@ One language family for “human said yes”:
 
 Phrase gates stay rare and intentional — they are not a substitute for `--approve`.
 
+## Org Policy Tighten-Only Priority (SEC-005)
+
+When a remote org policy is applied, local CLI safety rules (such as blocking unscoped deletes, cluster deletes, and namespace deletions) are always evaluated first. 
+
+An org policy may only **tighten** safety parameters (e.g., lower the risk ceiling or restrict allowed namespaces/intents). An org policy can **never** waive, override, or loosen local safety rules. Local hard-denies always take precedence.
+
 See also: [ci.md](./ci.md) · [multi-cluster.md](./multi-cluster.md) · [gitops-pr.md](./gitops-pr.md) · [history.md](./history.md)

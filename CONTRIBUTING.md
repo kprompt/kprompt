@@ -20,7 +20,7 @@ If this is your first open-source PR, start here:
 1. Pick an issue labeled [`good first issue`](https://github.com/kprompt/kprompt/labels/good%20first%20issue) (or [`help wanted`](https://github.com/kprompt/kprompt/labels/help%20wanted)) that is **unassigned**.
 2. Comment on the issue: `I'd like to take this` so we can assign you.
 3. Wait for the assignee badge (maintainers aim to assign within **24 hours**). That assignment is the signal you own the issue — please do not open a competing PR on someone else's claim.
-4. Fork → branch → small focused PR linking the issue (`Fixes #N`).
+4. Fork → branch (see [Branch naming](#branch-naming)) → small focused PR linking the issue (`Fixes #N`).
 5. Run the local checks below before pushing.
 
 If an issue stays claimed-but-unassigned past a day, ping a maintainer on the issue. If you cannot finish after being assigned, comment so we can free it up.
@@ -58,6 +58,30 @@ Zero-key Observe demo (separate repo):
 git clone https://github.com/kprompt/kprompt-examples.git
 cd kprompt-examples && make walkthrough
 ```
+
+## Branch naming
+
+`main` is protected — always work on a branch and open a PR. Name your branch:
+
+```
+<type>/<kebab-summary>[-<issue-number>]
+```
+
+- **type**: `feat` `fix` `docs` `test` `chore` `refactor` `perf` `build` `ci` `sec` `hotfix`
+- **summary**: lowercase kebab-case (`a-z0-9`, `._-`); no spaces or uppercase
+- add the trailing `-<issue-number>` you're closing when there is one
+
+Examples:
+
+```
+feat/daemonset-wait-106
+fix/plan-deny-gif-spacing
+docs/cobra-examples-107
+test/shellquote-sanitize-109
+sec/exec-injection-111
+```
+
+Cursor users: a `beforeShellExecution` hook (`.cursor/hooks/branch-name.sh`) checks new branch names against `^(feat|fix|docs|test|chore|refactor|perf|build|ci|sec|hotfix)/[a-z0-9][a-z0-9._-]*$`.
 
 ## Pull requests
 

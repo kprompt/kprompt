@@ -58,11 +58,25 @@ Prefer the smallest package test while iterating; full `./...` before PR.
 | `charts/**`, `deploy/crd/**` | `.cursor/rules/helm-charts.mdc` — Observe defaults / RBAC |
 | `internal/llm/**` | `.cursor/rules/llm.mdc` — BYOK / multi-provider / stub |
 
-Always-on defaults: `.cursor/rules/project.mdc`.
+Always-on defaults: `.cursor/rules/project.mdc` · `.cursor/rules/branch-naming.mdc`.
 
 Skills: `cli-feature` · `docs-sync` · `kind-e2e` (live apiserver tests).
 
-Hook: `.cursor/hooks.json` → `afterFileEdit` runs `.cursor/hooks/gofmt.sh` on edited `*.go` files (fail-open).
+Hooks (`.cursor/hooks.json`):
+- `afterFileEdit` → `.cursor/hooks/gofmt.sh` gofmt's edited `*.go` files (fail-open).
+- `beforeShellExecution` → `.cursor/hooks/branch-name.sh` asks to confirm when a new branch name breaks the convention below (fail-open).
+
+## Branch naming
+
+`main` is protected: push is restricted to maintainers (who may push small changes directly). Everyone else branches off the latest `main` and opens a PR. Name branches:
+
+```
+<type>/<kebab-summary>[-<issue-number>]
+# type ∈ feat fix docs test chore refactor perf build ci sec hotfix
+# e.g. feat/daemonset-wait-106 · fix/plan-deny-spacing · sec/exec-injection-111
+```
+
+Regex: `^(feat|fix|docs|test|chore|refactor|perf|build|ci|sec|hotfix)/[a-z0-9][a-z0-9._-]*$` — lowercase kebab-case only. Enforced by the `branch-name.sh` hook; details in `.cursor/rules/branch-naming.mdc`.
 
 ## Working rules
 

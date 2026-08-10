@@ -66,6 +66,7 @@ Ops checklist: [docs/agent-ops.md](../../docs/agent-ops.md#worker-isolation-ag-0
 | `service.port` | `9090` | HTTP API |
 | `rbac.clusterRole.create` | `false` | Keep minimal |
 | `probe.enabled` | `false` | Passes `--probe-kube --in-cluster` |
+| `knowledge.enabled` | `true` | Persists the Shared Knowledge handoff ring in a ConfigMap and enables the durable knowledge backend |
 | `rbac.probeNamespaces` | `[]` | RoleBindings for AG-050 probe |
 
 See [docs/namespace-agent.md](../../docs/namespace-agent.md) · [docs/agent-ops.md](../../docs/agent-ops.md).

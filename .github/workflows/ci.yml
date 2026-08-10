@@ -9,21 +9,23 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0  # SonarCloud needs full history for blame and new-code analysis
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff # v5
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
-          go-version: "1.23.x"
+          go-version-file: go.mod
       - name: Test with coverage
         run: go test -json -coverprofile=coverage.out -covermode=atomic ./... > report.json || true
       - name: Build
         run: go build -o bin/kprompt ./cmd/kprompt
       # Requires Automatic Analysis disabled on SonarCloud (Project → Administration → Analysis Method).
       # CI-based analysis cannot run while Autoscan is enabled.
+      # Skipped for forks and Dependabot PRs: GitHub does not expose SONAR_TOKEN
+      # to those runs, so the scan would fail on a missing token.
       - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@383f7e52eae3ab0510c3cb0e7d9d150bbaeab838 # v3.1.0
-        if: ${{ !github.event.pull_request.head.repo.fork }}
+        uses: SonarSource/sonarcloud-github-action@ffc3010689be73b8e5ae0c57ce35968afd7909e8 # v5.0.0
+        if: ${{ !github.event.pull_request.head.repo.fork && github.actor != 'dependabot[bot]' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
