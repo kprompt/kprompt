@@ -91,6 +91,11 @@ kprompt --provider cerebras "list pods"
 export KPROMPT_MOONSHOT_API_KEY=...
 kprompt --provider moonshot "explain why api is crashlooping"
 
+# Custom gateway / any OpenAI-compatible endpoint
+export KPROMPT_OPENAI_API_KEY=...
+export KPROMPT_OPENAI_BASE_URL=https://llm-gateway.internal/v1
+kprompt --provider openai-compatible --model gpt-4o-mini "list services"
+
 # Azure OpenAI
 export KPROMPT_AZURE_API_KEY=...
 export KPROMPT_OPENAI_BASE_URL=https://YOUR_RESOURCE.openai.azure.com/openai/v1
