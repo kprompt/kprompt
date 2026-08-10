@@ -154,3 +154,22 @@ func TestAzureRequiresBaseURL(t *testing.T) {
 		t.Fatalf("expected error requiring base_url, got %v", err)
 	}
 }
+
+// Azure routes on the deployment name, so --model must reach the adapter verbatim.
+func TestAzureUsesResourceBaseURLAndDeploymentModel(t *testing.T) {
+	t.Setenv("KPROMPT_OPENAI_BASE_URL", "https://r.openai.azure.com/openai/v1/")
+	p, err := New("azure", "fake-key", "", "my-gpt4o-deploy")
+	if err != nil {
+		t.Fatalf("New(azure) = %v", err)
+	}
+	o, ok := p.(*OpenAI)
+	if !ok {
+		t.Fatalf("azure provider type = %T, want *OpenAI", p)
+	}
+	if o.baseURL != "https://r.openai.azure.com/openai/v1" {
+		t.Fatalf("azure base URL = %q, want trailing slash trimmed", o.baseURL)
+	}
+	if o.model != "my-gpt4o-deploy" {
+		t.Fatalf("azure model = %q, want my-gpt4o-deploy", o.model)
+	}
+}
