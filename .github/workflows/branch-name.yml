@@ -1,0 +1,31 @@
+name: branch-name
+
+on:
+  pull_request:
+    types: [opened, reopened, edited, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR branch name
+        env:
+          HEAD: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          echo "Head branch: ${HEAD}"
+          # Automation / bot branches are exempt.
+          case "${HEAD}" in
+            dependabot/*|revert-*) echo "exempt (${HEAD})"; exit 0 ;;
+          esac
+          re='^(feat|fix|docs|test|chore|refactor|perf|build|ci|sec|hotfix)/[a-z0-9][a-z0-9._-]*$'
+          if echo "${HEAD}" | grep -Eq "${re}"; then
+            echo "OK: '${HEAD}' matches the convention"
+          else
+            echo "::error title=Invalid branch name::'${HEAD}' must match ${re}"
+            echo "Use <type>/<kebab-summary>[-issue], e.g. feat/daemonset-wait-106. See CONTRIBUTING.md → Branch naming."
+            exit 1
+          fi

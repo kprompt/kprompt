@@ -4,18 +4,44 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
-### Features
+## [v0.10.0](https://github.com/kprompt/kprompt/releases/tag/v0.10.0) — 2026-08-08
 
-- **RT-001 Learn writeback** — Autopilot apply + post-apply verify outcomes (`apply_success` / `apply_failed` / `apply_partial`) update the incident patterns store; Incident stamps `lastApplyOutcome` / `lastVerifyStatus` / `lastActionId` ([docs/learn.md](./docs/learn.md))
-- `agent autopilot apply-proposal --patterns` for CLI Learn writeback
+**AI Runtime product closure** — the motto loop (Observe → Reason → Plan → Validate → Approve → Execute → **Learn**) is now real **in-cluster**, not only on a laptop. Closes all six closure pillars ([RUNTIME-TASKS RT-001…RT-024](https://github.com/kprompt/kprompt-architecture/blob/main/RUNTIME-TASKS.md) · AG-071…AG-076). Default stays Observe + propose-only Autopilot — never silent fleet heal; Secret **values** stay out of the Knowledge Graph.
+
+### Pillar 1 — Closed Learn loop
+
+- **RT-001 Learn writeback** — Autopilot apply + post-apply verify outcomes (`apply_success` / `apply_failed` / `apply_partial`) update the incident patterns store; Incident stamps `lastApplyOutcome` / `lastVerifyStatus` / `lastActionId` ([docs/learn.md](./docs/learn.md)); `agent autopilot apply-proposal --patterns` for CLI writeback
 - **RT-002 proposal ranking bias** — multi-candidate Autopilot detect + Learn weight / `LastActionID` ranking; `learnNote` + `ActionConfidence` bias
-- **RT-007 durable proposals** — `agent proposals list|show|apply`; ConfigMap/file store; auto-enabled with `--autopilot-propose`
-- **RT-017/018 Incident→PlanResult bridge** — propose+store before notify; alerts carry `proposalId` + apply hint (`agent proposals apply --approve`)
+
+### Pillar 2 — Policy-gated Autopilot apply
+
 - **RT-005 Helm Autopilot path** — `charts/kprompt-agent` values `autopilotMode`, `autopilotAllow`, proposals ConfigMap + RemediationPolicy templates; RBAC for proposals store
 - **RT-006 post-apply verify gate** — `ApplyProposal` sets `applied=true` only after T-070 verify ok (or skipped)
+- **RT-007 durable proposals** — `agent proposals list|show|apply`; ConfigMap/file store; auto-enabled with `--autopilot-propose`
 - **RT-008 Slack approve bridge** — `--slack-ask` `approve [proposal-id]` applies durable proposals under policyAuto (ADR-0015)
-- **RT-013…016 Topology KG** — ExternalName/env `depends_on`, ready EndpointSlice routes, NetworkPolicy peer `allows`, Autopilot `expectedImpact` graph notes ([docs/graph.md](./docs/graph.md))
-- **RT-009…012 Continuous Coordinator** — opt-in `--tick-interval` proactive correlation; blast-radius `status=degraded` without `--mesh-otel`; `--max-hops` + audit ([docs/coordinator-knowledge.md](./docs/coordinator-knowledge.md))
+
+### Pillar 3 — Continuous Coordinator
+
+- **RT-009…012** — opt-in `--tick-interval` proactive correlation; blast-radius `status=degraded` without `--mesh-otel`; `--max-hops` + audit; continuous ≠ silent heal ([docs/coordinator-knowledge.md](./docs/coordinator-knowledge.md))
+
+### Pillar 4 — Topology Knowledge Graph
+
+- **RT-013…016** — ExternalName/env `depends_on`, ready EndpointSlice routes, NetworkPolicy peer `allows`, Autopilot `expectedImpact` graph notes ([docs/graph.md](./docs/graph.md))
+
+### Pillar 5 — Incident → PlanResult bridge
+
+- **RT-017/018/019** — propose+store before notify; alerts carry `proposalId` + apply hint; laptop-optional apply via `agent proposals apply --approve` and Slack `approve`
+
+### Pillar 6 — Durable cluster memory
+
+- **RT-021 Coordinator outcome ring** — durable cross-ns outcomes (action/ns/result) beside Shared Knowledge with TTL + size cap; `POST /v1/outcome`, `GET /v1/outcomes`, `agent coordinator outcomes`; coexists in the knowledge ConfigMap/file; Kind `make coordinator-e2e` asserts restore-after-restart
+- **RT-022 Fleet pattern read (evidence-not-proof)** — `agent run --coordinator-url` reads the Coordinator outcome summary and nudges Autopilot `ActionConfidence` only (bounded ±0.05, ≥3 samples, cached), applied ONLY when local Learn already matched — never gates apply, never invents candidates (AG-034)
+- **RT-023 Export / backup Incident Memory** — `agent memory export -n <ns>` (restorable Snapshot) or `--fleet` (NamespaceMemoryExport bundle); `--out` writes a local file (0600), never uploaded to api.kprompt.ai
+
+### Docs
+
+- **RT-024** — new [docs/cluster-memory.md](./docs/cluster-memory.md) contrasts ADR-0022 laptop `remember` vs in-cluster Incident Memory (namespace facts + patterns + RT-021 outcome ring)
+- Learn / Autopilot / Coordinator / Graph docs updated across the closure (`learn.md`, `agent.md`, `coordinator-knowledge.md`, `graph.md`, `investigation-graph.md`)
 
 ## [v0.9.0](https://github.com/kprompt/kprompt/releases/tag/v0.9.0) — 2026-08-04
 

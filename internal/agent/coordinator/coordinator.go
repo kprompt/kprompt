@@ -74,6 +74,16 @@ type Service struct {
 	// When false, /v1/blast-radius Status=degraded (honest).
 	MeshConfigured bool
 
+	// OutcomeStore is optional durable backend for the cross-ns outcome ring (RT-021).
+	// If nil and Store implements OutcomeStore, that is used.
+	OutcomeStore OutcomeStore
+	// outcomes is the in-memory cross-ns outcome ring (RT-021).
+	outcomes []OutcomeRecord
+	// outcomeMaxKeep caps the outcome ring. 0 → DefaultOutcomeMaxKeep.
+	outcomeMaxKeep int
+	// outcomeTTL prunes stale outcomes. 0 → DefaultOutcomeTTL.
+	outcomeTTL time.Duration
+
 	audit []AuditEntry
 }
 
@@ -91,7 +101,28 @@ func (NopProbe) Probe(context.Context, string, handoff.Envelope) (*incident.Inve
 
 // New returns a Coordinator service with an in-memory ring of recent handoffs.
 func New() *Service {
-	return &Service{maxKeep: 100, Probe: NopProbe{}}
+	return &Service{
+		maxKeep:        100,
+		Probe:          NopProbe{},
+		outcomeMaxKeep: DefaultOutcomeMaxKeep,
+		outcomeTTL:     DefaultOutcomeTTL,
+	}
+}
+
+// SetOutcomeLimits overrides the outcome ring cap and TTL (RT-021).
+// A non-positive value keeps the current default.
+func (s *Service) SetOutcomeLimits(maxKeep int, ttl time.Duration) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	if maxKeep > 0 {
+		s.outcomeMaxKeep = maxKeep
+	}
+	if ttl > 0 {
+		s.outcomeTTL = ttl
+	}
+	s.mu.Unlock()
 }
 
 // Handle processes one validated envelope → Reply (receive + merge + route notes).
@@ -182,7 +213,7 @@ func (s *Service) Restore() error {
 	s.mu.Lock()
 	s.recent = append([]Record(nil), recs...)
 	s.mu.Unlock()
-	return nil
+	return s.RestoreOutcomes()
 }
 
 // Durable reports whether a Store is configured (AG-060).
@@ -353,7 +384,45 @@ func (h *Handler) routes() http.Handler {
 	mux.HandleFunc("/v1/recent", h.recent)
 	mux.HandleFunc("/v1/knowledge", h.knowledge)     // AG-059 Shared Knowledge MVP
 	mux.HandleFunc("/v1/blast-radius", h.blastRadius) // AG-066 blast-radius product graph MVP
+	mux.HandleFunc("/v1/outcome", h.outcome)          // RT-021 record cross-ns outcome
+	mux.HandleFunc("/v1/outcomes", h.outcomes)        // RT-021/RT-022 outcome ring summary
 	return mux
+}
+
+func (h *Handler) outcome(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodPost {
+		http.Error(w, "POST only", http.StatusMethodNotAllowed)
+		return
+	}
+	body, err := io.ReadAll(io.LimitReader(r.Body, maxBody))
+	if err != nil {
+		http.Error(w, "read body", http.StatusBadRequest)
+		return
+	}
+	var rec OutcomeRecord
+	if err := json.Unmarshal(body, &rec); err != nil {
+		http.Error(w, "invalid JSON", http.StatusBadRequest)
+		return
+	}
+	if err := h.Service.RecordOutcome(rec); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if h.Logf != nil {
+		h.Logf("outcome ns=%s action=%q result=%s mutate=false", rec.Namespace, rec.Action, rec.Result)
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusAccepted)
+	_ = json.NewEncoder(w).Encode(map[string]string{"status": "recorded"})
+}
+
+func (h *Handler) outcomes(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "GET only", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(h.Service.OutcomeSummarize())
 }
 
 // ListenAndServe runs until ctx is cancelled.

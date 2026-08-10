@@ -22,4 +22,8 @@ profiles). Live cluster reads still win — memory is a hint, not proof.
 - Stale facts are your responsibility (`forget`).
 - Distinct from namespace agent dependency memory (`kprompt agent memory`).
 
-See also: [history.md](./history.md) · [learn.md](./learn.md) · [session.md](./session.md).
+> Laptop `remember` vs the in-cluster Incident Memory (namespace facts, incident
+> patterns, Coordinator outcome ring) is spelled out in
+> [cluster-memory.md](./cluster-memory.md).
+
+See also: [history.md](./history.md) · [learn.md](./learn.md) · [session.md](./session.md) · [cluster-memory.md](./cluster-memory.md).

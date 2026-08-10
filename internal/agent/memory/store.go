@@ -49,6 +49,33 @@ func (s FileStore) Save(snap Snapshot) error {
 	return os.Rename(tmp, s.path(snap.Namespace))
 }
 
+// ListNamespaces enumerates stored namespaces by scanning *.json under Dir (RT-023).
+func (s FileStore) ListNamespaces() ([]string, error) {
+	entries, err := os.ReadDir(s.Dir)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	var out []string
+	for _, e := range entries {
+		if e.IsDir() {
+			continue
+		}
+		name := e.Name()
+		if !strings.HasSuffix(name, ".json") || strings.HasSuffix(name, ".tmp") {
+			continue
+		}
+		ns := strings.TrimSuffix(name, ".json")
+		if ns == "" {
+			continue
+		}
+		out = append(out, ns)
+	}
+	return out, nil
+}
+
 // MemStore is an in-process store for tests.
 type MemStore struct {
 	mu   sync.Mutex
@@ -68,6 +95,17 @@ func (s *MemStore) Load(namespace string) (Snapshot, error) {
 		return Snapshot{}, fmt.Errorf("memory: no facts for %s", namespace)
 	}
 	return snap, nil
+}
+
+// ListNamespaces enumerates stored namespaces (RT-023 test support).
+func (s *MemStore) ListNamespaces() ([]string, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]string, 0, len(s.data))
+	for ns := range s.data {
+		out = append(out, ns)
+	}
+	return out, nil
 }
 
 func (s *MemStore) Save(snap Snapshot) error {

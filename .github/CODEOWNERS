@@ -1,0 +1,13 @@
+# Default owner for everything in this repo.
+* @muhtalipdede
+
+# Safety-critical surfaces — keep an extra eye on these.
+/internal/safety/   @muhtalipdede
+/internal/executor/ @muhtalipdede
+/internal/planner/  @muhtalipdede
+/internal/tools/    @muhtalipdede
+/charts/            @muhtalipdede
+/deploy/crd/        @muhtalipdede
+
+# CI / release / repo automation.
+/.github/           @muhtalipdede
