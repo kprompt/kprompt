@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/kprompt/kprompt/internal/config"
 	"github.com/kprompt/kprompt/internal/intent"
@@ -24,13 +25,37 @@ func fanOutContexts(cfg config.Resolved) []string {
 	return nil
 }
 
+// readFanOutKinds are the read-only intents that may fan out across contexts.
+//
+// Every entry must read the cluster through the per-context client. Intents that
+// read a configured endpoint instead of the kube context (performance, trace,
+// dashboard — see the client skip in RunWith) are deliberately excluded: fanning
+// them out would repeat one Prometheus/OTel query per context and label identical
+// results as per-cluster findings.
+var readFanOutKinds = []intent.Kind{
+	intent.KindGet, intent.KindExplain, intent.KindInvestigate, intent.KindWhy,
+	intent.KindTimeline, intent.KindImpact, intent.KindAudit, intent.KindCleanup,
+	intent.KindSearch, intent.KindScore, intent.KindArchitecture, intent.KindLearn,
+	intent.KindDrift, intent.KindLogs, intent.KindDescribe, intent.KindOptimize,
+	intent.KindRoast, intent.KindGraph,
+}
+
 func supportsReadFanOut(kind intent.Kind) bool {
-	switch kind {
-	case intent.KindGet, intent.KindExplain, intent.KindInvestigate, intent.KindWhy, intent.KindTimeline, intent.KindImpact, intent.KindAudit, intent.KindCleanup, intent.KindSearch, intent.KindScore, intent.KindArchitecture, intent.KindLearn, intent.KindDrift, intent.KindLogs, intent.KindDescribe, intent.KindOptimize, intent.KindRoast:
-		return true
-	default:
-		return false
+	for _, k := range readFanOutKinds {
+		if k == kind {
+			return true
+		}
 	}
+	return false
+}
+
+// readFanOutKindList renders the allowlist for deny messages so the two cannot drift.
+func readFanOutKindList() string {
+	names := make([]string, 0, len(readFanOutKinds))
+	for _, k := range readFanOutKinds {
+		names = append(names, string(k))
+	}
+	return strings.Join(names, "/")
 }
 
 func runMultiContextFanOut(
@@ -67,7 +92,8 @@ func runMultiContextReads(
 
 	if !supportsReadFanOut(plan.Intent.Kind) {
 		msg := fmt.Sprintf(
-			"multi-context fan-out supports get/list/explain/investigate/why/timeline/impact/audit/cleanup/search/score/architecture/learn/drift/logs/describe/optimize only (got %s)",
+			"multi-context fan-out supports read-only cluster intents (%s) only (got %s)",
+			readFanOutKindList(),
 			plan.Intent.Kind,
 		)
 		return denyFanOut(out, deps, cfg, plan, jsonMode, msg)

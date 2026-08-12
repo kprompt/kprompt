@@ -31,11 +31,23 @@ Explicit only — never “all contexts” by default.
 kprompt --contexts staging,prod "list deployments"
 kprompt "list pods across staging and prod"
 kprompt --contexts staging,prod "optimize my cluster"
+kprompt --contexts staging,prod "show service graph" -n shop
 ```
 
-Supported today: get/list, explain, investigate, why, timeline, impact, audit, cleanup, search, score, architecture, logs, describe, optimize. Unreachable contexts degrade; others still return.
+Supported today: get/list, explain, investigate, why, timeline, impact, audit,
+cleanup, search, score, architecture, learn, drift, logs, describe, optimize,
+roast, graph. Unreachable contexts degrade; others still return.
 
-JSON kind: `MultiContextResult` with per-context `steps`, `cluster_context` on each step, and `fleetSummary` for optimize.
+JSON kind: `MultiContextResult` with per-context `steps`, `cluster_context` on each step, and `fleetSummary` for optimize. Each step carries that context's own payload — e.g. one service graph per cluster under `steps[].result`.
+
+### Single-context by design
+
+`performance`, `trace`, and `dashboard` are read-only but **not** fan-out. They
+query the Prometheus / OpenTelemetry endpoint you configured, not the kube
+context, so fanning out would repeat one identical query per context and label
+the same numbers as per-cluster findings. Point those at a per-cluster endpoint
+and run them with `--context` instead. Mutating intents never fan out silently —
+see below.
 
 ## Mutate safety
 
