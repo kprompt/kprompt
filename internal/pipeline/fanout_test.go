@@ -213,9 +213,6 @@ func TestSupportsReadFanOut(t *testing.T) {
 	if supportsReadFanOut(intent.KindScale) {
 		t.Fatal("scale is mutate, not read fan-out")
 	}
-	// Endpoint-backed reads stay single-context: they query the configured
-	// Prometheus/OTel URL, not the kube context, so N contexts would repeat one
-	// query and label identical results per cluster.
 	for _, k := range []intent.Kind{intent.KindPerformance, intent.KindTrace, intent.KindDashboard} {
 		if supportsReadFanOut(k) {
 			t.Fatalf("%s reads a configured endpoint, not the context — must not fan out", k)

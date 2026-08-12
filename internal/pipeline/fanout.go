@@ -49,7 +49,7 @@ func supportsReadFanOut(kind intent.Kind) bool {
 	return false
 }
 
-// readFanOutKindList renders the allowlist for deny messages so the two cannot drift.
+// readFanOutKindList keeps the deny message from drifting out of sync with the allowlist.
 func readFanOutKindList() string {
 	names := make([]string, 0, len(readFanOutKinds))
 	for _, k := range readFanOutKinds {
