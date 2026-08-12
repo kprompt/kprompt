@@ -63,7 +63,10 @@ func TestLookupPresetCerebras(t *testing.T) {
 
 func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
-	for _, want := range []string{"openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "moonshot", "ollama", "openrouter", "together", "xai", "cerebras", "azure"} {
+	wantNames := []string{"openai", "anthropic", "gemini", "groq",
+		"mistral", "deepseek", "moonshot", "ollama", "openrouter",
+		"together", "xai", "cerebras", "azure", "fireworks"}
+	for _, want := range wantNames {
 		if !contains(s, want) {
 			t.Fatalf("%q missing from %s", want, s)
 		}
