@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -202,6 +203,7 @@ func TestSupportsReadFanOut(t *testing.T) {
 		intent.KindGet, intent.KindExplain, intent.KindInvestigate, intent.KindWhy,
 		intent.KindTimeline, intent.KindImpact, intent.KindAudit, intent.KindCleanup,
 		intent.KindSearch, intent.KindScore, intent.KindArchitecture, intent.KindLearn, intent.KindDrift, intent.KindLogs, intent.KindDescribe, intent.KindOptimize,
+		intent.KindRoast, intent.KindGraph,
 	}
 	for _, k := range ok {
 		if !supportsReadFanOut(k) {
@@ -210,5 +212,101 @@ func TestSupportsReadFanOut(t *testing.T) {
 	}
 	if supportsReadFanOut(intent.KindScale) {
 		t.Fatal("scale is mutate, not read fan-out")
+	}
+	for _, k := range []intent.Kind{intent.KindPerformance, intent.KindTrace, intent.KindDashboard} {
+		if supportsReadFanOut(k) {
+			t.Fatalf("%s reads a configured endpoint, not the context — must not fan out", k)
+		}
+	}
+}
+
+func TestReadFanOutKindListMatchesAllowlist(t *testing.T) {
+	list := readFanOutKindList()
+	for _, k := range readFanOutKinds {
+		if !strings.Contains(list, string(k)) {
+			t.Fatalf("deny message %q omits allowlisted kind %s", list, k)
+		}
+	}
+}
+
+func TestMultiContextGraphFanOut(t *testing.T) {
+	client := fake.NewSimpleClientset(
+		deployment("api", "default", 1),
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "default"},
+			Spec:       corev1.ServiceSpec{Selector: map[string]string{"app": "api"}},
+		},
+	)
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Namespace: "default",
+		Prompt:    "show service graph",
+		Contexts:  []string{"kind-a", "kind-b"},
+		Output:    "json",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"graph","target":{"kind":"ServiceGraph","namespace":"default"},"confidence":1}`,
+		)},
+		Client: client,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc output.MultiContextResult
+	if err := json.Unmarshal(out.Bytes(), &doc); err != nil {
+		t.Fatalf("%v\n%s", err, out.String())
+	}
+	if len(doc.Steps) != 2 {
+		t.Fatalf("steps=%d\n%s", len(doc.Steps), out.String())
+	}
+	if !doc.Applied {
+		t.Fatalf("expected applied: %+v", doc)
+	}
+	for i, want := range []string{"kind-a", "kind-b"} {
+		step := doc.Steps[i]
+		if step.Risk.Denied {
+			t.Fatalf("%s denied: %s", want, step.Risk.Message)
+		}
+		if step.ClusterContext != want || step.Plan.Context != want {
+			t.Fatalf("step %d context=%q/%q want %q", i, step.ClusterContext, step.Plan.Context, want)
+		}
+		var payload struct {
+			Type  string `json:"type"`
+			Nodes []any  `json:"nodes"`
+		}
+		if err := json.Unmarshal(step.Result, &payload); err != nil {
+			t.Fatalf("step %d result: %v (%s)", i, err, step.Result)
+		}
+		if payload.Type == "" || len(payload.Nodes) == 0 {
+			t.Fatalf("step %d missing graph payload: %s", i, step.Result)
+		}
+	}
+}
+
+func TestMultiContextDeniesEndpointBackedRead(t *testing.T) {
+	var out bytes.Buffer
+	err := RunWith(context.Background(), config.Resolved{
+		Namespace: "default",
+		Prompt:    "why is api slow",
+		Contexts:  []string{"kind-a", "kind-b"},
+		Output:    "json",
+	}, &out, Deps{
+		Provider: &llm.Stub{Structured: []byte(
+			`{"kind":"performance","target":{"kind":"Deployment","name":"api","namespace":"default"},"confidence":1}`,
+		)},
+		Client: fake.NewSimpleClientset(),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var doc output.PlanResult
+	if err := json.Unmarshal(out.Bytes(), &doc); err != nil {
+		t.Fatalf("%v\n%s", err, out.String())
+	}
+	if !doc.Risk.Denied {
+		t.Fatalf("expected deny, got %+v", doc.Risk)
+	}
+	if !strings.Contains(doc.Risk.Message, "performance") || !strings.Contains(doc.Risk.Message, "graph") {
+		t.Fatalf("deny message should name the rejected kind and the allowlist: %q", doc.Risk.Message)
 	}
 }
