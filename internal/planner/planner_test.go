@@ -591,6 +591,48 @@ func TestBuildDeleteUnsupportedKind(t *testing.T) {
 	}
 }
 
+func TestBuildDeleteStatefulSet(t *testing.T) {
+	// 1. Test StatefulSet deletion
+	plan, err := Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "redis", Namespace: "default", Kind: "StatefulSet"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("StatefulSet delete requires approval")
+	}
+	if len(plan.Actions) != 1 {
+		t.Fatalf("want 1 action, got %d", len(plan.Actions))
+	}
+	a := plan.Actions[0]
+	if a.Op != OpDelete || a.Object.Kind != "StatefulSet" || a.Object.APIVersion != "apps/v1" {
+		t.Fatalf("unexpected action: %+v", a)
+	}
+}
+
+func TestBuildDeleteDaemonSet(t *testing.T) {
+	// 1. Test DaemonSet deletion
+	plan, err := Build(intent.Intent{
+		Kind:   intent.KindDelete,
+		Target: intent.Target{Name: "logger", Namespace: "default", Kind: "DaemonSet"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !plan.RequiresApproval {
+		t.Fatal("DaemonSet delete requires approval")
+	}
+	if len(plan.Actions) != 1 {
+		t.Fatalf("want 1 action, got %d", len(plan.Actions))
+	}
+	a := plan.Actions[0]
+	if a.Op != OpDelete || a.Object.Kind != "DaemonSet" || a.Object.APIVersion != "apps/v1" {
+		t.Fatalf("unexpected action: %+v", a)
+	}
+}
+
 func TestBuildUnknownIntent(t *testing.T) {
 	_, err := Build(intent.Intent{Kind: intent.KindUnknown, Target: intent.Target{Name: "redis"}})
 	if err == nil {
