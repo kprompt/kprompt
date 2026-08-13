@@ -427,9 +427,9 @@ func buildDelete(in intent.Intent, ns string) (ExecutionPlan, error) {
 	}
 	kind = cluster.NormalizeKind(kind)
 	switch kind {
-	case "Pod", "Deployment", "Service", "Job", "ReplicaSet":
+	case "Pod", "Deployment", "Service", "Job", "ReplicaSet", "StatefulSet", "DaemonSet":
 	default:
-		return ExecutionPlan{}, fmt.Errorf("delete kind %q not supported (Pod, Deployment, Service, Job, ReplicaSet only; namespace wipe denied)", in.Target.Kind)
+		return ExecutionPlan{}, fmt.Errorf("delete kind %q not supported (Pod, Deployment, Service, Job, ReplicaSet, StatefulSet, DaemonSet only; namespace wipe denied)", in.Target.Kind)
 	}
 	summary := fmt.Sprintf("Delete %s/%s in %s", kind, name, ns)
 	return ExecutionPlan{
@@ -460,7 +460,7 @@ func isUnscopedName(name string) bool {
 
 func apiVersionForKind(kind string) string {
 	switch kind {
-	case "Deployment", "ReplicaSet":
+	case "Deployment", "ReplicaSet", "StatefulSet", "DaemonSet":
 		return "apps/v1"
 	case "Job":
 		return "batch/v1"
@@ -484,7 +484,7 @@ func buildScale(in intent.Intent, ns string) (ExecutionPlan, error) {
 	if in.Target.Kind != "" {
 		kind = cluster.NormalizeKind(in.Target.Kind)
 	}
-	
+
 	// Gatekeeper: only allow supported scale kinds
 	switch kind {
 	case "Deployment", "StatefulSet":

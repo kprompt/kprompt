@@ -35,6 +35,48 @@ func TestDeleteDeployment(t *testing.T) {
 	}
 }
 
+func TestDeleteStatefulSet(t *testing.T) {
+	client := fake.NewSimpleClientset(&appsv1.StatefulSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "redis", Namespace: "demo"},
+	})
+	err := (&Runner{Client: client}).Apply(context.Background(), planner.ExecutionPlan{
+		Actions: []planner.Action{{
+			Op: planner.OpDelete,
+			Object: planner.ObjectRef{
+				Kind: "StatefulSet", Name: "redis", Namespace: "demo",
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.AppsV1().StatefulSets("demo").Get(context.Background(), "redis", metav1.GetOptions{})
+	if err == nil {
+		t.Fatal("expected statefulset deleted")
+	}
+}
+
+func TestDeleteDaemonSet(t *testing.T) {
+	client := fake.NewSimpleClientset(&appsv1.DaemonSet{
+		ObjectMeta: metav1.ObjectMeta{Name: "logger", Namespace: "demo"},
+	})
+	err := (&Runner{Client: client}).Apply(context.Background(), planner.ExecutionPlan{
+		Actions: []planner.Action{{
+			Op: planner.OpDelete,
+			Object: planner.ObjectRef{
+				Kind: "DaemonSet", Name: "logger", Namespace: "demo",
+			},
+		}},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = client.AppsV1().DaemonSets("demo").Get(context.Background(), "logger", metav1.GetOptions{})
+	if err == nil {
+		t.Fatal("expected daemonset deleted")
+	}
+}
+
 func TestApplyStatefulSetAndDaemonSet(t *testing.T) {
 	client := fake.NewSimpleClientset(
 		&appsv1.StatefulSet{ObjectMeta: metav1.ObjectMeta{Name: "db", Namespace: "demo"}},

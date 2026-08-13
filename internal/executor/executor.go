@@ -79,6 +79,10 @@ func (r *Runner) delete(ctx context.Context, a planner.Action) error {
 		return r.Client.AppsV1().Deployments(ns).Delete(ctx, name, opts)
 	case "ReplicaSet":
 		return r.Client.AppsV1().ReplicaSets(ns).Delete(ctx, name, opts)
+	case "StatefulSet":
+		return r.Client.AppsV1().StatefulSets(ns).Delete(ctx, name, opts)
+	case "DaemonSet":
+		return r.Client.AppsV1().DaemonSets(ns).Delete(ctx, name, opts)
 	case "Service":
 		return r.Client.CoreV1().Services(ns).Delete(ctx, name, opts)
 	case "Pod":
