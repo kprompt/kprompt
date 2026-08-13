@@ -67,3 +67,21 @@ func TestGeneratePipelineRunQuotesInjectionShapedRepo(t *testing.T) {
 		t.Fatalf("manifest=%s", manifest)
 	}
 }
+
+func TestShellQuote(t *testing.T) {
+	tests := []struct {
+		name, input, want string
+	}{
+		{name: "empty", input: "", want: "''"},
+		{name: "spaces", input: "hello world", want: "'hello world'"},
+		{name: "single quote", input: "it's", want: `'it'"'"'s'`},
+		{name: "metacharacters", input: "$(touch /tmp/pwned); *", want: "'$(touch /tmp/pwned); *'"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := shellQuote(tt.input); got != tt.want {
+				t.Fatalf("shellQuote(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}

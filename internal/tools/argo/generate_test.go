@@ -203,3 +203,47 @@ func TestGenerateWorkflowAllowsNonShellEntrypoints(t *testing.T) {
 		})
 	}
 }
+
+func TestSanitizeWorkflowName(t *testing.T) {
+	tests := []struct {
+		name, input string
+	}{
+		{name: "unsafe characters", input: "Train $(whoami)!"},
+		{name: "empty", input: "!!!"},
+		{name: "length", input: strings.Repeat("a", 70)},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := sanitizeWorkflowName(tt.input)
+			if len(got) > 63 {
+				t.Fatalf("sanitizeWorkflowName(%q) exceeded 63 characters: %q", tt.input, got)
+			}
+			if got == "" || strings.Trim(got, "abcdefghijklmnopqrstuvwxyz0123456789-") != "" {
+				t.Fatalf("sanitizeWorkflowName(%q) = %q, contains unsafe characters", tt.input, got)
+			}
+			if tt.name == "empty" && got != "kprompt-workflow" {
+				t.Fatalf("sanitizeWorkflowName(%q) = %q", tt.input, got)
+			}
+		})
+	}
+}
+
+func TestSanitizeTemplateName(t *testing.T) {
+	tests := []struct {
+		name, input, want string
+	}{
+		{name: "unsafe characters", input: "Deploy $(rm -rf /)"},
+		{name: "empty", input: "!!!", want: "main"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := sanitizeTemplateName(tt.input)
+			if got == "" || strings.Trim(got, "abcdefghijklmnopqrstuvwxyz0123456789-") != "" {
+				t.Fatalf("sanitizeTemplateName(%q) = %q, contains unsafe characters", tt.input, got)
+			}
+			if tt.want != "" && got != tt.want {
+				t.Fatalf("sanitizeTemplateName(%q) = %q, want %q", tt.input, got, tt.want)
+			}
+		})
+	}
+}
