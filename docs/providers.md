@@ -25,6 +25,7 @@ Optional Team `kp_…` tokens (`kprompt login`) are for org policy/audit — not
 | Moonshot (Kimi K3) | `moonshot` | `KPROMPT_MOONSHOT_API_KEY` / `MOONSHOT_API_KEY` | `kimi-k3` | OpenAI-compatible |
 | OpenRouter | `openrouter` | `KPROMPT_OPENROUTER_API_KEY` / `OPENROUTER_API_KEY` | `openai/gpt-4o-mini` | OpenAI-compatible |
 | Together | `together` | `KPROMPT_TOGETHER_API_KEY` / `TOGETHER_API_KEY` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` | OpenAI-compatible |
+| LM Studio (local) | `lmstudio` | none required | `local-model` | **$0** — `http://127.0.0.1:1234/v1`; LM Studio must be running with a model loaded, and `--model` must match that model's name |
 | Generic OpenAI-compat | `openai-compatible` | `KPROMPT_OPENAI_API_KEY` | — | **Requires** `base_url` |
 | Azure OpenAI | `azure` | `KPROMPT_AZURE_API_KEY` / `AZURE_OPENAI_API_KEY` / `KPROMPT_OPENAI_API_KEY` | `gpt-4o` | OpenAI-compatible; **Requires** `base_url` (resource URL). `--model` is your **deployment name**, not an OpenAI model id |
 
@@ -90,6 +91,9 @@ kprompt --provider cerebras "list pods"
 # Moonshot / Kimi K3
 export KPROMPT_MOONSHOT_API_KEY=...
 kprompt --provider moonshot "explain why api is crashlooping"
+
+# LM Studio (local $0 — start the server + load a model in the LM Studio app first)
+kprompt --provider lmstudio --model <loaded-model-name> "list pods"
 
 # Custom gateway / any OpenAI-compatible endpoint
 export KPROMPT_OPENAI_API_KEY=...
