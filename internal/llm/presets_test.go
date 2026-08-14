@@ -63,7 +63,10 @@ func TestLookupPresetCerebras(t *testing.T) {
 
 func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
-	for _, want := range []string{"openai", "anthropic", "gemini", "groq", "mistral", "deepseek", "moonshot", "ollama", "openrouter", "together", "xai", "cerebras", "azure"} {
+	wantNames := []string{"openai", "anthropic", "gemini", "groq",
+		"mistral", "deepseek", "moonshot", "ollama", "openrouter",
+		"together", "xai", "cerebras", "azure", "fireworks"}
+	for _, want := range wantNames {
 		if !contains(s, want) {
 			t.Fatalf("%q missing from %s", want, s)
 		}
@@ -112,6 +115,26 @@ func TestLookupPresetTogether(t *testing.T) {
 	const want = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 	if p.DefaultModel != want {
 		t.Fatalf("together default model = %q, want %q (update if model is delisted)", p.DefaultModel, want)
+	}
+}
+
+func TestLookupPresetFireworks(t *testing.T) {
+	p, ok := LookupPreset("fireworks")
+	if !ok {
+		t.Fatal("fireworks preset not found")
+	}
+	if p.Kind != "openai" {
+		t.Fatalf("fireworks kind = %q, want openai", p.Kind)
+	}
+	if p.BaseURL != "https://api.fireworks.ai/inference/v1" {
+		t.Fatalf("fireworks base URL = %q", p.BaseURL)
+	}
+	const want = "accounts/fireworks/models/llama-v3p3-70b-instruct"
+	if p.DefaultModel != want {
+		t.Fatalf("fireworks default model = %q, want %q (update if model is delisted)", p.DefaultModel, want)
+	}
+	if len(p.EnvKeys) != 2 || p.EnvKeys[0] != "KPROMPT_FIREWORKS_API_KEY" || p.EnvKeys[1] != "FIREWORKS_API_KEY" {
+		t.Fatalf("cerebras env keys = %v", p.EnvKeys)
 	}
 }
 

@@ -128,6 +128,14 @@ var Presets = []Preset{
 		EnvKeys:      []string{"KPROMPT_TOGETHER_API_KEY", "TOGETHER_API_KEY"},
 		HelpURL:      "https://api.together.xyz/",
 	},
+	{
+		Name:         "fireworks",
+		Kind:         "openai",
+		BaseURL:      "https://api.fireworks.ai/inference/v1",
+		DefaultModel: "accounts/fireworks/models/llama-v3p3-70b-instruct",
+		EnvKeys:      []string{"KPROMPT_FIREWORKS_API_KEY", "FIREWORKS_API_KEY"},
+		HelpURL:      "https://fireworks.ai/account/api-keys",
+	},
 }
 
 // LookupPreset finds a preset by name (case-insensitive).
