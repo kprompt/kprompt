@@ -121,6 +121,15 @@ var Presets = []Preset{
 		HelpURL:       "https://ollama.com/",
 	},
 	{
+		Name:          "lmstudio",
+		Kind:          "openai",
+		BaseURL:       "http://127.0.0.1:1234/v1",
+		DefaultModel:  "local-model", // must match a model loaded in LM Studio
+		EnvKeys:       []string{"KPROMPT_LMSTUDIO_API_KEY", "LMSTUDIO_API_KEY"},
+		AllowEmptyKey: true,
+		HelpURL:       "https://lmstudio.ai/",
+	},
+	{
 		Name:         "together",
 		Kind:         "openai",
 		BaseURL:      "https://api.together.xyz/v1",
