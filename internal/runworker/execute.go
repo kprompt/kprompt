@@ -24,8 +24,17 @@ func ExecuteApply(ctx context.Context, job team.RunJob) (team.PostRunResultInput
 	return execute(ctx, job, true)
 }
 
+type executeDeps struct {
+	loadFile func() (config.File, error)
+	pipeline pipeline.Deps
+}
+
 func execute(ctx context.Context, job team.RunJob, approve bool) (team.PostRunResultInput, error) {
-	file, err := config.LoadFile()
+	return executeWith(ctx, job, approve, executeDeps{loadFile: config.LoadFile})
+}
+
+func executeWith(ctx context.Context, job team.RunJob, approve bool, deps executeDeps) (team.PostRunResultInput, error) {
+	file, err := deps.loadFile()
 	if err != nil {
 		return team.PostRunResultInput{}, err
 	}
@@ -46,14 +55,14 @@ func execute(ctx context.Context, job team.RunJob, approve bool) (team.PostRunRe
 	if approve {
 		confirm = func(io.Writer) (bool, error) { return true, nil }
 	}
-	err = pipeline.RunWith(ctx, cfg, io.MultiWriter(&buf, os.Stderr), pipeline.Deps{
-		IsTerminal: &tty,
-		Confirm:    confirm,
-		OnResult: func(doc output.PlanResult) {
-			cp := doc
-			last = &cp
-		},
-	})
+	pipelineDeps := deps.pipeline
+	pipelineDeps.IsTerminal = &tty
+	pipelineDeps.Confirm = confirm
+	pipelineDeps.OnResult = func(doc output.PlanResult) {
+		cp := doc
+		last = &cp
+	}
+	err = pipeline.RunWith(ctx, cfg, io.MultiWriter(&buf, os.Stderr), pipelineDeps)
 	if last == nil {
 		msg := "no plan result"
 		if err != nil {
