@@ -50,7 +50,9 @@ func NormalizeWhy(in Intent, prompt string) Intent {
 		return in
 	}
 	switch in.Kind {
-	case KindExplain, KindGet, KindDescribe, KindUnknown, KindWhy, KindInvestigate:
+	// KindPerformance: bad LLM may classify crash/pending as performance; causal why wins
+	// because LooksLikeWhyPrompt already excludes slow/latency prompts.
+	case KindExplain, KindGet, KindDescribe, KindUnknown, KindWhy, KindInvestigate, KindPerformance:
 		in.Kind = KindWhy
 	default:
 		return in

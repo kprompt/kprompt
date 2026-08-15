@@ -16,4 +16,9 @@ func TestNormalizeWhy(t *testing.T) {
 	if got.Kind != KindPerformance {
 		t.Fatalf("slow became %s", got.Kind)
 	}
+	// Bad LLM said performance for a crash why — heuristic must reclaim KindWhy.
+	got = NormalizeVerb(Intent{Kind: KindPerformance, Target: Target{Name: "api"}}, "why is api crashing")
+	if got.Kind != KindWhy {
+		t.Fatalf("performance seed crash why became %s", got.Kind)
+	}
 }
