@@ -44,13 +44,7 @@ on kprompt agent / Helm (ADR-0013). This command never applies changes.`,
 			if err != nil {
 				return err
 			}
-			ctxName := watchCtx
-			if ctxName == "" {
-				ctxName = kubeCtx // root --context
-			}
-			if ctxName == "" {
-				ctxName = file.Context
-			}
+			ctxName := resolveKubeContext(watchCtx, kubeCtx, file.Context)
 			clients, err := cluster.Connect(ctxName)
 			if err != nil {
 				return err
