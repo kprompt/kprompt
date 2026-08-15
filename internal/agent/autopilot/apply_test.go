@@ -2,6 +2,7 @@ package autopilot
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
@@ -103,6 +104,42 @@ func TestRestartDeployment(t *testing.T) {
 	}
 	if err := restartDeployment(context.Background(), client, "ns", "missing"); err == nil {
 		t.Fatal("expected error for missing deployment")
+	}
+}
+
+func TestFinalizeAfterMutateSkippedMarksApplied(t *testing.T) {
+	// nil client → AttachVerify Skipped → default branch of finalizeAfterMutate.
+	prop := &Proposal{
+		ActionID:   ActionRestartDeployment,
+		Namespace:  "ns",
+		TargetName: "api",
+	}
+	if err := finalizeAfterMutate(context.Background(), nil, prop); err != nil {
+		t.Fatal(err)
+	}
+	if !prop.Applied || prop.Decision != DecisionApplied {
+		t.Fatalf("expected applied under skipped verify, got %+v", prop)
+	}
+	if !strings.Contains(prop.Reason, "verify") {
+		t.Fatalf("reason=%q", prop.Reason)
+	}
+}
+
+func TestFinalizeAfterMutateFailed(t *testing.T) {
+	prop := &Proposal{
+		ActionID:   ActionRollbackFailedRollout,
+		Namespace:  "ns",
+		TargetName: "missing-api",
+		TargetKind: "Deployment",
+		Plan:       PlanBody{Summary: "rollback"},
+	}
+	client := fake.NewSimpleClientset()
+	err := finalizeAfterMutate(context.Background(), client, prop)
+	if err == nil {
+		t.Fatal("expected verify failure for missing deployment")
+	}
+	if prop.Decision != DecisionFailed || prop.Applied {
+		t.Fatalf("expected failed/cleared, got %+v", prop)
 	}
 }
 

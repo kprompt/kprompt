@@ -29,7 +29,7 @@ esac
 if [[ -n "${KPROMPT_VERSION:-}" ]]; then
   tag="$KPROMPT_VERSION"
 else
-  tag="$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1 || true)"
+  tag="$(curl -fsSL --proto '=https' --tlsv1.2 "https://api.github.com/repos/${REPO}/releases/latest" | sed -n 's/.*"tag_name": *"\([^"]*\)".*/\1/p' | head -1 || true)"
 fi
 
 if [[ -z "$tag" ]]; then
@@ -45,7 +45,7 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
 echo "Downloading ${url}"
-if ! curl -fL "$url" -o "${tmp}/${asset}"; then
+if ! curl -fL --proto '=https' --tlsv1.2 "$url" -o "${tmp}/${asset}"; then
   echo "Failed to download ${url}" >&2
   echo "Check releases: https://github.com/${REPO}/releases" >&2
   exit 1
