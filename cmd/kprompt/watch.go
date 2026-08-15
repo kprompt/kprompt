@@ -20,7 +20,7 @@ func newWatchCmd() *cobra.Command {
 		interval time.Duration
 		jsonOut  bool
 		ns       string
-		kubeCtx  string
+		watchCtx string
 	)
 	cmd := &cobra.Command{
 		Use:   "watch",
@@ -40,14 +40,14 @@ on kprompt agent / Helm (ADR-0013). This command never applies changes.`,
 			if ns == "" {
 				return fmt.Errorf("watch requires -n/--namespace")
 			}
-			if kubeCtx == "" {
-				kubeCtx = kubeCtx // global may be empty
-			}
 			file, err := config.LoadFile()
 			if err != nil {
 				return err
 			}
-			ctxName := kubeCtx
+			ctxName := watchCtx
+			if ctxName == "" {
+				ctxName = kubeCtx // root --context
+			}
 			if ctxName == "" {
 				ctxName = file.Context
 			}
@@ -109,6 +109,6 @@ on kprompt agent / Helm (ADR-0013). This command never applies changes.`,
 	cmd.Flags().DurationVar(&interval, "interval", 0, "repeat scan every duration (e.g. 30s); implies loop")
 	cmd.Flags().BoolVar(&jsonOut, "json", false, "emit JSON WatchReport")
 	cmd.Flags().StringVarP(&ns, "namespace", "n", "", "namespace to watch (required)")
-	cmd.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context")
+	cmd.Flags().StringVar(&watchCtx, "context", "", "kubeconfig context")
 	return cmd
 }
