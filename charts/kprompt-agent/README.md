@@ -83,6 +83,27 @@ helm upgrade --install kprompt-agent ./charts/kprompt-agent \
 Decision A accepts operator-controlled endpoints (LLM, observability, webhook) as trusted inputs.
 This chart does not auto-block private ranges; operators should enforce egress allowlists.
 
+## Network Policy
+
+> ⚠️ **IMPORTANT WARNING:** Do not set `networkPolicy.enabled=true` without populating the required CIDRs for your topology (`networkPolicy.kubeAPIServerCIDRs`, `networkPolicy.llmCIDRs`, etc.). If enabled with empty CIDR lists, default-deny egress will block access to the Kubernetes API server and LLM endpoints, causing the agent to break.
+
+### DNS Selector Compatibility
+The default NetworkPolicy allow rule targets `kube-system` DNS pods with the label `k8s-app: kube-dns` (standard CoreDNS/Kube-DNS). If your cluster uses **NodeLocal DNSCache** or custom DNS labels, configure additional egress rules under `networkPolicy.extraEgress`.
+
+Example `extraEgress` snippet for custom DNS:
+```yaml
+networkPolicy:
+  extraEgress:
+    - to:
+        - namespaceSelector: {}
+          podSelector:
+            matchLabels:
+              k8s-app: node-local-dns
+      ports:
+        - protocol: UDP
+          port: 53
+```
+
 NetworkPolicy controls in this chart:
 
 - `networkPolicy.enabled`: enable egress default-deny for agent pods

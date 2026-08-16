@@ -49,7 +49,11 @@ spec:
         {{- end }}
       ports:
         - protocol: TCP
-          port: 443
+          port: .Values.networkPolicy.llmPort
+      {{- range .Values.networkPolicy.llmExtraPorts}}
+        - protocol: TCP
+          port: {{ . }}
+      {{- end}}
     {{- end }}
 
     {{- if .Values.networkPolicy.observabilityCIDRs }}
