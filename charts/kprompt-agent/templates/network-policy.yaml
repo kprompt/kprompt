@@ -49,7 +49,7 @@ spec:
         {{- end }}
       ports:
         - protocol: TCP
-          port: .Values.networkPolicy.llmPort
+          port: {{ .Values.networkPolicy.llmPort }}
       {{- range .Values.networkPolicy.llmExtraPorts}}
         - protocol: TCP
           port: {{ . }}
