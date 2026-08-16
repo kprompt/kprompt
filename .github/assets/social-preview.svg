@@ -33,8 +33,8 @@
   <text class="sans" x="1208" y="94" text-anchor="end" fill="#94a3b8" style="font-size:21px">Apache-2.0 · Go</text>
 
   <text class="sans" x="72" y="210" fill="#f8fafc" style="font-size:52px;font-weight:750;letter-spacing:-0.035em">The AI Runtime for Kubernetes</text>
-  <text class="sans" x="72" y="262" fill="#cbd5e1" style="font-size:26px">Observe · reason · plan safe actions — nothing applies</text>
-  <text class="sans" x="72" y="298" fill="#cbd5e1" style="font-size:26px">until you approve. Optional Observe agent in-cluster.</text>
+  <text class="sans" x="72" y="262" fill="#cbd5e1" style="font-size:26px">Observe · reason · plan — nothing applies until you approve.</text>
+  <text class="sans" x="72" y="298" fill="#cbd5e1" style="font-size:26px">Laptop CLI + optional in-cluster Observe agent. Free forever.</text>
 
   <rect x="72" y="340" width="1136" height="182" rx="14" fill="#111827" stroke="#334155" stroke-opacity="0.55"/>
   <circle cx="98" cy="368" r="5.5" fill="#ff5555"/>
