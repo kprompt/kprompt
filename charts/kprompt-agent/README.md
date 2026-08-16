@@ -76,6 +76,21 @@ helm upgrade --install kprompt-agent ./charts/kprompt-agent \
 | `rbac.create` | `true` | Namespace Role (get/list/watch) |
 | `agentCR.name` | `""` | Patch `KpromptAgent.status` (AG-013) |
 | `agentCR.create` | `false` | Also create the CR from values |
+| `networkPolicy.enabled` | `false` | Opt-in egress default-deny policy; strongly recommended for production |
+
+## Security hardening (SEC-007 follow-up)
+
+Decision A accepts operator-controlled endpoints (LLM, observability, webhook) as trusted inputs.
+This chart does not auto-block private ranges; operators should enforce egress allowlists.
+
+NetworkPolicy controls in this chart:
+
+- `networkPolicy.enabled`: enable egress default-deny for agent pods
+- `networkPolicy.allowDNS`: allow DNS to cluster DNS
+- `networkPolicy.allowKubeApi` + `networkPolicy.kubeAPIServerCIDRs`: allow kube-apiserver egress via explicit CIDRs
+- `networkPolicy.llmCIDRs`, `networkPolicy.observabilityCIDRs`, `networkPolicy.webhookCIDRs`: explicit endpoint allowlists
+
+Use these settings with your cluster CNI policy model (Calico/Cilium/etc.) and keep allowlists narrow.
 
 The chart installs the `KpromptAgent` CRD from [`crds/`](./crds). Sample: [`config/samples/kpromptagent.yaml`](../../config/samples/kpromptagent.yaml).
 

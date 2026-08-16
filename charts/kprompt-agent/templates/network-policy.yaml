@@ -1,0 +1,92 @@
+{{- if .Values.networkPolicy.enabled }}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: kprompt-agent-egress
+  namespace: {{ include "kprompt-agent.watchNamespace" . }}
+  labels:
+    {{- include "kprompt-agent.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "kprompt-agent.selectorLabels" . | nindent 6 }}
+  policyTypes:
+    - Egress
+  egress:
+    {{- if .Values.networkPolicy.allowDNS }}
+    - to:
+        - namespaceSelector:
+            matchLabels:
+              kubernetes.io/metadata.name: kube-system
+          podSelector:
+            matchLabels:
+              k8s-app: kube-dns
+      ports:
+        - protocol: UDP
+          port: 53
+        - protocol: TCP
+          port: 53
+    {{- end }}
+
+    {{- if and .Values.networkPolicy.allowKubeApi (gt (len .Values.networkPolicy.kubeAPIServerCIDRs) 0) }}
+    - to:
+        {{- range .Values.networkPolicy.kubeAPIServerCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 6443
+    {{- end }}
+
+    {{- if .Values.networkPolicy.llmCIDRs }}
+    - to:
+        {{- range .Values.networkPolicy.llmCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 443
+    {{- end }}
+
+    {{- if .Values.networkPolicy.observabilityCIDRs }}
+    - to:
+        {{- range .Values.networkPolicy.observabilityCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 443
+          {{- if .Values.networkPolicy.observabilityExtraPorts }}
+          {{- range .Values.networkPolicy.observabilityExtraPorts }}
+        - protocol: TCP
+          port: {{ . }}
+          {{- end }}
+          {{- end }}
+    {{- end }}
+
+    {{- if .Values.networkPolicy.webhookCIDRs }}
+    - to:
+        {{- range .Values.networkPolicy.webhookCIDRs }}
+        - ipBlock:
+            cidr: {{ . | quote }}
+        {{- end }}
+      ports:
+        - protocol: TCP
+          port: 443
+          {{- if .Values.networkPolicy.webhookExtraPorts }}
+          {{- range .Values.networkPolicy.webhookExtraPorts }}
+        - protocol: TCP
+          port: {{ . }}
+          {{- end }}
+          {{- end }}
+    {{- end }}
+
+    {{- if .Values.networkPolicy.extraEgress }}
+    {{- toYaml .Values.networkPolicy.extraEgress | nindent 4 }}
+    {{- end }}
+{{- end }}

@@ -122,3 +122,29 @@ agentCR:
     minConfidence: 0.7
   fetchLogs: true
   health: true
+
+
+networkPolicy:
+  # Strongly recommended in production (SEC-007 Decision A follow-up hardening).
+  enabled: false
+  # Allow DNS egress to cluster DNS pods.
+  allowDNS: true
+
+  # Allow Kubernetes API egress only when kubeAPIServerCIDRs is set.
+  allowKubeApi: true
+  # Example: ["10.96.0.1/32"]
+  # Required for explicit kube-apiserver allowlisting when networkPolicy is enabled.
+  kubeAPIServerCIDRs: []
+
+  # Operator-managed endpoint CIDRs (Decision A: no automatic private-range blocking).
+  llmCIDRs: []
+  observabilityCIDRs: []
+  webhookCIDRs: []
+
+  # Optional additional ports for observability/webhooks.
+  observabilityExtraPorts: []
+  webhookExtraPorts: []
+
+  # Raw additional egress rules if needed.
+  extraEgress: []
+
