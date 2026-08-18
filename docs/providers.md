@@ -23,6 +23,7 @@ Optional Team `kp_…` tokens (`kprompt login`) are for org policy/audit — not
 | Mistral | `mistral` | `KPROMPT_MISTRAL_API_KEY` / `MISTRAL_API_KEY` | `mistral-small-latest` | OpenAI-compatible |
 | DeepSeek | `deepseek` | `KPROMPT_DEEPSEEK_API_KEY` / `DEEPSEEK_API_KEY` | `deepseek-chat` | OpenAI-compatible |
 | Moonshot (Kimi K3) | `moonshot` | `KPROMPT_MOONSHOT_API_KEY` / `MOONSHOT_API_KEY` | `kimi-k3` | OpenAI-compatible |
+| Qwen (DashScope) | `qwen` | `KPROMPT_QWEN_API_KEY` / `DASHSCOPE_API_KEY` / `QWEN_API_KEY` | `qwen-plus` | OpenAI-compatible; intl endpoint — see note below |
 | OpenRouter | `openrouter` | `KPROMPT_OPENROUTER_API_KEY` / `OPENROUTER_API_KEY` | `openai/gpt-4o-mini` | OpenAI-compatible |
 | Together | `together` | `KPROMPT_TOGETHER_API_KEY` / `TOGETHER_API_KEY` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` | OpenAI-compatible |
 | Fireworks | `fireworks` | `KPROMPT_FIREWORKS_API_KEY` / `FIREWORKS_API_KEY` | `accounts/fireworks/models/llama-v3p3-70b-instruct` | OpenAI-compatible |
@@ -54,6 +55,22 @@ kprompt init --ollama
 ```
 
 Monitor Google quotas: [ai.dev/rate-limit](https://ai.dev/rate-limit).
+
+## Qwen / DashScope regions
+
+The `qwen` preset defaults to Alibaba Cloud's **international** DashScope endpoint
+(`https://dashscope-intl.aliyuncs.com/compatible-mode/v1`). Mainland China accounts use a
+separate endpoint and key pool — if your key was issued on the CN console, override the base
+URL:
+
+```bash
+export KPROMPT_QWEN_API_KEY=...        # or DASHSCOPE_API_KEY / QWEN_API_KEY
+export KPROMPT_OPENAI_BASE_URL=https://dashscope.aliyuncs.com/compatible-mode/v1  # CN mainland
+kprompt --provider qwen "explain why api is crashlooping"
+```
+
+Intl and CN keys are **not interchangeable** — a CN-issued key against the intl endpoint (or
+vice versa) fails auth.
 
 ## Examples
 
@@ -91,6 +108,10 @@ kprompt --provider cerebras "list pods"
 # Moonshot / Kimi K3
 export KPROMPT_MOONSHOT_API_KEY=...
 kprompt --provider moonshot "explain why api is crashlooping"
+
+# Qwen / DashScope (intl; see regional note above for CN mainland)
+export KPROMPT_QWEN_API_KEY=...
+kprompt --provider qwen "explain why api is crashlooping"
 
 # Custom gateway / any OpenAI-compatible endpoint
 export KPROMPT_OPENAI_API_KEY=...
