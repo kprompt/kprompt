@@ -64,7 +64,7 @@ func TestLookupPresetCerebras(t *testing.T) {
 func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
 	wantNames := []string{"openai", "anthropic", "gemini", "groq",
-		"mistral", "deepseek", "moonshot", "ollama", "openrouter",
+		"mistral", "deepseek", "moonshot", "qwen", "ollama", "openrouter",
 		"together", "xai", "cerebras", "azure", "fireworks"}
 	for _, want := range wantNames {
 		if !contains(s, want) {
@@ -135,6 +135,25 @@ func TestLookupPresetFireworks(t *testing.T) {
 	}
 	if len(p.EnvKeys) != 2 || p.EnvKeys[0] != "KPROMPT_FIREWORKS_API_KEY" || p.EnvKeys[1] != "FIREWORKS_API_KEY" {
 		t.Fatalf("cerebras env keys = %v", p.EnvKeys)
+	}
+}
+
+func TestLookupPresetQwen(t *testing.T) {
+	p, ok := LookupPreset("qwen")
+	if !ok {
+		t.Fatal("qwen preset not found")
+	}
+	if p.Kind != "openai" {
+		t.Fatalf("qwen kind = %q, want openai", p.Kind)
+	}
+	if p.BaseURL != "https://dashscope-intl.aliyuncs.com/compatible-mode/v1" {
+		t.Fatalf("qwen base URL = %q", p.BaseURL)
+	}
+	if p.DefaultModel != "qwen-plus" {
+		t.Fatalf("qwen default model = %q, want qwen-plus", p.DefaultModel)
+	}
+	if len(p.EnvKeys) != 3 || p.EnvKeys[0] != "KPROMPT_QWEN_API_KEY" || p.EnvKeys[1] != "DASHSCOPE_API_KEY" || p.EnvKeys[2] != "QWEN_API_KEY" {
+		t.Fatalf("qwen env keys = %v", p.EnvKeys)
 	}
 }
 
