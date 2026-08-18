@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Write spec (data)
         env:
@@ -48,8 +48,16 @@ jobs:
           } > spec.md
 
       - name: Install Cursor CLI
+        env:
+          # Pinned checksum of https://cursor.com/install. Never pipe the installer
+          # straight into a shell — download it, verify its integrity, then run it.
+          # If Cursor rotates the installer this step fails loudly; re-run
+          # `sha256sum` on the script, review the diff, and update this value.
+          CURSOR_INSTALL_SHA256: b1af27b9556c5f1c58d166742dbb33425ebd90a4bbd7e5453d66b920bf1f9f6b
         run: |
-          curl https://cursor.com/install -fsS | bash
+          curl -fsS --proto '=https' --tlsv1.2 https://cursor.com/install -o install-cursor.sh
+          echo "${CURSOR_INSTALL_SHA256}  install-cursor.sh" | sha256sum -c -
+          bash install-cursor.sh
           echo "$HOME/.cursor/bin" >> "$GITHUB_PATH"
 
       - name: Run implement agent

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 
 	"sigs.k8s.io/yaml"
@@ -50,7 +51,10 @@ var modelRecipes = map[string]modelRecipe{
 	},
 }
 
-var modelFromPrompt = regexp.MustCompile(`(?i)\b(yolo(?:v?\d+)?)\b`)
+var (
+	modelFromPrompt    = regexp.MustCompile(`(?i)\b(yolo(?:v?\d+)?)\b`)
+	supportedModelList = formatSupportedModels(modelRecipes)
+)
 
 // InferModelFromPrompt extracts a model name from natural language when params are missing.
 func InferModelFromPrompt(prompt string) string {
@@ -184,13 +188,22 @@ func resolveContainer(req WorkflowRequest) (image string, command, args []string
 		return image, command, args, gpu, nil
 	}
 	if req.Model != "" {
-		image = "alpine:3.20"
-		command = []string{"echo"}
-		args = []string{fmt.Sprintf("Training %s (placeholder)", req.Model)}
-		gpu = req.GPU
-		return image, command, args, gpu, nil
+		return "", nil, nil, false, fmt.Errorf(
+			"unsupported workflow model %q (supported models: %s); set params.image with safe params.command/params.args for a custom container",
+			req.Model,
+			supportedModelList,
+		)
 	}
 	return "", nil, nil, false, nil
+}
+
+func formatSupportedModels(recipes map[string]modelRecipe) string {
+	models := make([]string, 0, len(recipes))
+	for model := range recipes {
+		models = append(models, model)
+	}
+	sort.Strings(models)
+	return strings.Join(models, ", ")
 }
 
 // isShellLauncher reports whether command+args invoke a shell that evaluates a

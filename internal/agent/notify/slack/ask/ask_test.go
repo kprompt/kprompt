@@ -60,12 +60,14 @@ func TestAnswerStatusAndWhy(t *testing.T) {
 
 func TestParseApproveTarget(t *testing.T) {
 	cases := map[string]string{
-		"approve ap-restart-1":       "ap-restart-1",
-		"<@U1> approve ap-x":         "ap-x",
-		"approve proposal ap-y":      "ap-y",
-		"apply ap-z":                 "ap-z",
-		"approve":                    "",
-		"status":                     "",
+		"approve ap-restart-1":  "ap-restart-1",
+		"<@U1> approve ap-x":    "ap-x",
+		"approve proposal ap-y": "ap-y",
+		"apply ap-z":            "ap-z",
+		"approve":               "",
+		"status":                "",
+		"<@U1>":                 "", // mention-only → empty after strip
+		"   ":                   "",
 	}
 	for in, want := range cases {
 		if got := ParseApproveTarget(in); got != want {

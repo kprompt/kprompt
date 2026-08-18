@@ -46,7 +46,7 @@ jobs:
           # straight into a shell — download it, verify its integrity, then run it.
           # If Cursor rotates the installer this step fails loudly; re-run
           # `sha256sum` on the script, review the diff, and update this value.
-          CURSOR_INSTALL_SHA256: a51ebedf2a13bc073d994a6f2defbd1f4d976a6cf116ad678d071c6a363bf3e4
+          CURSOR_INSTALL_SHA256: b1af27b9556c5f1c58d166742dbb33425ebd90a4bbd7e5453d66b920bf1f9f6b
         run: |
           curl -fsS https://cursor.com/install -o install-cursor.sh
           echo "${CURSOR_INSTALL_SHA256}  install-cursor.sh" | sha256sum -c -

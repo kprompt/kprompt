@@ -24,6 +24,7 @@ import (
 	"github.com/kprompt/kprompt/internal/graph"
 	"github.com/kprompt/kprompt/internal/history"
 	"github.com/kprompt/kprompt/internal/impact"
+	"github.com/kprompt/kprompt/internal/incident"
 	"github.com/kprompt/kprompt/internal/intent"
 	"github.com/kprompt/kprompt/internal/investigate"
 	"github.com/kprompt/kprompt/internal/learn"
@@ -727,6 +728,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("investigate: %w", err))
 			}
+			stampInvestigationPretrust(ctx, client, &invDoc)
 			doc = doc.WithInvestigationResult(invDoc)
 			if jsonMode {
 				applied = true
@@ -797,6 +799,7 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("why: %w", err))
 			}
+			stampInvestigationPretrust(ctx, client, &invDoc)
 			doc = doc.WithInvestigationResult(invDoc)
 			if jsonMode {
 				applied = true
@@ -1739,6 +1742,17 @@ func investigateFromPlan(plan planner.ExecutionPlan, prompt string) (investigate
 		Kind:      a.Object.Kind,
 		Prompt:    prompt,
 	}, nil
+}
+
+// stampInvestigationPretrust runs independent verify before Investigation is emitted
+// (JSON or TTY). Clamps soft-agree confidence and stamps degraded notes — never raises
+// confidence (S-018 · Medium "Investigate → Verify").
+func stampInvestigationPretrust(ctx context.Context, client kubernetes.Interface, inv *incident.Investigation) {
+	if inv == nil {
+		return
+	}
+	rep := pretrust.Investigation(ctx, client, *inv)
+	pretrust.Apply(inv, rep)
 }
 
 func whyFromPlan(plan planner.ExecutionPlan, prompt string) (why.Request, error) {
