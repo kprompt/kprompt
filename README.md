@@ -52,23 +52,34 @@ kprompt is **open source (Apache-2.0)** and **free forever**. Natural-language p
 
 ## Table of contents
 
-- [Try it in 60 seconds](#try-it-in-60-seconds)
-- [Why kprompt](#why-kprompt)
-- [Providers & integrations](#providers--integrations)
-- [Installation](#installation)
-- [Quick start](#quick-start)
-- [Usage](#usage)
-- [Safety model](#safety-model)
-- [Observe agent](#observe-agent)
-- [History & sessions](#history--sessions)
-- [CI & PlanResult JSON](#ci--planresult-json)
-- [Team (optional)](#team-optional)
-- [CLI reference](#cli-reference)
-- [Architecture](#architecture)
-- [Documentation](#documentation)
-- [Privacy & telemetry](#privacy--telemetry)
-- [Contributing](#contributing)
-- [License](#license)
+- [kprompt](#kprompt)
+  - [Highlights](#highlights)
+  - [Table of contents](#table-of-contents)
+  - [Try it in 60 seconds](#try-it-in-60-seconds)
+  - [Why kprompt](#why-kprompt)
+  - [Providers \& integrations](#providers--integrations)
+    - [LLM providers](#llm-providers)
+    - [Kubernetes \& day-2](#kubernetes--day-2)
+    - [Notifications](#notifications)
+  - [Installation](#installation)
+    - [From releases (recommended)](#from-releases-recommended)
+    - [Homebrew](#homebrew)
+    - [Pinned fallback (jsDelivr)](#pinned-fallback-jsdelivr)
+    - [From source](#from-source)
+    - [Shell completions](#shell-completions)
+  - [Quick start](#quick-start)
+  - [Usage](#usage)
+  - [Safety model](#safety-model)
+  - [Observe agent](#observe-agent)
+  - [History \& sessions](#history--sessions)
+  - [CI \& PlanResult JSON](#ci--planresult-json)
+  - [Team (optional)](#team-optional)
+  - [CLI reference](#cli-reference)
+  - [Architecture](#architecture)
+  - [Documentation](#documentation)
+  - [Privacy \& telemetry](#privacy--telemetry)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ---
 
@@ -403,7 +414,7 @@ The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config
 | `--wait` | After apply, wait for Deployment / StatefulSet / DaemonSet rollout, then verify |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
-| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `fireworks`, `ollama`, `lmstudio`, `azure`, `openai-compatible` |
+| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `qwen`, `openrouter`, `together`, `fireworks`, `ollama`, `lmstudio`, `azure`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |
 | `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |

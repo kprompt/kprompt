@@ -104,6 +104,14 @@ var Presets = []Preset{
 		HelpURL:      "https://platform.kimi.ai/console/api-keys",
 	},
 	{
+		Name:         "qwen",
+		Kind:         "openai",
+		BaseURL:      "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
+		DefaultModel: "qwen-plus",
+		EnvKeys:      []string{"KPROMPT_QWEN_API_KEY", "DASHSCOPE_API_KEY", "QWEN_API_KEY"},
+		HelpURL:      "https://www.alibabacloud.com/help/en/model-studio/",
+	},
+	{
 		Name:         "openrouter",
 		Kind:         "openai",
 		BaseURL:      "https://openrouter.ai/api/v1",
