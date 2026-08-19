@@ -65,7 +65,7 @@ func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
 	wantNames := []string{"openai", "anthropic", "gemini", "groq",
 		"mistral", "deepseek", "moonshot", "ollama", "openrouter",
-		"together", "xai", "cerebras", "azure", "fireworks"}
+		"together", "xai", "cerebras", "azure", "fireworks", "lmstudio"}
 	for _, want := range wantNames {
 		if !contains(s, want) {
 			t.Fatalf("%q missing from %s", want, s)
@@ -115,6 +115,25 @@ func TestLookupPresetTogether(t *testing.T) {
 	const want = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 	if p.DefaultModel != want {
 		t.Fatalf("together default model = %q, want %q (update if model is delisted)", p.DefaultModel, want)
+	}
+}
+
+func TestLookupPresetLMStudio(t *testing.T) {
+	p, ok := LookupPreset("lmstudio")
+	if !ok {
+		t.Fatal("lmstudio preset not found")
+	}
+	if p.Kind != "openai" {
+		t.Fatalf("lmstudio kind = %q, want openai", p.Kind)
+	}
+	if p.BaseURL != "http://127.0.0.1:1234/v1" {
+		t.Fatalf("lmstudio base URL = %q", p.BaseURL)
+	}
+	if !p.AllowEmptyKey {
+		t.Fatal("lmstudio should allow empty key")
+	}
+	if len(p.EnvKeys) != 2 || p.EnvKeys[0] != "KPROMPT_LMSTUDIO_API_KEY" || p.EnvKeys[1] != "LMSTUDIO_API_KEY" {
+		t.Fatalf("lmstudio env keys = %v", p.EnvKeys)
 	}
 }
 

@@ -403,7 +403,7 @@ The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config
 | `--wait` | After apply, wait for Deployment / StatefulSet / DaemonSet rollout, then verify |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
-| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `fireworks`, `ollama`, `azure`, `openai-compatible` |
+| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `openrouter`, `together`, `fireworks`, `ollama`, `lmstudio`, `azure`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |
 | `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |
