@@ -32,11 +32,14 @@ kprompt --contexts staging,prod "list deployments"
 kprompt "list pods across staging and prod"
 kprompt --contexts staging,prod "optimize my cluster"
 kprompt --contexts staging,prod "show service graph" -n shop
+kprompt --contexts staging,prod "show virtualservice traffic for payments"
+kprompt --contexts staging,prod "gitops sync status"
 ```
 
 Supported today: get/list, explain, investigate, why, timeline, impact, audit,
 cleanup, search, score, architecture, learn, drift, logs, describe, optimize,
-roast, graph. Unreachable contexts degrade; others still return.
+roast, graph, istio, gitops (status/health only — see below). Unreachable
+contexts degrade; others still return.
 
 JSON kind: `MultiContextResult` with per-context `steps`, `cluster_context` on each step, and `fleetSummary` for optimize. Each step carries that context's own payload — e.g. one service graph per cluster under `steps[].result`.
 
@@ -47,7 +50,9 @@ query the Prometheus / OpenTelemetry endpoint you configured, not the kube
 context, so fanning out would repeat one identical query per context and label
 the same numbers as per-cluster findings. Point those at a per-cluster endpoint
 and run them with `--context` instead. Mutating intents never fan out silently —
-see below.
+see below. That includes gitops `sync`/`promote`/`rollback`: those require
+approval, so `--contexts` routes them through the same per-context mutate
+gating as `scale`/`delete` (below) — only `status`/`health` reads fan out.
 
 ## Mutate safety
 

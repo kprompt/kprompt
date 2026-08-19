@@ -37,7 +37,7 @@ var readFanOutKinds = []intent.Kind{
 	intent.KindTimeline, intent.KindImpact, intent.KindAudit, intent.KindCleanup,
 	intent.KindSearch, intent.KindScore, intent.KindArchitecture, intent.KindLearn,
 	intent.KindDrift, intent.KindLogs, intent.KindDescribe, intent.KindOptimize,
-	intent.KindRoast, intent.KindGraph,
+	intent.KindRoast, intent.KindGraph, intent.KindIstio, intent.KindGitOps,
 }
 
 func supportsReadFanOut(kind intent.Kind) bool {
