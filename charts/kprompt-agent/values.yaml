@@ -122,3 +122,34 @@ agentCR:
     minConfidence: 0.7
   fetchLogs: true
   health: true
+
+
+networkPolicy:
+  # WARNING: Do not enable networkPolicy.enabled=true until you have configured the required CIDRs and ports below for your environment (kubeAPIServerCIDRs, llmCIDRs, etc.). Enabling this policy with empty CIDR lists will block egress to the Kubernetes API server and LLM endpoints, causing the agent to fail.
+  enabled: false
+  # Allow DNS egress to cluster DNS pods.
+  allowDNS: true
+
+  # Allow Kubernetes API egress only when kubeAPIServerCIDRs is set.
+  allowKubeApi: true
+  # Example: ["10.96.0.1/32"]
+  # Required for explicit kube-apiserver allowlisting when networkPolicy is enabled.
+  kubeAPIServerCIDRs: []
+
+  # Operator-managed endpoint CIDRs (Decision A: no automatic private-range blocking).
+  # List of CIDR blocks for LLM provider endpoints
+  llmCIDRs: []
+  llmPort: 443
+  # Additional ports for self-hosted or custom LLM endpoints (defaults to 443) Examples: 8080, 11434 (Ollama), 8000 (vLLM)
+  llmExtraPorts: []
+
+  observabilityCIDRs: []
+  webhookCIDRs: []
+
+  # Optional additional ports for observability/webhooks.
+  observabilityExtraPorts: []
+  webhookExtraPorts: []
+
+  # Raw additional egress rules if needed.
+  extraEgress: []
+
