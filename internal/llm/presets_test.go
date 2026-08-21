@@ -153,7 +153,7 @@ func TestLookupPresetFireworks(t *testing.T) {
 		t.Fatalf("fireworks default model = %q, want %q (update if model is delisted)", p.DefaultModel, want)
 	}
 	if len(p.EnvKeys) != 2 || p.EnvKeys[0] != "KPROMPT_FIREWORKS_API_KEY" || p.EnvKeys[1] != "FIREWORKS_API_KEY" {
-		t.Fatalf("cerebras env keys = %v", p.EnvKeys)
+		t.Fatalf("fireworks env keys = %v", p.EnvKeys)
 	}
 }
 

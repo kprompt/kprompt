@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	appsv1 "k8s.io/api/apps/v1"
+	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
 
@@ -116,6 +117,103 @@ func TestPlanToolEndToEndNeverApplies(t *testing.T) {
 	}
 	if dep.Spec.Replicas == nil || *dep.Spec.Replicas != 1 {
 		t.Fatalf("cluster was mutated over MCP: replicas=%v", dep.Spec.Replicas)
+	}
+}
+
+func TestSRETools(t *testing.T) {
+	tests := []struct {
+		sreTool string
+	}{
+		{sreTool: "kprompt.investigate"},
+		{sreTool: "kprompt.why"},
+		{sreTool: "kprompt.impact"},
+		{sreTool: "kprompt.timeline"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.sreTool, func(t *testing.T) {
+			t.Setenv("KPROMPT_HOME", t.TempDir())
+			ns := "payments"
+			labels := map[string]string{"app": "api"}
+
+			client := fake.NewSimpleClientset(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: ns},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{MatchLabels: labels},
+					},
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{Name: "api-1", Namespace: ns, Labels: labels},
+				},
+			)
+			deps := pipeline.Deps{
+				Provider: &llm.Stub{Structured: []byte(`{"kind":"get",
+				"target":{"kind":"Deployment", "Name":"api", "Namespace":"payments"},"confidence":1}`)},
+				Client: client,
+			}
+			text, isErr := callToolWithDeps(t, deps, tc.sreTool, map[string]any{
+				"prompt": "why is api crashlooping",
+				"target": "deployment",
+				"name":   "api",
+			})
+			if isErr {
+				t.Fatalf("%s tool reported error: %s", tc.sreTool, text)
+			}
+			if !strings.Contains(text, `"kind":"PlanResult"`) {
+				t.Fatalf("for %s tool, expected a PlanResult document, got: %s", tc.sreTool, text)
+			}
+			if strings.Contains(text, `"requiresApproval":true`) {
+				t.Fatalf("%s tool must not require approval: %s", tc.sreTool, text)
+			}
+			if !strings.Contains(text, "api") {
+				t.Fatalf("for %s tool, expected the fake deployment name in output: %s", tc.sreTool, text)
+			}
+		})
+	}
+}
+
+func TestSREToolsMissingTarget(t *testing.T) {
+	tests := []struct {
+		sreTool string
+	}{
+		{sreTool: "kprompt.investigate"},
+		{sreTool: "kprompt.why"},
+		{sreTool: "kprompt.impact"},
+		{sreTool: "kprompt.timeline"},
+	}
+	for _, tc := range tests {
+		t.Run(tc.sreTool, func(t *testing.T) {
+			t.Setenv("KPROMPT_HOME", t.TempDir())
+			ns := "payments"
+			labels := map[string]string{"app": "api"}
+			client := fake.NewSimpleClientset(
+				&appsv1.Deployment{
+					ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: ns},
+					Spec: appsv1.DeploymentSpec{
+						Selector: &metav1.LabelSelector{MatchLabels: labels},
+					},
+				},
+				&corev1.Pod{
+					ObjectMeta: metav1.ObjectMeta{Name: "api-1", Namespace: ns, Labels: labels},
+				},
+			)
+			deps := pipeline.Deps{
+				Provider: &llm.Stub{Structured: []byte(`{"kind":"get",
+				"target":{"kind":"Deployment", "Name":"api", "Namespace":"payments"},"confidence":1}`)},
+				Client: client,
+			}
+			// Missing target
+			text, isErr := callToolWithDeps(t, deps, tc.sreTool, map[string]any{
+				"prompt": "why is api crashlooping",
+				"name":   "api",
+			})
+			if !isErr {
+				t.Fatalf("for %s tool, expected error: %s", tc.sreTool, text)
+			}
+			if !strings.Contains(text, `target is required`) {
+				t.Fatalf("for %s tool, expected error of target is required: %s", "kprompt.why", text)
+			}
+		})
 	}
 }
 
