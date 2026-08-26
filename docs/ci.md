@@ -86,3 +86,14 @@ GitHub Actions on `kprompt/kprompt` can upload a **stub** PlanResult to Team aft
 Without the secret, CI still passes and skips the upload. With it: Audit `reported`, app `/ci` artifact, and (when App JWT + Checks write are configured) a Check Run named `kprompt` via optional `head_sha`.
 
 See also: [GitOps PR mode](./gitops-pr.md) (CLI laptop lane; separate from Team org connect).
+
+
+## Tests
+
+Unit tests:
+`go test -json -coverprofile=coverage.out -covermode=atomic ./... > report.json`
+Runs to build report of units tests reuslts allowing PlanResult to be built.
+
+CI Smoke test:
+On a pull request tests `TestGenericReadMatrixOnKind|TestDeployRedisOnKind|TestAgentWatchPodsEvents`
+automatically run. Full e2e can be ran via workflow_dispatch.

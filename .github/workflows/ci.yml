@@ -4,6 +4,17 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      run_full_e2e_tests:
+        description: 'Run full e2e test suite or default smoke test?'
+        required: true
+        type: choice
+        options:
+          - smoke
+          - full
+        default: smoke
+  
 
 jobs:
   test:
@@ -15,10 +26,31 @@ jobs:
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         with:
           go-version-file: go.mod
+
       - name: Test with coverage
         run: go test -json -coverprofile=coverage.out -covermode=atomic ./... > report.json || true
+
       - name: Build
         run: go build -o bin/kprompt ./cmd/kprompt
+
+      - name: Setup Kubectl
+        uses: azure/setup-kubectl@v4
+        with:
+          version: 'v1.36.4'
+      - name: Install KinD 
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.29.0/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+      
+      - name: Smokes Tests (subset of e2e tests)
+        if: github.event_name != 'workflow_dispatch' || inputs.run_full_e2e_tests == 'smoke'
+        run: go test -tags=e2e ./test/e2e/ -run 'TestGenericReadMatrixOnKind|TestDeployRedisOnKind|TestAgentWatchPodsEvents' -count=1 -v -timeout 10m
+
+      - name: Full End to End Tests
+        if: inputs.run_full_e2e_tests == 'full'
+        run: go test -tags=e2e ./test/e2e/ -count=1 -v -timeout 10m
+    
       # Requires Automatic Analysis disabled on SonarCloud (Project → Administration → Analysis Method).
       # CI-based analysis cannot run while Autoscan is enabled.
       # Skipped for forks and Dependabot PRs: GitHub does not expose SONAR_TOKEN

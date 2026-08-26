@@ -19,6 +19,10 @@ Optional cleanup:
 kind delete cluster --name kprompt-e2e
 ```
 
+CI Smoke test:
+On a pull request tests `TestGenericReadMatrixOnKind|TestDeployRedisOnKind|TestAgentWatchPodsEvents`
+automatically run. Full e2e can be ran via workflow_dispatch.
+
 Notes:
 
 - Uses stub LLM providers so no real API key is required.
