@@ -136,7 +136,7 @@ kprompt is **bring-your-own-key**. Point it at local Ollama for `$0` inference, 
 | **Ollama** (`$0`, local) | **OpenAI** | **Anthropic** | **Gemini** |
 | **Groq** | **xAI** | **Cerebras** | **Mistral** |
 | **DeepSeek** | **Moonshot** | **OpenRouter** | **Together** |
-| **OpenAI-compatible** (any base URL) | | | |
+| **Hetzner** | **OpenAI-compatible** (any base URL) | | |
 
 ### Kubernetes & day-2
 
@@ -414,7 +414,7 @@ The `kp_…` token is stored only in `credentials.yaml` (0600), never in `config
 | `--wait` | After apply, wait for Deployment / StatefulSet / DaemonSet rollout, then verify |
 | `--timeout` | Timeout for `--wait` (default `5m`) |
 | `--output` / `-o` | `text` (default) or `json` (CI PlanResult) |
-| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `qwen`, `openrouter`, `together`, `fireworks`, `ollama`, `lmstudio`, `azure`, `openai-compatible` |
+| `--provider` | `openai`, `anthropic`, `gemini`, `groq`, `xai`, `cerebras`, `mistral`, `deepseek`, `moonshot`, `qwen`, `openrouter`, `together`, `fireworks`, `hetzner`, `ollama`, `lmstudio`, `azure`, `openai-compatible` |
 | `--model` | Model id |
 | `--context` | kubeconfig context |
 | `--contexts` | Comma-separated contexts for read fan-out / per-context mutate |

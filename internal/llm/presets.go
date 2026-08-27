@@ -153,6 +153,14 @@ var Presets = []Preset{
 		EnvKeys:      []string{"KPROMPT_FIREWORKS_API_KEY", "FIREWORKS_API_KEY"},
 		HelpURL:      "https://fireworks.ai/account/api-keys",
 	},
+	{
+		Name:         "hetzner",
+		Kind:         "openai",
+		BaseURL:      "https://inference.hetzner.com/api/v1",
+		DefaultModel: "Qwen/Qwen3.6-35B-A3B-FP8",
+		EnvKeys:      []string{"KPROMPT_HETZNER_API_KEY", "HETZNER_API_KEY"},
+		HelpURL:      "https://experiments.hetzner.com/docs/inference",
+	},
 }
 
 // LookupPreset finds a preset by name (case-insensitive).

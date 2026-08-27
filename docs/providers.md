@@ -27,6 +27,7 @@ Optional Team `kp_…` tokens (`kprompt login`) are for org policy/audit — not
 | OpenRouter | `openrouter` | `KPROMPT_OPENROUTER_API_KEY` / `OPENROUTER_API_KEY` | `openai/gpt-4o-mini` | OpenAI-compatible |
 | Together | `together` | `KPROMPT_TOGETHER_API_KEY` / `TOGETHER_API_KEY` | `meta-llama/Llama-3.3-70B-Instruct-Turbo` | OpenAI-compatible |
 | Fireworks | `fireworks` | `KPROMPT_FIREWORKS_API_KEY` / `FIREWORKS_API_KEY` | `accounts/fireworks/models/llama-v3p3-70b-instruct` | OpenAI-compatible |
+| Hetzner Inference | `hetzner` | `KPROMPT_HETZNER_API_KEY` / `HETZNER_API_KEY` | `Qwen/Qwen3.6-35B-A3B-FP8` | OpenAI-compatible; **experimental**, free while in beta, no SLA |
 | LM Studio (local) | `lmstudio` | none required | `local-model` | **$0** — `http://127.0.0.1:1234/v1`; LM Studio must be running with a model loaded, and `--model` must match that model's name |
 | Generic OpenAI-compat | `openai-compatible` | `KPROMPT_OPENAI_API_KEY` | — | **Requires** `base_url` |
 | Azure OpenAI | `azure` | `KPROMPT_AZURE_API_KEY` / `AZURE_OPENAI_API_KEY` / `KPROMPT_OPENAI_API_KEY` | `gpt-4o` | OpenAI-compatible; **Requires** `base_url` (resource URL). `--model` is your **deployment name**, not an OpenAI model id |
@@ -131,6 +132,10 @@ kprompt --provider azure --model my-gpt4o-deploy "list services"
 export KPROMPT_FIREWORKS_API_KEY=...
 kprompt init --provider fireworks
 kprompt "list deployments"
+
+# Hetzner Inference (experimental, free while in beta)
+export KPROMPT_HETZNER_API_KEY=...
+kprompt --provider hetzner "list pods"
 ```
 
 On Azure, `--model` carries the **deployment name** you chose in the portal — not an OpenAI
@@ -139,6 +144,8 @@ model id. They match only if you named the deployment after the model. The prese
 deployment, or requests fail with a deployment-not-found error from Azure.
 
 Fireworks models are account scoped. Public models, model name: accounts/fireworks/models/{model-name}. 
+
+Hetzner's Inference API is an **experimental** platform: free while in beta, no SLA/backup guarantees, and only a limited model selection. See [experiments.hetzner.com/docs/inference](https://experiments.hetzner.com/docs/inference).
 
 
 ## Config file (`~/.kprompt/config.yaml`)
