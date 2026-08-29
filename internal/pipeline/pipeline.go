@@ -896,7 +896,15 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return err
 			}
-			invDoc, err := (&impact.Analyzer{Client: client}).Run(ctx, req)
+			ana := &impact.Analyzer{Client: client}
+			dyn := deps.Dynamic
+			if dyn == nil && restCfg != nil {
+				if d, err := cluster.DynamicForConfig(restCfg); err == nil {
+					dyn = d
+				}
+			}
+			ana.Dynamic = dyn
+			invDoc, err := ana.Run(ctx, req)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("impact: %w", err))
 			}

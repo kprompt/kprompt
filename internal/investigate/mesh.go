@@ -44,8 +44,7 @@ func (inv *Investigator) meshHops(ctx context.Context, ns string, podLabels map[
 
 	list, err := inv.Dynamic.Resource(toolistio.VirtualServiceGVR).Namespace(ns).List(ctx, metav1.ListOptions{})
 	if err != nil {
-		if apierrors.IsNotFound(err) || isNoMatchGVR(err) {
-			// No VirtualService API — mesh not installed; treat as walked empty.
+		if apierrors.IsNotFound(err) || toolistio.IsNoMatchGVR(err) {
 			return nil, nil, nil, true
 		}
 		findings = append(findings, incident.Finding{
@@ -60,10 +59,10 @@ func (inv *Investigator) meshHops(ctx context.Context, ns string, podLabels map[
 
 	for i := range list.Items {
 		vs := &list.Items[i]
-		dests := virtualServiceDestinationHosts(vs)
+		dests := toolistio.VirtualServiceDestinationHosts(vs)
 		var matched []string
 		for _, host := range dests {
-			if svc := matchMeshHostToService(host, ns, svcNames); svc != "" {
+			if svc := toolistio.MatchHostToService(host, ns, svcNames); svc != "" {
 				matched = append(matched, svc)
 			}
 		}
@@ -76,7 +75,7 @@ func (inv *Investigator) meshHops(ctx context.Context, ns string, podLabels map[
 		if len(hosts) > 0 {
 			detail = "hosts " + strings.Join(hosts, ",") + " · " + detail
 		}
-		if isCanaryVS(vs) {
+		if toolistio.IsCanaryVirtualService(vs) {
 			detail += " · weighted/canary routes"
 		}
 		hops = append(hops, cluster.ChainStep{
@@ -120,103 +119,6 @@ func (inv *Investigator) matchingServiceNames(ctx context.Context, ns string, po
 		}
 	}
 	return names, nil
-}
-
-func virtualServiceDestinationHosts(vs *unstructured.Unstructured) []string {
-	var hosts []string
-	seen := map[string]struct{}{}
-	add := func(h string) {
-		h = strings.TrimSpace(h)
-		if h == "" {
-			return
-		}
-		if _, ok := seen[h]; ok {
-			return
-		}
-		seen[h] = struct{}{}
-		hosts = append(hosts, h)
-	}
-	for _, block := range []string{"http", "tcp"} {
-		routes, ok, _ := unstructured.NestedSlice(vs.Object, "spec", block)
-		if !ok {
-			continue
-		}
-		for _, raw := range routes {
-			m, ok := raw.(map[string]any)
-			if !ok {
-				continue
-			}
-			route, ok, _ := unstructured.NestedSlice(m, "route")
-			if !ok {
-				continue
-			}
-			for _, r := range route {
-				rm, ok := r.(map[string]any)
-				if !ok {
-					continue
-				}
-				if h, ok, _ := unstructured.NestedString(rm, "destination", "host"); ok {
-					add(h)
-				}
-			}
-		}
-	}
-	return hosts
-}
-
-func matchMeshHostToService(host, ns string, svcNames []string) string {
-	host = strings.TrimSpace(strings.ToLower(host))
-	if host == "" {
-		return ""
-	}
-	if i := strings.IndexByte(host, ':'); i >= 0 {
-		host = host[:i]
-	}
-	for _, name := range svcNames {
-		n := strings.ToLower(name)
-		candidates := []string{
-			n,
-			n + "." + strings.ToLower(ns),
-			n + "." + strings.ToLower(ns) + ".svc",
-			n + "." + strings.ToLower(ns) + ".svc.cluster.local",
-		}
-		for _, c := range candidates {
-			if host == c {
-				return name
-			}
-		}
-	}
-	return ""
-}
-
-func isCanaryVS(vs *unstructured.Unstructured) bool {
-	for _, block := range []string{"http", "tcp"} {
-		routes, ok, _ := unstructured.NestedSlice(vs.Object, "spec", block)
-		if !ok {
-			continue
-		}
-		for _, raw := range routes {
-			m, ok := raw.(map[string]any)
-			if !ok {
-				continue
-			}
-			route, ok, _ := unstructured.NestedSlice(m, "route")
-			if ok && len(route) > 1 {
-				return true
-			}
-		}
-	}
-	return false
-}
-
-func isNoMatchGVR(err error) bool {
-	if err == nil {
-		return false
-	}
-	msg := strings.ToLower(err.Error())
-	return strings.Contains(msg, "no matches for kind") ||
-		strings.Contains(msg, "could not find the requested resource") ||
-		strings.Contains(msg, "the server could not find the requested resource")
 }
 
 func uniqueStrings(in []string) []string {

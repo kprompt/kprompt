@@ -21,6 +21,7 @@ For a **Service**, kprompt reports:
 - Deployments whose container env / command / args statically reference the Service
 - backend Deployments selected by the Service
 - Ingress objects that route to the Service
+- VirtualService objects whose destinations target the Service (when a dynamic client is available)
 
 For a **Deployment**, kprompt reports:
 
@@ -28,6 +29,7 @@ For a **Deployment**, kprompt reports:
 - Deployments that statically reference those Services
 - HPAs that scale it
 - PodDisruptionBudgets that protect its pods
+- VirtualServices that route to those selected Services (when a dynamic client is available)
 
 The result uses the versioned `Investigation` JSON contract:
 
@@ -44,7 +46,7 @@ Secret values and it does not claim complete runtime coverage.
 `degraded` includes:
 
 - `otel` — runtime caller edges are unavailable in the static walk
-- `mesh` — service-mesh traffic edges are not walked yet
+- `mesh` — no dynamic client, or VirtualService list failed (not when CRD absent / zero matches)
 
 No findings means “no static references found,” not “nobody calls this.”
 `impact` never mutates and never asks for approval.
