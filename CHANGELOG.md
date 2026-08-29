@@ -4,10 +4,18 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+## [v0.12.2](https://github.com/kprompt/kprompt/releases/tag/v0.12.2) — 2026-08-29
+
+Mesh honesty follow-ups for investigate / impact since v0.12.1.
+
 ### Features
 
-- **investigate VirtualService mesh hop** — walk Istio VirtualServices whose destinations match workload Services; omit `mesh` from `degraded` when the API was queried (or CRD absent)
-- **impact VirtualService routes** — reverse-deps include Istio VirtualServices targeting the Service (or Deployment-selected Services); same honest `mesh` degrade rules
+- **investigate VirtualService mesh hop** — walk Istio VirtualServices whose destinations match workload Services; omit `mesh` from `degraded` when the API was queried (or CRD absent) (#188)
+- **impact VirtualService routes** — reverse-deps include Istio VirtualServices targeting the Service (or Deployment-selected Services); shared host-match helpers in `tools/istio` (#189)
+
+### Notes
+
+Experimental — prefer non-production clusters. Autopilot remains propose-only by default. Amazon Bedrock preset (P-008) stays deferred (#59).
 
 ## [v0.12.1](https://github.com/kprompt/kprompt/releases/tag/v0.12.1) — 2026-08-29
 
