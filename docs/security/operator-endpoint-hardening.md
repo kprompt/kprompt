@@ -20,15 +20,14 @@ Related product docs: [reality-anchors.md](../reality-anchors.md) · agent chart
 
 ## Chart baseline (opt-in)
 
-`charts/kprompt-agent` ships an **opt-in** egress NetworkPolicy (`networkPolicy.enabled`, default `false`):
+`charts/kprompt-agent`, `charts/kprompt-coordinator`, and `charts/kprompt-operator` each ship an **opt-in** egress NetworkPolicy (`networkPolicy.enabled`, default `false`):
 
 - Policy type: **Egress** default-deny once enabled
-- Explicit allows (when configured): DNS, kube-apiserver CIDRs, LLM / observability / webhook CIDRs, `extraEgress`
+- Explicit allows (when configured): DNS, kube-apiserver CIDRs; the agent chart also supports LLM / observability / webhook CIDRs + `extraEgress`
+- Helm **`values.schema.json`** validates the `networkPolicy` block
 - **Strongly recommended for production**, but only after CIDRs match your topology
 
-> Do **not** set `networkPolicy.enabled=true` with empty `kubeAPIServerCIDRs` / `llmCIDRs`. The pod will lose API and LLM egress.
-
-Coordinator / operator charts do not yet ship the same template; use this guide’s example manifests or CNI policy until they do.
+> Do **not** set `networkPolicy.enabled=true` with empty `kubeAPIServerCIDRs` (and for the agent, empty `llmCIDRs` when you need an LLM). The pod will lose API and/or LLM egress.
 
 ---
 
@@ -130,10 +129,12 @@ NetworkPolicy on IP blocks does not stop a DNS name from resolving to an unexpec
 
 ## Doctor advisory
 
-`kprompt doctor` emits a **WARN** (non-fatal) when it finds Observe agent pods and:
+`kprompt doctor` emits **WARN** (non-fatal) when:
 
-- no selecting **egress** NetworkPolicy, and/or
-- any agent pod with **`hostNetwork: true`**
+- it finds agent / coordinator / operator pods and
+  - no selecting **egress** NetworkPolicy, and/or
+  - any of those pods with **`hostNetwork: true`**
+- configured operator endpoints (`base_url`, `tools.prometheus.url`, `tools.grafana.url`, `tools.otel.endpoint`) resolve to **RFC-1918 / ULA / link-local / loopback** (or cannot be resolved)
 
 ```bash
 kprompt doctor

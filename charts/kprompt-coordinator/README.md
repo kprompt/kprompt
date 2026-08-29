@@ -68,5 +68,6 @@ Ops checklist: [docs/agent-ops.md](../../docs/agent-ops.md#worker-isolation-ag-0
 | `probe.enabled` | `false` | Passes `--probe-kube --in-cluster` |
 | `knowledge.enabled` | `true` | Persists the Shared Knowledge handoff ring in a ConfigMap and enables the durable knowledge backend |
 | `rbac.probeNamespaces` | `[]` | RoleBindings for AG-050 probe |
+| `networkPolicy.enabled` | `false` | Opt-in egress default-deny; set `kubeAPIServerCIDRs` first |
 
-See [docs/namespace-agent.md](../../docs/namespace-agent.md) · [docs/agent-ops.md](../../docs/agent-ops.md).
+See [docs/namespace-agent.md](../../docs/namespace-agent.md) · [docs/agent-ops.md](../../docs/agent-ops.md) · [operator-endpoint-hardening.md](../../docs/security/operator-endpoint-hardening.md) (SEC-007).

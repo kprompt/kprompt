@@ -14,7 +14,7 @@ import (
 	"github.com/kprompt/kprompt/internal/cluster"
 )
 
-const agentAppNameLabel = "app.kubernetes.io/name=kprompt-agent"
+const kpromptWorkloadLabelSelector = "app.kubernetes.io/name in (kprompt-agent,kprompt-coordinator,kprompt-operator)"
 
 // AgentEgressSummary is the cluster posture used by the NetworkPolicy doctor check.
 type AgentEgressSummary struct {
@@ -24,7 +24,7 @@ type AgentEgressSummary struct {
 	SampleNamespaces    []string
 }
 
-// ProbeAgentEgress inspects Observe agent pods and selecting egress NetworkPolicies.
+// ProbeAgentEgress inspects kprompt workload pods and selecting egress NetworkPolicies.
 // nil means use the default kube implementation.
 type ProbeAgentEgress func(ctx context.Context, kubeCtx string) (AgentEgressSummary, error)
 
@@ -38,7 +38,7 @@ func defaultProbeAgentEgress(ctx context.Context, kubeCtx string) (AgentEgressSu
 
 func summarizeAgentEgress(ctx context.Context, cs kubernetes.Interface) (AgentEgressSummary, error) {
 	pods, err := cs.CoreV1().Pods("").List(ctx, metav1.ListOptions{
-		LabelSelector: agentAppNameLabel,
+		LabelSelector: kpromptWorkloadLabelSelector,
 	})
 	if err != nil {
 		return AgentEgressSummary{}, err
@@ -128,24 +128,24 @@ func networkPolicySelectsPod(np networkingv1.NetworkPolicy, pod corev1.Pod) bool
 func checkAgentEgress(sum AgentEgressSummary, probeErr error) Check {
 	c := Check{
 		ID:       "agent-egress",
-		Name:     "Agent NetworkPolicy",
+		Name:     "Workload NetworkPolicy",
 		Required: false,
 	}
 	if probeErr != nil {
 		c.Status = Skip
-		c.Detail = "could not inspect agent NetworkPolicy posture"
-		c.Hint = "Ensure the current context can list pods/networkpolicies, or skip until the agent is installed"
+		c.Detail = "could not inspect NetworkPolicy posture"
+		c.Hint = "Ensure the current context can list pods/networkpolicies, or skip until charts are installed"
 		return c
 	}
 	if sum.AgentPods == 0 {
 		c.Status = Skip
-		c.Detail = "no Observe agent pods found (label app.kubernetes.io/name=kprompt-agent)"
-		c.Hint = "Install charts/kprompt-agent when you want in-cluster Observe; see docs/security/operator-endpoint-hardening.md"
+		c.Detail = "no kprompt agent/coordinator/operator pods found"
+		c.Hint = "Install charts/kprompt-agent (or coordinator/operator); see docs/security/operator-endpoint-hardening.md"
 		return c
 	}
 
 	var parts []string
-	parts = append(parts, fmt.Sprintf("%d agent pod(s)", sum.AgentPods))
+	parts = append(parts, fmt.Sprintf("%d kprompt pod(s)", sum.AgentPods))
 	if len(sum.SampleNamespaces) > 0 {
 		parts = append(parts, "ns="+strings.Join(sum.SampleNamespaces, ","))
 	}
@@ -166,6 +166,6 @@ func checkAgentEgress(sum AgentEgressSummary, probeErr error) Check {
 
 	c.Status = Warn
 	c.Detail = strings.Join(parts, " · ") + " · " + strings.Join(warns, "; ")
-	c.Hint = "Enable charts/kprompt-agent networkPolicy.enabled with CIDRs — docs/security/operator-endpoint-hardening.md (SEC-007). Do not use hostNetwork."
+	c.Hint = "Enable chart networkPolicy.enabled with CIDRs — docs/security/operator-endpoint-hardening.md (SEC-007). Do not use hostNetwork."
 	return c
 }

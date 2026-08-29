@@ -6,7 +6,7 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ### Security
 
-- **SEC-007 follow-up** — operator endpoint hardening guide + `kprompt doctor` advisory for Observe agent NetworkPolicy / `hostNetwork` (#118)
+- **SEC-007 follow-up** — operator endpoint hardening guide + doctor advisories for workload NetworkPolicy / `hostNetwork` and private-range endpoint URLs; Helm `values.schema.json` + coordinator/operator NetworkPolicy baselines (#118)
 
 ## [v0.12.0](https://github.com/kprompt/kprompt/releases/tag/v0.12.0) — 2026-08-29
 

@@ -111,6 +111,7 @@ NetworkPolicy controls in this chart:
 - `networkPolicy.allowDNS`: allow DNS to cluster DNS
 - `networkPolicy.allowKubeApi` + `networkPolicy.kubeAPIServerCIDRs`: allow kube-apiserver egress via explicit CIDRs
 - `networkPolicy.llmCIDRs`, `networkPolicy.observabilityCIDRs`, `networkPolicy.webhookCIDRs`: explicit endpoint allowlists
+- `values.schema.json` validates the `networkPolicy` block when you `helm install` / `helm lint`
 
 Use these settings with your cluster CNI policy model (Calico/Cilium/etc.) and keep allowlists narrow.
 

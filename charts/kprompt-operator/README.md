@@ -8,6 +8,10 @@ Reconciles [`KpromptAgent`](../../deploy/crd/kprompt.ai_kpromptagents.yaml) CRs 
 
 Prefer the manual [`kprompt-agent`](../kprompt-agent) chart when you do not want a cluster-scoped operator SA.
 
+## NetworkPolicy (SEC-007)
+
+Opt-in egress default-deny via `networkPolicy.enabled` (default `false`). Set `networkPolicy.kubeAPIServerCIDRs` before enabling. Guide: [`docs/security/operator-endpoint-hardening.md`](../../docs/security/operator-endpoint-hardening.md).
+
 ## Install
 
 ```bash

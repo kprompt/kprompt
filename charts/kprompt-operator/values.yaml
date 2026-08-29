@@ -37,3 +37,14 @@ resources:
 nodeSelector: {}
 tolerations: []
 affinity: {}
+
+networkPolicy:
+  # WARNING: Do not enable until kubeAPIServerCIDRs match your topology.
+  # Hardening guide: docs/security/operator-endpoint-hardening.md (SEC-007).
+  enabled: false
+  allowDNS: true
+  allowKubeApi: true
+  # Example: ["10.96.0.1/32"]
+  kubeAPIServerCIDRs: []
+  # Raw additional egress rules if needed.
+  extraEgress: []
