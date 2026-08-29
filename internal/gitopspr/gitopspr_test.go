@@ -55,11 +55,53 @@ func TestFilesFromPlanDeploy(t *testing.T) {
 	}
 }
 
+func TestFilesFromPlanPatch(t *testing.T) {
+	auditHardenPlan := planner.ExecutionPlan{
+		Intent:           intent.Intent{Kind: intent.KindPatch},
+		Summary:          "Harden 1 workload(s): remove privilege grants",
+		RequiresApproval: true,
+		Actions: []planner.Action{{
+			Op:       planner.OpUpdate,
+			Object:   planner.ObjectRef{Kind: "Deployment", Name: "bad", Namespace: "payments"},
+			Manifest: "apiVersion: apps/v1\nkind: Deployment\nmetadata:\n  name: bad\n  namespace: payments\n",
+		}},
+	}
+	files, err := FilesFromPlan(context.Background(), auditHardenPlan, "clusters/dev")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(files) != 1 || files[0].Path != "clusters/dev/deployment-bad.yaml" {
+		t.Fatalf("%+v", files)
+	}
+}
+
+func TestTruncatedpreview(t *testing.T) {
+	auditHardenPlan := planner.ExecutionPlan{
+		Intent:  intent.Intent{Kind: intent.KindPatch},
+		Summary: "Harden 1 workload(s): remove privilege grants",
+		Actions: []planner.Action{{
+			Op:       planner.OpUpdate,
+			Object:   planner.ObjectRef{APIVersion: "apps/v1", Kind: "StatefulSet", Name: "db", Namespace: "payments"},
+			Manifest: "apiVersion: apps/v1\nkind: StatefulSet\nmetadata:\n  name: db\n  namespace: payments \n…(preview truncated)",
+		}},
+	}
+	files, err := FilesFromPlan(context.Background(), auditHardenPlan, "clusters/dev")
+	if err == nil {
+		t.Fatal("expected truncated preview error got no got error")
+	}
+	if !strings.Contains(err.Error(), "manifest preview is truncated") {
+		t.Errorf("expected truncated preview error got %v", err)
+	}
+	if files != nil {
+		t.Errorf("expected files to be empty")
+	}
+}
+
 func TestFilesFromPlanRejectsScale(t *testing.T) {
 	plan := planner.ExecutionPlan{
 		Intent: intent.Intent{Kind: intent.KindScale},
 		Actions: []planner.Action{{
-			Op: planner.OpScale,
+			Op:     planner.OpScale,
 			Object: planner.ObjectRef{Kind: "Deployment", Name: "api"},
 		}},
 	}

@@ -187,7 +187,7 @@ func FilesFromPlan(ctx context.Context, plan planner.ExecutionPlan, pathPrefix s
 		// ok
 	default:
 		return nil, fmt.Errorf(
-			"gitops PR mode MVP supports deploy / helm install / helm upgrade plans (got kind=%s). Scale, delete, and live GitOps sync still use cluster apply — omit --gitops for those",
+			"gitops PR mode MVP supports deploy / helm install / helm upgrade plans / patch (got kind=%s). Scale, delete, and live GitOps sync still use cluster apply — omit --gitops for those",
 			plan.Intent.Kind,
 		)
 	}

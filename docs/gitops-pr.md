@@ -48,6 +48,7 @@ local CLI path.
 | Kind | Behavior |
 |------|----------|
 | `deploy` | Commit rendered Deployment/Service YAML into the PR |
+| `patch` | Commits fixs (e.g. audit hardening) to the PR |
 | `install` / `upgrade` (Helm) | Re-run `helm template` / dry-run and commit full YAML |
 
 Scale, delete, rollback, live Flux/Argo **sync**, Argo Workflows, Tekton, KEDA,
