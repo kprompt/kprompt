@@ -65,7 +65,8 @@ func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
 	wantNames := []string{"openai", "anthropic", "gemini", "groq",
 		"mistral", "deepseek", "moonshot", "qwen", "ollama", "openrouter",
-		"together", "xai", "cerebras", "azure", "fireworks", "lmstudio"}
+		"together", "xai", "cerebras", "azure", "fireworks", "lmstudio",
+		"hetzner"}
 	for _, want := range wantNames {
 		if !contains(s, want) {
 			t.Fatalf("%q missing from %s", want, s)
@@ -173,6 +174,25 @@ func TestLookupPresetQwen(t *testing.T) {
 	}
 	if len(p.EnvKeys) != 3 || p.EnvKeys[0] != "KPROMPT_QWEN_API_KEY" || p.EnvKeys[1] != "DASHSCOPE_API_KEY" || p.EnvKeys[2] != "QWEN_API_KEY" {
 		t.Fatalf("qwen env keys = %v", p.EnvKeys)
+	}
+}
+
+func TestLookupPresetHetzner(t *testing.T) {
+	p, ok := LookupPreset("hetzner")
+	if !ok {
+		t.Fatal("hetzner preset not found")
+	}
+	if p.Kind != "openai" {
+		t.Fatalf("hetzner kind = %q, want openai", p.Kind)
+	}
+	if p.BaseURL != "https://inference.hetzner.com/api/v1" {
+		t.Fatalf("hetzner base URL = %q", p.BaseURL)
+	}
+	if p.DefaultModel != "Qwen/Qwen3.6-35B-A3B-FP8" {
+		t.Fatalf("hetzner default model = %q, want Qwen/Qwen3.6-35B-A3B-FP8", p.DefaultModel)
+	}
+	if len(p.EnvKeys) != 2 || p.EnvKeys[0] != "KPROMPT_HETZNER_API_KEY" || p.EnvKeys[1] != "HETZNER_API_KEY" {
+		t.Fatalf("hetzner env keys = %v", p.EnvKeys)
 	}
 }
 
