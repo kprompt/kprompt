@@ -12,6 +12,12 @@ import (
 	"github.com/kprompt/kprompt/internal/tools"
 )
 
+func skipEgressProbe() ProbeAgentEgress {
+	return func(context.Context, string) (AgentEgressSummary, error) {
+		return AgentEgressSummary{}, nil
+	}
+}
+
 func TestRunLLMKeyRequired(t *testing.T) {
 	dir := t.TempDir()
 	t.Setenv("HOME", dir)
@@ -26,6 +32,7 @@ func TestRunLLMKeyRequired(t *testing.T) {
 				{ID: tools.IDHelm, Name: "Helm", Status: tools.StatusUnavailable, Detail: "not on PATH"},
 			}), nil
 		},
+		ProbeAgentEgress: skipEgressProbe(),
 		Me: func(context.Context, string, string) (team.MeResponse, error) {
 			t.Fatal("me should not be called")
 			return team.MeResponse{}, nil
@@ -94,6 +101,7 @@ func TestRunLLMKeyRequiredWithOpenAI(t *testing.T) {
 				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusAvailable, Detail: "ok"},
 			}), nil
 		},
+		ProbeAgentEgress: skipEgressProbe(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -128,6 +136,7 @@ func TestRunOKWithOllama(t *testing.T) {
 				{ID: tools.IDHelm, Name: "Helm", Status: tools.StatusAvailable, Detail: "v3"},
 			}), nil
 		},
+		ProbeAgentEgress: skipEgressProbe(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -157,6 +166,7 @@ func TestRunLLMBaseURLRequiredForAzure(t *testing.T) {
 				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusAvailable, Detail: "ok"},
 			}), nil
 		},
+		ProbeAgentEgress: skipEgressProbe(),
 	})
 	if err != nil {
 		t.Fatal(err)
@@ -188,6 +198,7 @@ func TestRunLLMBaseURLNotRequiredForAnthropic(t *testing.T) {
 				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusAvailable, Detail: "ok"},
 			}), nil
 		},
+		ProbeAgentEgress: skipEgressProbe(),
 	})
 	if err != nil {
 		t.Fatal(err)

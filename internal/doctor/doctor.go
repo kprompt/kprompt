@@ -31,12 +31,12 @@ const (
 
 // Check is one doctor row.
 type Check struct {
-	ID      string   `json:"id"`
-	Name    string   `json:"name"`
-	Status  Severity `json:"status"`
-	Detail  string   `json:"detail"`
-	Hint    string   `json:"hint,omitempty"`
-	Required bool    `json:"required"`
+	ID       string   `json:"id"`
+	Name     string   `json:"name"`
+	Status   Severity `json:"status"`
+	Detail   string   `json:"detail"`
+	Hint     string   `json:"hint,omitempty"`
+	Required bool     `json:"required"`
 }
 
 // Report is the full doctor result.
@@ -53,6 +53,8 @@ type Options struct {
 	Me func(ctx context.Context, apiURL, token string) (team.MeResponse, error)
 	// Detect overrides tools.Detect (tests).
 	Detect func(ctx context.Context, opts tools.DetectOptions) (*tools.Registry, error)
+	// ProbeAgentEgress overrides the cluster NetworkPolicy advisory (tests).
+	ProbeAgentEgress ProbeAgentEgress
 }
 
 // Run executes required + optional checks. Does not print secrets.
@@ -69,13 +71,19 @@ func Run(ctx context.Context, opts Options) (Report, error) {
 	if me == nil {
 		me = defaultMe
 	}
+	probeEgress := opts.ProbeAgentEgress
+	if probeEgress == nil {
+		probeEgress = defaultProbeAgentEgress
+	}
+
+	kubeCtx := first(opts.Context, file.Context)
 
 	var checks []Check
 	checks = append(checks, checkConfig(file))
 	checks = append(checks, checkLLM(file))
 
 	reg, err := detect(ctx, tools.DetectOptions{
-		Context: first(opts.Context, file.Context),
+		Context: kubeCtx,
 		File:    file,
 	})
 	if err != nil {
@@ -90,12 +98,14 @@ func Run(ctx context.Context, opts Options) (Report, error) {
 	} else {
 		checks = append(checks, checkKubernetes(reg))
 		checks = append(checks, checkToolsSummary(reg)...)
+		sum, probeErr := probeEgress(ctx, kubeCtx)
+		checks = append(checks, checkAgentEgress(sum, probeErr))
 	}
 
 	checks = append(checks, checkTeam(ctx, me))
 	checks = append(checks, checkPolicyCache())
 	checks = append(checks, checkPulledSecrets())
-	checks = append(checks, checkLearnProfile(first(opts.Context, file.Context)))
+	checks = append(checks, checkLearnProfile(kubeCtx))
 	checks = append(checks, checkGitHub(file))
 
 	rep := Report{Checks: checks, Checked: time.Now().UTC()}

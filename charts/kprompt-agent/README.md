@@ -82,6 +82,7 @@ helm upgrade --install kprompt-agent ./charts/kprompt-agent \
 
 Decision A accepts operator-controlled endpoints (LLM, observability, webhook) as trusted inputs.
 This chart does not auto-block private ranges; operators should enforce egress allowlists.
+Full guide: [`docs/security/operator-endpoint-hardening.md`](../../docs/security/operator-endpoint-hardening.md).
 
 ## Network Policy
 

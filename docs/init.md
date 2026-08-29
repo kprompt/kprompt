@@ -45,3 +45,4 @@ Interactive TTY with bare `kprompt init` walks provider → model → optional c
 - [doctor.md](./doctor.md) — health report
 - [adopt.md](./adopt.md) — brownfield ~15 min on an existing cluster
 - [setup.md](./setup.md) — Helm / Argo / Prom bootstrap (not LLM onboarding)
+- **Security hardening (SEC-007):** when running the in-cluster Observe agent, prefer an egress NetworkPolicy — [operator-endpoint-hardening.md](./security/operator-endpoint-hardening.md)

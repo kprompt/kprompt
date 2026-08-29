@@ -17,6 +17,7 @@ If no provider is configured, the LLM check fails with a hint to run `kprompt in
 - Kubernetes access for the selected context
 - Optional integrations such as Helm and configured backends
 - Optional Team enrollment, cached policy, pulled provider keys, and learned profile
+- **Observe agent egress posture** (advisory): warns if agent pods lack an egress NetworkPolicy, or use `hostNetwork` — see [operator-endpoint-hardening.md](./security/operator-endpoint-hardening.md) (SEC-007)
 
 Required failures make the command exit with status `1`.
 

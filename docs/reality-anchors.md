@@ -24,6 +24,7 @@ Related: [investigation-graph.md](./investigation-graph.md) · [ci.md](./ci.md) 
 | **Deny pack (AG-044)** | Wipe / ns delete / Secret values / fabricated evidence | Humans via Autopilot deny code | Never allowlist these |
 | **Memory as evidence-not-proof (AG-034)** | Patterns/memory boost explainability only | Humans via confidence caps | Not treat memory alone as root-cause proof |
 | **Probe / ns RBAC defaults** | Role-scoped ns agents; Coordinator SA-only; optional probe Roles | Humans via Helm / AG-039 · AG-069 | Not invent ClusterRole god-mode |
+| **Operator endpoint trust (SEC-007 Decision A)** | LLM / Prom / OTel / webhook URLs are operator-owned; no automatic private-range URL block | Humans via Helm NetworkPolicy / CNI allowlists + [operator-endpoint-hardening.md](./security/operator-endpoint-hardening.md) | Not waive egress allowlists; not treat Decision A as “no hardening needed” |
 
 ---
 
@@ -75,4 +76,5 @@ Pre-trust CLI hooks that re-read before high confidence ([T-089](https://github.
 - CI PlanResult gate: [ci.md](./ci.md)
 - Autopilot / deny pack: [agent.md](./agent.md#autopilot-ag-017--ag-040ag-044--adr-0015)
 - Worker isolation: [agent-ops.md](./agent-ops.md#worker-isolation-ag-069)
+- Operator endpoint hardening (SEC-007): [security/operator-endpoint-hardening.md](./security/operator-endpoint-hardening.md)
 - Architecture: [SRE-TASKS S-020](https://github.com/kprompt/kprompt-architecture/blob/main/SRE-TASKS.md) · [AGENT-TASKS AG-070](https://github.com/kprompt/kprompt-architecture/blob/main/AGENT-TASKS.md)
