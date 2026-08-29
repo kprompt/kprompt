@@ -110,7 +110,8 @@ func TestRunCrashLoopWithServiceNoEndpoints(t *testing.T) {
 	if doc.Confidence <= 0 {
 		t.Fatalf("confidence: %v", doc.Confidence)
 	}
-	// Ingress listed successfully (none matched) → omit; mesh + prometheus still gaps.
+	// Ingress listed successfully (none matched) → omit; mesh + prometheus still gaps
+	// when Dynamic / Metrics are unset.
 	if contains(doc.Degraded, "ingress") {
 		t.Fatalf("ingress should not be degraded after successful walk: %v", doc.Degraded)
 	}
@@ -343,9 +344,9 @@ func TestRunPrometheusMetrics(t *testing.T) {
 		},
 	)
 	q := stubMetrics{vals: map[string]float64{
-		"cpu_usage":           0.12,
-		"memory_working_set":  64e6,
-		"restart_rate":        0.01,
+		"cpu_usage":          0.12,
+		"memory_working_set": 64e6,
+		"restart_rate":       0.01,
 	}}
 	doc, _, err := (&Investigator{Client: client, Metrics: q}).Run(context.Background(), Request{
 		Name: "api", Namespace: ns, Kind: "Deployment",

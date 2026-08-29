@@ -725,6 +725,13 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 				return err
 			}
 			inv := &investigate.Investigator{Client: client}
+			dyn := deps.Dynamic
+			if dyn == nil && restCfg != nil {
+				if d, err := cluster.DynamicForConfig(restCfg); err == nil {
+					dyn = d
+				}
+			}
+			inv.Dynamic = dyn
 			if settings := tools.LoadSettings(config.File{Tools: cfg.Tools}); settings.PrometheusEnabled && settings.PrometheusURL != "" {
 				if pc, err := tools.NewPrometheusClient(settings); err == nil {
 					inv.Metrics = pc
