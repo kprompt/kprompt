@@ -2,16 +2,21 @@ package investigate
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"testing"
+	"time"
 
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/client-go/kubernetes/fake"
 
 	"github.com/kprompt/kprompt/internal/cluster"
 	"github.com/kprompt/kprompt/internal/incident"
+	toolprometheus "github.com/kprompt/kprompt/internal/tools/prometheus"
 )
 
 func TestRunCrashLoopWithServiceNoEndpoints(t *testing.T) {
@@ -105,7 +110,11 @@ func TestRunCrashLoopWithServiceNoEndpoints(t *testing.T) {
 	if doc.Confidence <= 0 {
 		t.Fatalf("confidence: %v", doc.Confidence)
 	}
-	for _, d := range []string{"ingress", "mesh", "prometheus"} {
+	// Ingress listed successfully (none matched) → omit; mesh + prometheus still gaps.
+	if contains(doc.Degraded, "ingress") {
+		t.Fatalf("ingress should not be degraded after successful walk: %v", doc.Degraded)
+	}
+	for _, d := range []string{"mesh", "prometheus"} {
 		if !contains(doc.Degraded, d) {
 			t.Fatalf("degraded missing %s: %v", d, doc.Degraded)
 		}
@@ -234,6 +243,150 @@ func TestRunParallelServiceEndpoints(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestRunIngressAttached(t *testing.T) {
+	ns := "payments"
+	labels := map[string]string{"app": "api"}
+	var replicas int32 = 1
+	class := "nginx"
+	client := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: ns, UID: "dep1"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: &replicas,
+				Selector: &metav1.LabelSelector{MatchLabels: labels},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Labels: labels},
+					Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "api", Image: "busybox"}}},
+				},
+			},
+			Status: appsv1.DeploymentStatus{ReadyReplicas: 1},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "api-0", Namespace: ns, Labels: labels},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+				ContainerStatuses: []corev1.ContainerStatus{{
+					Name: "api", Ready: true,
+					State: corev1.ContainerState{Running: &corev1.ContainerStateRunning{}},
+				}},
+			},
+		},
+		&corev1.Service{
+			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: ns},
+			Spec:       corev1.ServiceSpec{Selector: labels, Ports: []corev1.ServicePort{{Port: 80}}},
+		},
+		&networkingv1.Ingress{
+			ObjectMeta: metav1.ObjectMeta{Name: "api-ing", Namespace: ns},
+			Spec: networkingv1.IngressSpec{
+				IngressClassName: &class,
+				Rules: []networkingv1.IngressRule{{
+					Host: "api.example.com",
+					IngressRuleValue: networkingv1.IngressRuleValue{
+						HTTP: &networkingv1.HTTPIngressRuleValue{
+							Paths: []networkingv1.HTTPIngressPath{{
+								Path:     "/",
+								PathType: ptrPathType(networkingv1.PathTypePrefix),
+								Backend: networkingv1.IngressBackend{
+									Service: &networkingv1.IngressServiceBackend{
+										Name: "api",
+										Port: networkingv1.ServiceBackendPort{Number: 80},
+									},
+								},
+							}},
+						},
+					},
+				}},
+			},
+		},
+	)
+	doc, rep, err := (&Investigator{Client: client}).Run(context.Background(), Request{
+		Name: "api", Namespace: ns, Kind: "Deployment", Prompt: "investigate api",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !chainHas(rep, "Ingress", "api-ing") {
+		t.Fatalf("chain missing ingress: %+v", rep.Chain)
+	}
+	if !hasFinding(doc, "IngressAttached") {
+		t.Fatalf("findings: %+v", doc.Findings)
+	}
+	if contains(doc.Degraded, "ingress") {
+		t.Fatalf("ingress should not be degraded: %v", doc.Degraded)
+	}
+	if !contains(doc.Degraded, "mesh") || !contains(doc.Degraded, "prometheus") {
+		t.Fatalf("mesh/prometheus still expected: %v", doc.Degraded)
+	}
+}
+
+func TestRunPrometheusMetrics(t *testing.T) {
+	ns := "payments"
+	labels := map[string]string{"app": "api"}
+	var replicas int32 = 1
+	client := fake.NewSimpleClientset(
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: ns, UID: "dep1"},
+			Spec: appsv1.DeploymentSpec{
+				Replicas: &replicas,
+				Selector: &metav1.LabelSelector{MatchLabels: labels},
+				Template: corev1.PodTemplateSpec{
+					ObjectMeta: metav1.ObjectMeta{Labels: labels},
+					Spec:       corev1.PodSpec{Containers: []corev1.Container{{Name: "api", Image: "busybox"}}},
+				},
+			},
+			Status: appsv1.DeploymentStatus{ReadyReplicas: 1},
+		},
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "api-0", Namespace: ns, Labels: labels},
+			Status:     corev1.PodStatus{Phase: corev1.PodRunning},
+		},
+	)
+	q := stubMetrics{vals: map[string]float64{
+		"cpu_usage":           0.12,
+		"memory_working_set":  64e6,
+		"restart_rate":        0.01,
+	}}
+	doc, _, err := (&Investigator{Client: client, Metrics: q}).Run(context.Background(), Request{
+		Name: "api", Namespace: ns, Kind: "Deployment",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var metrics int
+	for _, e := range doc.Evidence {
+		if e.Type == incident.EvidenceMetric {
+			metrics++
+		}
+	}
+	if metrics < 1 {
+		t.Fatalf("expected metric evidence: %+v", doc.Evidence)
+	}
+	if contains(doc.Degraded, "prometheus") {
+		t.Fatalf("prometheus should not be degraded: %v", doc.Degraded)
+	}
+}
+
+type stubMetrics struct {
+	vals map[string]float64
+}
+
+func (s stubMetrics) Query(_ context.Context, promQL string, _ time.Time) (toolprometheus.Result, error) {
+	for reason, v := range s.vals {
+		if strings.Contains(promQL, reason) ||
+			(reason == "cpu_usage" && strings.Contains(promQL, "container_cpu_usage")) ||
+			(reason == "memory_working_set" && strings.Contains(promQL, "container_memory_working_set")) ||
+			(reason == "restart_rate" && strings.Contains(promQL, "kube_pod_container_status_restarts")) {
+			return toolprometheus.Result{
+				Type:   "vector",
+				Series: []toolprometheus.Series{{Samples: []toolprometheus.Sample{{Value: fmt.Sprintf("%g", v)}}}},
+			}, nil
+		}
+	}
+	return toolprometheus.Result{}, fmt.Errorf("no series")
+}
+
+func ptrPathType(t networkingv1.PathType) *networkingv1.PathType { return &t }
 
 func hasFinding(doc incident.Investigation, code string) bool {
 	for _, f := range doc.Findings {

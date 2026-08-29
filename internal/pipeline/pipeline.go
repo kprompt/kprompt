@@ -724,7 +724,13 @@ func RunWith(ctx context.Context, cfg config.Resolved, out io.Writer, deps Deps)
 			if err != nil {
 				return err
 			}
-			invDoc, rep, err := (&investigate.Investigator{Client: client}).Run(ctx, req)
+			inv := &investigate.Investigator{Client: client}
+			if settings := tools.LoadSettings(config.File{Tools: cfg.Tools}); settings.PrometheusEnabled && settings.PrometheusURL != "" {
+				if pc, err := tools.NewPrometheusClient(settings); err == nil {
+					inv.Metrics = pc
+				}
+			}
+			invDoc, rep, err := inv.Run(ctx, req)
 			if err != nil {
 				return cluster.Friendlier(fmt.Errorf("investigate: %w", err))
 			}
