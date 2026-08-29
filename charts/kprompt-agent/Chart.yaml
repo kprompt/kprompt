@@ -2,7 +2,7 @@ apiVersion: v2
 name: kprompt-agent
 description: Namespace-scoped kprompt Observe agent (watch → correlate → analyze → notify). Never mutates the cluster.
 type: application
-version: 0.12.0
+version: 0.12.1
 appVersion: "0.12.0"
 home: https://kprompt.ai
 sources:

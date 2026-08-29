@@ -1,0 +1,57 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "additionalProperties": true,
+  "properties": {
+    "networkPolicy": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "description": "Opt-in egress default-deny. Do not enable until CIDRs match your topology."
+        },
+        "allowDNS": { "type": "boolean" },
+        "allowKubeApi": { "type": "boolean" },
+        "kubeAPIServerCIDRs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "CIDRs for kube-apiserver (required when allowKubeApi and enabled)."
+        },
+        "llmCIDRs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "llmPort": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65535
+        },
+        "llmExtraPorts": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        },
+        "observabilityCIDRs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "observabilityExtraPorts": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        },
+        "webhookCIDRs": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "webhookExtraPorts": {
+          "type": "array",
+          "items": { "type": "integer", "minimum": 1, "maximum": 65535 }
+        },
+        "extraEgress": {
+          "type": "array",
+          "description": "Raw NetworkPolicyEgressRule objects appended to egress."
+        }
+      }
+    }
+  }
+}

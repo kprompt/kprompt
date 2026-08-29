@@ -81,6 +81,7 @@ func Run(ctx context.Context, opts Options) (Report, error) {
 	var checks []Check
 	checks = append(checks, checkConfig(file))
 	checks = append(checks, checkLLM(file))
+	checks = append(checks, checkEndpointURLs(file))
 
 	reg, err := detect(ctx, tools.DetectOptions{
 		Context: kubeCtx,
