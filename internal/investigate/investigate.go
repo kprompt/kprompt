@@ -1,8 +1,9 @@
-// Package investigate builds multi-hop RCA documents (S-002 · T-080 · T-090).
+// Package investigate builds multi-hop RCA documents (S-002 · T-080 · T-090 · #44).
 //
-// MVP hops: Service → Endpoints → Deployment → ReplicaSet → Pods → Events → Logs.
+// Hops: Ingress (when backends select the workload) → Service → Endpoints →
+// Deployment → ReplicaSet → Pods → Events → Logs, plus optional Prometheus metrics.
 // Independent hops fan out in parallel (S-019); sequential only where a real data edge exists.
-// Ingress / mesh / Prometheus are listed in Investigation.Degraded until later slices.
+// Mesh stays in Investigation.Degraded until a later slice.
 package investigate
 
 import (
@@ -31,12 +32,13 @@ type Request struct {
 
 // Investigator walks related objects and emits an Investigation.
 type Investigator struct {
-	Client kubernetes.Interface
+	Client  kubernetes.Interface
+	Metrics MetricsQuerier // optional; nil → degraded prometheus
 }
 
 // Run performs the multi-hop walk and returns a validated Investigation.
-// Explain (workload chain) and Service/Endpoints discovery fan out when both only need
-// the target identity — no data edge between them (S-019 / T-090).
+// Explain, Service/Ingress discovery, and Prometheus fan out when they only need
+// the target identity — no data edge between them (S-019 / T-090 / #44).
 func (inv *Investigator) Run(ctx context.Context, req Request) (incident.Investigation, cluster.ExplainReport, error) {
 	if inv == nil || inv.Client == nil {
 		return incident.Investigation{}, cluster.ExplainReport{}, fmt.Errorf("investigate: client required")
@@ -55,17 +57,24 @@ func (inv *Investigator) Run(ctx context.Context, req Request) (incident.Investi
 	}
 
 	explainer := &cluster.Explainer{Client: inv.Client}
+	podLabels, _ := inv.workloadSelector(ctx, ns, kind, name)
 
 	var (
-		rep        cluster.ExplainReport
-		explainErr error
-		svcHops    []cluster.ChainStep
+		rep         cluster.ExplainReport
+		explainErr  error
+		svcHops     []cluster.ChainStep
 		svcFindings []incident.Finding
 		svcEvidence []incident.EvidenceRef
+		ingHops     []cluster.ChainStep
+		ingFindings []incident.Finding
+		ingEvidence []incident.EvidenceRef
+		ingWalked   bool
+		metricEv    []incident.EvidenceRef
+		metricsOK   bool
 	)
 
 	var wg sync.WaitGroup
-	wg.Add(2)
+	wg.Add(4)
 	go func() {
 		defer wg.Done()
 		rep, explainErr = explainer.Explain(ctx, cluster.ExplainRequest{
@@ -74,11 +83,18 @@ func (inv *Investigator) Run(ctx context.Context, req Request) (incident.Investi
 	}()
 	go func() {
 		defer wg.Done()
-		podLabels, err := inv.workloadSelector(ctx, ns, kind, name)
-		if err != nil || len(podLabels) == 0 {
+		if len(podLabels) == 0 {
 			return
 		}
 		svcHops, svcFindings, svcEvidence = inv.serviceHops(ctx, ns, podLabels)
+	}()
+	go func() {
+		defer wg.Done()
+		ingHops, ingFindings, ingEvidence, ingWalked = inv.ingressHops(ctx, ns, podLabels)
+	}()
+	go func() {
+		defer wg.Done()
+		metricEv, metricsOK = enrichMetrics(ctx, inv.Metrics, ns, name)
 	}()
 	wg.Wait()
 
@@ -89,13 +105,18 @@ func (inv *Investigator) Run(ctx context.Context, req Request) (incident.Investi
 	out := incident.NewInvestigation(req.Prompt, ns)
 	out.Target = &incident.ResourceRef{Kind: rep.Kind, Name: rep.Target, Namespace: ns}
 	out.Summary = firstNonEmpty(rep.Summary, fmt.Sprintf("%s/%s status: %s", rep.Kind, rep.Target, rep.Status))
-	out.Degraded = []string{"ingress", "mesh", "prometheus"} // honest MVP gaps
+	out.Degraded = buildDegraded(ingWalked, metricsOK)
 
+	// Ingress ahead of Service/Endpoints in the chain.
 	prependChain(&rep, svcHops...)
+	prependChain(&rep, ingHops...)
 
+	out.Findings = append(out.Findings, ingFindings...)
 	out.Findings = append(out.Findings, svcFindings...)
 	out.Findings = append(out.Findings, mapExplainFindings(rep)...)
+	out.Evidence = append(out.Evidence, ingEvidence...)
 	out.Evidence = append(out.Evidence, svcEvidence...)
+	out.Evidence = append(out.Evidence, metricEv...)
 	out.Evidence = append(out.Evidence, mapExplainEvidence(rep)...)
 	out.Timeline = append([]incident.EvidenceRef(nil), out.Evidence...)
 
@@ -109,6 +130,17 @@ func (inv *Investigator) Run(ctx context.Context, req Request) (incident.Investi
 		return out, rep, err
 	}
 	return out, rep, nil
+}
+
+func buildDegraded(ingressWalked, metricsOK bool) []string {
+	out := []string{"mesh"} // Istio/Linkerd walk still deferred
+	if !ingressWalked {
+		out = append(out, "ingress")
+	}
+	if !metricsOK {
+		out = append(out, "prometheus")
+	}
+	return out
 }
 
 func (inv *Investigator) serviceHops(ctx context.Context, ns string, podLabels map[string]string) (

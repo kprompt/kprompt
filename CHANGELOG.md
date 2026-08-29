@@ -4,6 +4,10 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+### Features
+
+- **investigate Ingress + Prometheus** — walk matching Ingress backends; attach Prom metric evidence when configured; mesh stays degraded (#44)
+
 ### Security
 
 - **SEC-007 follow-up** — operator endpoint hardening guide + doctor advisories for workload NetworkPolicy / `hostNetwork` and private-range endpoint URLs; Helm `values.schema.json` + coordinator/operator NetworkPolicy baselines (#118)
