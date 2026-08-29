@@ -168,7 +168,7 @@ func TestMatchMeshHostToService(t *testing.T) {
 		{"api.other", ""},
 	}
 	for _, tc := range cases {
-		if got := matchMeshHostToService(tc.host, "payments", svcs); got != tc.want {
+		if got := toolistio.MatchHostToService(tc.host, "payments", svcs); got != tc.want {
 			t.Fatalf("%q: got %q want %q", tc.host, got, tc.want)
 		}
 	}

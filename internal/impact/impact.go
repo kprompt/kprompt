@@ -15,6 +15,7 @@ import (
 	networkingv1 "k8s.io/api/networking/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/dynamic"
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kprompt/kprompt/internal/cluster"
@@ -31,7 +32,8 @@ type Request struct {
 
 // Analyzer walks reverse dependency edges and emits an Investigation document.
 type Analyzer struct {
-	Client kubernetes.Interface
+	Client  kubernetes.Interface
+	Dynamic dynamic.Interface // optional; when set, VirtualService routes are walked
 }
 
 // Run returns static consumers plus workload relationships for the target.
@@ -122,15 +124,24 @@ func (a *Analyzer) serviceImpact(ctx context.Context, ns, name string, out *inci
 		}
 	}
 
-	out.Summary = fmt.Sprintf(
+	vsRoutes, meshWalked := a.attachVirtualServices(ctx, ns, []string{name}, out)
+	if meshWalked {
+		clearDegraded(out, "mesh")
+	}
+
+	summary := fmt.Sprintf(
 		"Impact for Service/%s in %s: %d static consumer(s), %d backend Deployment(s), %d Ingress route(s)",
 		name, ns, consumers, backends, routes,
 	)
-	out.Confidence = staticConfidence(consumers, routes)
+	if meshWalked {
+		summary += fmt.Sprintf(", %d VirtualService route(s)", vsRoutes)
+	}
+	out.Summary = summary
+	out.Confidence = staticConfidence(consumers, routes+vsRoutes)
 	if len(out.Findings) == 0 {
 		addFinding(out, "Impact.NoneFound", incident.SeverityInfo,
 			"No static consumers found",
-			"No Deployment env/command/args or Ingress backend referenced this Service; runtime callers need OTel",
+			"No Deployment env/command/args, Ingress backend, or VirtualService destination referenced this Service; runtime callers need OTel",
 			"Service", name, ns, "Target")
 	}
 	return nil
@@ -220,15 +231,24 @@ func (a *Analyzer) deploymentImpact(ctx context.Context, ns, name string, out *i
 		}
 	}
 
-	out.Summary = fmt.Sprintf(
+	vsRoutes, meshWalked := a.attachVirtualServices(ctx, ns, selectedServices, out)
+	if meshWalked {
+		clearDegraded(out, "mesh")
+	}
+
+	summary := fmt.Sprintf(
 		"Impact for Deployment/%s in %s: %d consumer Deployment(s) via %d Service(s), %d HPA(s), %d PDB(s)",
 		name, ns, len(consumerNames), len(selectedServices), hpaCount, pdbCount,
 	)
-	out.Confidence = staticConfidence(len(consumerNames), len(selectedServices))
+	if meshWalked {
+		summary += fmt.Sprintf(", %d VirtualService route(s)", vsRoutes)
+	}
+	out.Summary = summary
+	out.Confidence = staticConfidence(len(consumerNames), len(selectedServices)+vsRoutes)
 	if len(out.Findings) == 0 {
 		addFinding(out, "Impact.NoneFound", incident.SeverityInfo,
 			"No static consumers found",
-			"No Service, Deployment reference, HPA, or PDB relationship was found; runtime callers need OTel",
+			"No Service, Deployment reference, HPA, PDB, or VirtualService relationship was found; runtime callers need OTel",
 			"Deployment", name, ns, "Target")
 	}
 	return nil

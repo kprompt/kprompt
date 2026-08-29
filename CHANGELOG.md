@@ -7,6 +7,7 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 ### Features
 
 - **investigate VirtualService mesh hop** — walk Istio VirtualServices whose destinations match workload Services; omit `mesh` from `degraded` when the API was queried (or CRD absent)
+- **impact VirtualService routes** — reverse-deps include Istio VirtualServices targeting the Service (or Deployment-selected Services); same honest `mesh` degrade rules
 
 ## [v0.12.1](https://github.com/kprompt/kprompt/releases/tag/v0.12.1) — 2026-08-29
 

@@ -42,6 +42,9 @@ func TestServiceImpactFindsConsumersBackendsAndIngress(t *testing.T) {
 	if got.Confidence != 0.8 {
 		t.Fatalf("confidence=%v", got.Confidence)
 	}
+	if !contains(got.Degraded, "mesh") || !contains(got.Degraded, "otel") {
+		t.Fatalf("mesh/otel still expected without Dynamic: %v", got.Degraded)
+	}
 }
 
 func TestDeploymentImpactFindsServiceConsumersHPAAndPDB(t *testing.T) {
