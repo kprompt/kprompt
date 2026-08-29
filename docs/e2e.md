@@ -13,6 +13,18 @@ Optional focused generic-read matrix (T-051):
 go test -tags=e2e ./test/e2e/ -run 'TestGenericReadMatrixOnKind|TestListDeploymentsOnKind' -count=1 -v -timeout 15m
 ```
 
+## GitHub Actions (CI)
+
+`.github/workflows/ci.yml` runs a separate **`e2e`** job (after unit `test`) with kind + SHA-pinned `azure/setup-kubectl`:
+
+| Trigger | Suite |
+|---------|--------|
+| `push` / `pull_request` | **Smoke** — `TestGenericReadMatrixOnKind`, `TestDeployRedisOnKind`, `TestAgentWatchPodsEvents` (10m) |
+| `workflow_dispatch` → `full` | Full `./test/e2e/` (15m) |
+| Dependabot PRs | Job skipped |
+
+No cluster secrets required (stub LLM). Fork PRs can run smoke like other PRs.
+
 Optional cleanup:
 
 ```bash

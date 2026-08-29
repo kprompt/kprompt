@@ -72,6 +72,10 @@ echo "$json" | jq -e '(.blastRadius.namespaces // []) | length <= 1'
 echo "$json" | jq -e '.verify.status == "ok"'
 ```
 
+## Kind e2e in Actions
+
+Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) job **`e2e`**: installs kind (checksum-verified) and kubectl (SHA-pinned action), then runs a smoke subset on every PR/push to `main`. Full suite: **Actions → ci → Run workflow → `full`**. Details: [e2e.md](./e2e.md).
+
 ## Team org ingest (this repo’s Actions)
 
 GitHub Actions on `kprompt/kprompt` can upload a **stub** PlanResult to Team after tests pass (optional job `report-plan` in [`.github/workflows/ci.yml`](../.github/workflows/ci.yml)). This does **not** apply anything to a cluster.

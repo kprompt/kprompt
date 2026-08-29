@@ -4,6 +4,16 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      run_full_e2e_tests:
+        description: "Run full e2e suite (default: smoke subset)"
+        required: true
+        type: choice
+        options:
+          - smoke
+          - full
+        default: smoke
 
 jobs:
   test:
@@ -29,6 +39,42 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+  # Kind + kubectl e2e smoke (issue #47). Separate from unit/Sonar so PR unit
+  # feedback stays fast. Full suite via workflow_dispatch input "full".
+  e2e:
+    needs: test
+    runs-on: ubuntu-latest
+    # Dependabot PRs do not need a live cluster; keep Actions minutes for product PRs.
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@776406bce94f63e41d621b960d78ee25c8b76ede # v4.0.1
+        with:
+          version: "v1.33.1"
+      - name: Install kind
+        run: |
+          set -euo pipefail
+          KIND_VERSION=v0.29.0
+          curl -fsSL -o ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          echo "c72eda46430f065fb45c5f70e7c957cc9209402ef309294821978677c8fb3284  kind" | sha256sum -c -
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
+          kubectl version --client
+      - name: E2E smoke
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_e2e_tests == 'smoke' }}
+        run: >
+          go test -tags=e2e ./test/e2e/
+          -run 'TestGenericReadMatrixOnKind|TestDeployRedisOnKind|TestAgentWatchPodsEvents'
+          -count=1 -v -timeout 10m
+      - name: E2E full
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_e2e_tests == 'full' }}
+        run: go test -tags=e2e ./test/e2e/ -count=1 -v -timeout 15m
 
   # Team SCM demo (A-065 / A-069): stub PlanResult upload when org token is set.
   # Never applies to a cluster. Skips cleanly without KPROMPT_ORG_TOKEN.
