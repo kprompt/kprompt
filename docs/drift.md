@@ -23,7 +23,7 @@ silently, and `-o json` stays report-only.
 |------|----------------|
 | `Drift.OutOfSync` | Flux Ready=False / Argo `sync.status=OutOfSync` on an app |
 | `Drift.Unhealthy` | Synced app with non-Healthy health (guidance; not auto-synced) |
-| `Drift.ResourceOutOfSync` | Argo `status.resources[]` entries that are not Synced (capped) |
+| `Drift.ResourceOutOfSync` | Argo `status.resources[]` not Synced, or Flux `status.inventory.entries` while the Kustomization is OutOfSync (capped) |
 | `Drift.GitOpsMissing` | Neither Flux nor Argo CD CRDs detected (honest degrade) |
 
 ```bash
@@ -43,6 +43,8 @@ guidance when you want Git review before reconcile.
 
 - Drift is GitOps controller truth (sync/health inventory), not a full
   live-vs-manifest deep diff of every object field.
-- Flux MVP does not expand per-resource inventory (Argo `status.resources` only).
+- **Argo:** per-resource rows come from `status.resources` (non-Synced only).
+- **Flux Kustomization:** when OutOfSync, expands `status.inventory.entries` (managed set) and labels them OutOfSync — Flux has no per-resource sync bit. Missing inventory → `degraded: flux-inventory`.
+- **Flux HelmRelease:** no Kustomization-style inventory API — app-level OutOfSync/Unhealthy only (degrade if expanded).
 - Manual changes that GitOps has already overwritten will not appear as drift.
 - Prefer `kprompt "gitops status"` for a compact table without Investigation codes.
