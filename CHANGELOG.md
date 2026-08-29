@@ -4,6 +4,32 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+## [v0.12.0](https://github.com/kprompt/kprompt/releases/tag/v0.12.0) — 2026-08-29
+
+Provider pack + GitOps/safety follow-ups since v0.11.0.
+
+### Features
+
+- **LLM presets** — Fireworks (P-003), LM Studio local `$0` (P-004), Qwen/DashScope (P-005), Hetzner Inference experimental/beta (P-009-style OpenAI-compat) (#166 · #172 · #173 · #181)
+- **GitOps PR `patch`** — audit-harden / strategic patches commit via `--gitops` (`KindPatch`); docs + error copy aligned (#177 · #51)
+- **Multi-context reads** — graph fan-out across `--contexts`; Istio + GitOps status in the read fan-out (#153 · #174)
+- **Named delete** — StatefulSet and DaemonSet delete by name (#164)
+- **Helm agent NetworkPolicy** — opt-in default-deny egress baseline (SEC-007 Decision A; off by default) (#170 · #118)
+- **`kprompt tools`** — surface install hints when day-2 tools are missing
+
+### Security
+
+- **Argo workflows** — unknown `params.model` fail closed (no alpine/`echo` placeholder); custom image requires safe argv (#171 · #161)
+
+### Docs / tests
+
+- Brownfield adopt playbook (`docs/adopt.md`)
+- MCP SRE tools e2e; GitOps TriggerSync unit coverage; intent gold corpus + PlanResult verify smoke
+
+### Notes
+
+Experimental — prefer non-production clusters. Autopilot remains propose-only by default. Hetzner Inference is free while in beta with no SLA.
+
 ## [v0.11.0](https://github.com/kprompt/kprompt/releases/tag/v0.11.0) — 2026-08-10
 
 MCP editor interop + provider/wait follow-ups since v0.10.0.
