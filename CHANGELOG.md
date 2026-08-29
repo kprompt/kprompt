@@ -4,15 +4,24 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+## [v0.12.1](https://github.com/kprompt/kprompt/releases/tag/v0.12.1) — 2026-08-29
+
+Security hardening + RCA / GitOps honesty follow-ups since v0.12.0.
+
 ### Features
 
-- **Flux per-resource drift inventory** — OutOfSync Kustomizations expand `status.inventory.entries` into `Drift.ResourceOutOfSync` (capped); missing inventory degrades honestly (#48)
-- **Coordinator KubeProbe Deployments** — suspect-ns probe also lists Deployments; Helm probe Role includes `apps/deployments` (#45)
-- **investigate Ingress + Prometheus** — walk matching Ingress backends; attach Prom metric evidence when configured; mesh stays degraded (#44)
+- **Flux per-resource drift inventory** — OutOfSync Kustomizations expand `status.inventory.entries` into `Drift.ResourceOutOfSync` (capped); missing inventory degrades honestly (#48 · #187)
+- **Coordinator KubeProbe Deployments** — suspect-ns probe also lists Deployments; Helm probe Role includes `apps/deployments` (#45 · #186)
+- **investigate Ingress + Prometheus** — walk matching Ingress backends; attach Prom metric evidence when configured; mesh stays degraded (#44 · #185)
+- **Kind e2e in CI** — separate smoke job (SHA-pinned kubectl, checksum-verified kind); full suite via `workflow_dispatch` (#47 · #183)
 
 ### Security
 
-- **SEC-007 follow-up** — operator endpoint hardening guide + doctor advisories for workload NetworkPolicy / `hostNetwork` and private-range endpoint URLs; Helm `values.schema.json` + coordinator/operator NetworkPolicy baselines (#118)
+- **SEC-007 follow-up** — operator endpoint hardening guide + doctor advisories for workload NetworkPolicy / `hostNetwork` and private-range endpoint URLs; Helm `values.schema.json` + coordinator/operator NetworkPolicy baselines (#118 · #184)
+
+### Notes
+
+Experimental — prefer non-production clusters. Autopilot remains propose-only by default. Amazon Bedrock preset (P-008) stays deferred (#59).
 
 ## [v0.12.0](https://github.com/kprompt/kprompt/releases/tag/v0.12.0) — 2026-08-29
 

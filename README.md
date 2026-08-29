@@ -175,7 +175,7 @@ brew install kprompt/tap/kprompt
 ### Pinned fallback (jsDelivr)
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.12.0/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.12.1/install/install.sh | bash
 ```
 
 ### From source
@@ -481,7 +481,7 @@ If the plan-before-apply contract is useful in your own workflow, a ⭐ helps ot
 
 [![Contributors](https://contrib.rocks/image?repo=kprompt/kprompt)](https://github.com/kprompt/kprompt/graphs/contributors)
 
-**Status:** `v0.12.0` (experimental) — provider pack (Fireworks, LM Studio, Qwen, Hetzner), GitOps PR patch / audit harden, multi-context read fan-out, Argo unknown-model fail-closed, and opt-in agent NetworkPolicy. Autopilot stays propose-only by default. See [CHANGELOG.md](./CHANGELOG.md).
+**Status:** `v0.12.1` (experimental) — SEC-007 hardening + doctor advisories, investigate Ingress/Prometheus, Flux inventory drift, Coordinator Deployment probe, kind e2e in CI. Autopilot stays propose-only by default. See [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 
