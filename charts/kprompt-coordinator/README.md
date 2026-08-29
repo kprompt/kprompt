@@ -4,7 +4,7 @@ Thin **Coordinator** HTTP fan-in for [kprompt](https://github.com/kprompt/kpromp
 
 ```text
 kprompt agent coordinator --addr :9090
-kprompt agent coordinator --addr :9090 --probe-kube   # read-only Pods/Events in suspect ns
+kprompt agent coordinator --addr :9090 --probe-kube   # read-only Pods/Events/Deployments in suspect ns
 ```
 
 **Never mutates workloads.** Receives `CoordinatorHandoff`, returns `CoordinatorReply` with merged InvestigationReport v2. Shared Knowledge: `GET /v1/knowledge`; with `knowledge.enabled=true` (default) persists the handoff ring in ConfigMap `kprompt-coordinator-knowledge` (AG-060).
@@ -41,7 +41,7 @@ Ns agents point at the Service:
 | Namespace Agent | **Role** in watch ns | Unchanged — never ClusterRole-by-default |
 | Coordinator | **ServiceAccount only** by default | No ClusterRole; no get/list/watch pods/Secrets cluster-wide |
 | Optional ClusterRole | **off** (`rbac.clusterRole.create=false`) | namespaces get/list only — still no mutate |
-| Optional probe Roles | **off** until `probe.enabled` + `rbac.probeNamespaces` | Pods + Events `get/list` in listed ns only |
+| Optional probe Roles | **off** until `probe.enabled` + `rbac.probeNamespaces` | Pods + Events + Deployments `get/list` in listed ns only |
 
 Do not grant the Coordinator `create/update/patch/delete` on workloads.
 

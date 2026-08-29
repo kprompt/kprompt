@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
@@ -64,6 +65,47 @@ func TestKubeProbeEmptyNS(t *testing.T) {
 	_, err := p.Probe(context.Background(), "", handoff.Envelope{})
 	if err == nil {
 		t.Fatal("expected error")
+	}
+}
+
+func TestKubeProbeDeploymentUnavailable(t *testing.T) {
+	var replicas int32 = 2
+	client := fake.NewSimpleClientset(
+		&corev1.Pod{
+			ObjectMeta: metav1.ObjectMeta{Name: "api-0", Namespace: "platform"},
+			Status: corev1.PodStatus{
+				Phase: corev1.PodRunning,
+				Conditions: []corev1.PodCondition{
+					{Type: corev1.PodReady, Status: corev1.ConditionTrue},
+				},
+			},
+		},
+		&appsv1.Deployment{
+			ObjectMeta: metav1.ObjectMeta{Name: "api", Namespace: "platform"},
+			Spec:       appsv1.DeploymentSpec{Replicas: &replicas},
+			Status: appsv1.DeploymentStatus{
+				ReadyReplicas: 0, UnavailableReplicas: 2,
+			},
+		},
+	)
+	rep, err := (&KubeProbe{Client: client}).Probe(context.Background(), "platform", handoff.Envelope{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	found := false
+	for _, e := range rep.Evidence {
+		if e.Resource != nil && e.Resource.Kind == "Deployment" && e.Resource.Name == "api" {
+			found = true
+			if e.Reason != "UnavailableReplicas" {
+				t.Fatalf("reason=%q", e.Reason)
+			}
+		}
+	}
+	if !found {
+		t.Fatalf("expected Deployment evidence: %+v", rep.Evidence)
+	}
+	if !strings.Contains(rep.Summary, "unavailable deployments") {
+		t.Fatalf("summary=%q", rep.Summary)
 	}
 }
 
