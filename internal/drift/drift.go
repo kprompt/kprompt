@@ -37,7 +37,8 @@ type Analyzer struct {
 	Config *rest.Config
 	// Status overrides SummarizeStatus (tests).
 	Status func(ctx context.Context, cfg *rest.Config, req gitops.StatusRequest) (gitops.StatusReport, error)
-	// Resources lists per-app drifted child resources (Argo status.resources). Optional.
+	// Resources lists per-app drifted child resources (Argo status.resources /
+	// Flux status.inventory). Optional.
 	Resources func(ctx context.Context, cfg *rest.Config, app gitops.AppStatus) ([]gitops.ResourceDrift, error)
 }
 
@@ -149,14 +150,18 @@ func (a *Analyzer) Run(ctx context.Context, req Request) (incident.Investigation
 			})
 		}
 
-		if syncOO && strings.EqualFold(app.Engine, "argocd") {
+		if syncOO && (strings.EqualFold(app.Engine, "argocd") || strings.EqualFold(app.Engine, "argo") || strings.EqualFold(app.Engine, "flux")) {
 			resFn := a.Resources
 			if resFn == nil {
 				resFn = gitops.ListResourceDrifts
 			}
 			drifts, err := resFn(ctx, a.Config, app)
 			if err != nil {
-				out.Degraded = appendUnique(out.Degraded, "argocd-resources")
+				key := "argocd-resources"
+				if strings.EqualFold(app.Engine, "flux") {
+					key = "flux-inventory"
+				}
+				out.Degraded = appendUnique(out.Degraded, key)
 				continue
 			}
 			for _, d := range drifts {
@@ -170,6 +175,7 @@ func (a *Analyzer) Run(ctx context.Context, req Request) (incident.Investigation
 					Name:       d.Name,
 					Namespace:  d.Namespace,
 				}
+				src := app.Engine
 				out.Findings = append(out.Findings, incident.Finding{
 					Code:      CodeResourceDrift,
 					Severity:  incident.SeverityMedium,
@@ -178,7 +184,7 @@ func (a *Analyzer) Run(ctx context.Context, req Request) (incident.Investigation
 					Namespace: firstNonEmpty(d.Namespace, app.Namespace),
 					Evidence: []incident.EvidenceRef{{
 						Type:     incident.EvidenceGitOps,
-						Source:   "argocd",
+						Source:   src,
 						Resource: rref,
 						Message:  fmt.Sprintf("parent=%s/%s", app.Namespace, app.Name),
 					}},

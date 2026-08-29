@@ -98,6 +98,79 @@ func TestRunResourceDrifts(t *testing.T) {
 	}
 }
 
+func TestRunFluxInventoryResourceDrifts(t *testing.T) {
+	a := &Analyzer{
+		Config: &rest.Config{Host: "https://example"},
+		Status: func(context.Context, *rest.Config, gitops.StatusRequest) (gitops.StatusReport, error) {
+			return gitops.StatusReport{
+				Apps: []gitops.AppStatus{
+					{Engine: "flux", Kind: "Kustomization", Name: "apps", Namespace: "flux-system", Sync: "OutOfSync", Health: "Degraded"},
+				},
+			}, nil
+		},
+		Resources: func(_ context.Context, _ *rest.Config, app gitops.AppStatus) ([]gitops.ResourceDrift, error) {
+			if app.Engine != "flux" {
+				t.Fatalf("engine=%s", app.Engine)
+			}
+			return []gitops.ResourceDrift{{
+				Kind: "Deployment", Name: "api", Namespace: "shop", Status: "OutOfSync", APIVersion: "apps/v1",
+			}}, nil
+		},
+	}
+	inv, err := a.Run(context.Background(), Request{Prompt: "check flux drift"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	codes := map[string]int{}
+	for _, f := range inv.Findings {
+		codes[f.Code]++
+		if f.Code == CodeResourceDrift && f.Evidence[0].Source != "flux" {
+			t.Fatalf("source=%q", f.Evidence[0].Source)
+		}
+	}
+	if codes[CodeOutOfSync] != 1 || codes[CodeResourceDrift] != 1 {
+		t.Fatalf("codes=%v", codes)
+	}
+}
+
+func TestRunFluxInventoryDegrade(t *testing.T) {
+	a := &Analyzer{
+		Config: &rest.Config{Host: "https://example"},
+		Status: func(context.Context, *rest.Config, gitops.StatusRequest) (gitops.StatusReport, error) {
+			return gitops.StatusReport{
+				Apps: []gitops.AppStatus{
+					{Engine: "flux", Kind: "Kustomization", Name: "apps", Namespace: "flux-system", Sync: "OutOfSync"},
+				},
+			}, nil
+		},
+		Resources: func(context.Context, *rest.Config, gitops.AppStatus) ([]gitops.ResourceDrift, error) {
+			return nil, errFluxInventoryUnavailable
+		},
+	}
+	inv, err := a.Run(context.Background(), Request{Prompt: "drift"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !contains(inv.Degraded, "flux-inventory") {
+		t.Fatalf("degraded=%v", inv.Degraded)
+	}
+}
+
+type unavailableErr string
+
+func (e unavailableErr) Error() string { return string(e) }
+
+const errFluxInventoryUnavailable = unavailableErr("flux inventory unavailable")
+
+func contains(ss []string, want string) bool {
+	for _, s := range ss {
+		if s == want {
+			return true
+		}
+	}
+	return false
+}
+
 func TestRunClean(t *testing.T) {
 	a := &Analyzer{
 		Config: &rest.Config{Host: "https://example"},

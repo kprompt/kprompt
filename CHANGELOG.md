@@ -6,6 +6,7 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ### Features
 
+- **Flux per-resource drift inventory** — OutOfSync Kustomizations expand `status.inventory.entries` into `Drift.ResourceOutOfSync` (capped); missing inventory degrades honestly (#48)
 - **Coordinator KubeProbe Deployments** — suspect-ns probe also lists Deployments; Helm probe Role includes `apps/deployments` (#45)
 - **investigate Ingress + Prometheus** — walk matching Ingress backends; attach Prom metric evidence when configured; mesh stays degraded (#44)
 
