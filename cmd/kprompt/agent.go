@@ -357,7 +357,7 @@ func newAgentCoordinatorCmd() *cobra.Command {
 and reply with CoordinatorReply.
 
 Never applies/patches/deletes workloads. Optional --probe-kube enables a
-read-only Events/Pods probe of suspectNamespace. Default probe is a no-op.
+read-only Pods/Events/Deployments probe of suspectNamespace. Default probe is a no-op.
 
 Shared Knowledge: GET /v1/knowledge summarizes handoff edges.
 Blast-radius MVP: GET /v1/blast-radius turns those edges into risk-ranked hops.
@@ -471,7 +471,7 @@ Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 		},
 	}
 	cmd.Flags().StringVar(&addr, "addr", ":9090", "listen address for Coordinator HTTP API")
-	cmd.Flags().BoolVar(&probeKube, "probe-kube", false, "read-only Pods/Events probe of suspectNamespace")
+	cmd.Flags().BoolVar(&probeKube, "probe-kube", false, "read-only Pods/Events/Deployments probe of suspectNamespace")
 	cmd.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context for --probe-kube / configmap knowledge")
 	cmd.Flags().BoolVar(&inCluster, "in-cluster", false, "use in-cluster config for --probe-kube / configmap knowledge")
 	cmd.Flags().StringVar(&knowledgeBackend, "knowledge-backend", "", "persist Shared Knowledge: file|configmap")

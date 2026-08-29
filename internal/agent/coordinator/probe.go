@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
@@ -15,16 +16,18 @@ import (
 )
 
 const (
-	defaultMaxPods   = 20
-	defaultMaxEvents = 30
+	defaultMaxPods        = 20
+	defaultMaxEvents      = 30
+	defaultMaxDeployments = 20
 )
 
-// KubeProbe is a read-only suspect-namespace verifier (AG-050 / ADR-0017).
-// It lists Pods + Events in the suspect namespace only — never mutates.
+// KubeProbe is a read-only suspect-namespace verifier (AG-050 / ADR-0017 / #45).
+// It lists Pods, Events, and Deployments in the suspect namespace only — never mutates.
 type KubeProbe struct {
-	Client    kubernetes.Interface
-	MaxPods   int
-	MaxEvents int
+	Client         kubernetes.Interface
+	MaxPods        int
+	MaxEvents      int
+	MaxDeployments int
 }
 
 func (p *KubeProbe) Probe(ctx context.Context, suspectNamespace string, _ handoff.Envelope) (*incident.InvestigationReport, error) {
@@ -42,6 +45,10 @@ func (p *KubeProbe) Probe(ctx context.Context, suspectNamespace string, _ handof
 	maxEvents := p.MaxEvents
 	if maxEvents <= 0 {
 		maxEvents = defaultMaxEvents
+	}
+	maxDeps := p.MaxDeployments
+	if maxDeps <= 0 {
+		maxDeps = defaultMaxDeployments
 	}
 
 	at := time.Now().UTC()
@@ -130,11 +137,44 @@ func (p *KubeProbe) Probe(ctx context.Context, suspectNamespace string, _ handof
 		}
 	}
 
+	depUnavailable := 0
+	deps, err := p.Client.AppsV1().Deployments(ns).List(ctx, metav1.ListOptions{Limit: int64(maxDeps)})
+	if err != nil {
+		rep.Unknowns = append(rep.Unknowns, fmt.Sprintf("probe: list deployments in %s: %v", ns, err))
+		rep.Degraded = append(rep.Degraded, "deployments")
+	} else {
+		for i, dep := range deps.Items {
+			if i >= maxDeps {
+				break
+			}
+			desired := int32(1)
+			if dep.Spec.Replicas != nil {
+				desired = *dep.Spec.Replicas
+			}
+			msg := fmt.Sprintf("desired=%d ready=%d unavailable=%d", desired, dep.Status.ReadyReplicas, dep.Status.UnavailableReplicas)
+			unhealthy := dep.Status.UnavailableReplicas > 0 || (desired > 0 && dep.Status.ReadyReplicas < desired)
+			if unhealthy {
+				depUnavailable++
+				rep.Evidence = append(rep.Evidence, incident.EvidenceRef{
+					Type:      incident.EvidenceObject,
+					Resource:  &incident.ResourceRef{Kind: "Deployment", Name: dep.Name, Namespace: ns, APIVersion: "apps/v1"},
+					Reason:    deploymentProbeReason(dep),
+					Message:   msg,
+					Source:    "coordinator-kube-probe",
+					Timestamp: &at,
+				})
+			}
+			if i < 3 {
+				facts = append(facts, "deploy/"+dep.Name+":"+msg)
+			}
+		}
+	}
+
 	total := len(pods.Items)
-	rep.Facts = fmt.Sprintf("pods=%d notReady=%d restarts=%d; %s", total, notReady, restarts, strings.Join(facts, "; "))
+	rep.Facts = fmt.Sprintf("pods=%d notReady=%d restarts=%d depUnavailable=%d; %s", total, notReady, restarts, depUnavailable, strings.Join(facts, "; "))
 	switch {
-	case notReady > 0 || restarts > 0:
-		rep.Summary = fmt.Sprintf("namespace %q: %d/%d pods not ready, cumulative restarts=%d", ns, notReady, total, restarts)
+	case notReady > 0 || restarts > 0 || depUnavailable > 0:
+		rep.Summary = fmt.Sprintf("namespace %q: %d/%d pods not ready, cumulative restarts=%d, unavailable deployments=%d", ns, notReady, total, restarts, depUnavailable)
 		rep.Confidence = 0.55
 		rep.Severity = incident.SeverityMedium
 		rep.Hypotheses = []incident.Hypothesis{{
@@ -159,15 +199,22 @@ func (p *KubeProbe) Probe(ctx context.Context, suspectNamespace string, _ handof
 	// so Merge never treats a healthy narrative-only report as soft-agree.
 	if len(rep.Evidence) == 0 && len(rep.Unknowns) == 0 {
 		rep.Evidence = append(rep.Evidence, incident.EvidenceRef{
-			Type:     incident.EvidenceObject,
-			Resource: &incident.ResourceRef{Kind: "Namespace", Name: ns, Namespace: ns, APIVersion: "v1"},
-			Reason:   "ProbeSnapshot",
-			Message:  rep.Facts,
-			Source:   "coordinator-kube-probe",
+			Type:      incident.EvidenceObject,
+			Resource:  &incident.ResourceRef{Kind: "Namespace", Name: ns, Namespace: ns, APIVersion: "v1"},
+			Reason:    "ProbeSnapshot",
+			Message:   rep.Facts,
+			Source:    "coordinator-kube-probe",
 			Timestamp: &at,
 		})
 	}
 	return &rep, nil
+}
+
+func deploymentProbeReason(dep appsv1.Deployment) string {
+	if dep.Status.UnavailableReplicas > 0 {
+		return "UnavailableReplicas"
+	}
+	return "NotFullyReady"
 }
 
 func podReady(pod corev1.Pod) bool {
