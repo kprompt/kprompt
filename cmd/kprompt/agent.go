@@ -42,6 +42,7 @@ import (
 	"github.com/kprompt/kprompt/internal/llm"
 	"github.com/kprompt/kprompt/internal/tools"
 	"github.com/kprompt/kprompt/internal/ui"
+	"github.com/kprompt/kprompt/internal/xdg"
 	"k8s.io/client-go/kubernetes"
 )
 
@@ -413,8 +414,7 @@ Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 			case "file":
 				dir := strings.TrimSpace(knowledgeDir)
 				if dir == "" {
-					home, _ := os.UserHomeDir()
-					dir = filepath.Join(home, ".config", "kprompt", "coordinator")
+					dir = xdg.KpromptDir("coordinator")
 				}
 				path := filepath.Join(dir, "handoffs.json")
 				svc.Store = coordinator.FileStore{Path: path}
@@ -475,7 +475,7 @@ Pair with: kprompt agent run … --coordinator-url http://<addr>/v1/handoff`,
 	cmd.Flags().StringVar(&kubeCtx, "context", "", "kubeconfig context for --probe-kube / configmap knowledge")
 	cmd.Flags().BoolVar(&inCluster, "in-cluster", false, "use in-cluster config for --probe-kube / configmap knowledge")
 	cmd.Flags().StringVar(&knowledgeBackend, "knowledge-backend", "", "persist Shared Knowledge: file|configmap")
-	cmd.Flags().StringVar(&knowledgeDir, "knowledge-dir", "", "file backend directory (default ~/.config/kprompt/coordinator)")
+	cmd.Flags().StringVar(&knowledgeDir, "knowledge-dir", "", "file backend directory (default $XDG_CONFIG_HOME/kprompt/coordinator)")
 	cmd.Flags().StringVar(&knowledgeNamespace, "knowledge-namespace", "", "ConfigMap namespace (default POD_NAMESPACE)")
 	cmd.Flags().DurationVar(&tickInterval, "tick-interval", 0, "proactive correlation interval (0=off; RT-009)")
 	cmd.Flags().IntVar(&tickBudget, "tick-budget", coordinator.DefaultTickBudget, "max edges re-probed per tick")
@@ -783,17 +783,17 @@ Pipeline flags (read-only — never mutate workload objects):
 
 Durable incidents (local / in-cluster only):
   --incidents-backend file|configmap   persist open incidents across restarts
-  --incidents-dir     file backend directory (default: ~/.config/kprompt/incidents)
+  --incidents-dir     file backend directory (default: $XDG_CONFIG_HOME/kprompt/incidents)
 
 Namespace memory (local / in-cluster only — never uploaded to api.kprompt.ai):
   --memory-backend file|configmap   (default: file; configmap uses kprompt-namespace-memory)
-  --memory-dir     file backend directory (default: ~/.config/kprompt/memory)
+  --memory-dir     file backend directory (default: $XDG_CONFIG_HOME/kprompt/memory)
 
 Pattern learning (local only — never mutates from a match):
-  --patterns-dir   pattern store directory (default: ~/.config/kprompt/patterns)
+  --patterns-dir   pattern store directory (default: $XDG_CONFIG_HOME/kprompt/patterns)
 
 Autopilot (ADR-0015 MVP — propose-only by default):
-  --autopilot-audit-dir  audit JSONL directory (default: ~/.config/kprompt/autopilot)
+  --autopilot-audit-dir  audit JSONL directory (default: $XDG_CONFIG_HOME/kprompt/autopilot)
 
 Slack credentials from env / mounted Secret:
   KPROMPT_SLACK_BOT_TOKEN + KPROMPT_SLACK_CHANNEL  (preferred, threaded)
@@ -1531,19 +1531,19 @@ KpromptAgent status sync:
 	cmd.Flags().StringVar(&agentCRNS, "agent-cr-namespace", "", "namespace of --agent-cr (default: POD_NAMESPACE / default)")
 	cmd.Flags().BoolVar(&useMemory, "memory", false, "discover/load namespace dependency facts into analyzer context")
 	cmd.Flags().StringVar(&memoryBackend, "memory-backend", "file", "memory store: file|configmap")
-	cmd.Flags().StringVar(&memoryDir, "memory-dir", "", "file backend directory (default ~/.config/kprompt/memory)")
+	cmd.Flags().StringVar(&memoryDir, "memory-dir", "", "file backend directory (default $XDG_CONFIG_HOME/kprompt/memory)")
 	cmd.Flags().BoolVar(&usePatterns, "patterns", false, "learn incident signatures; boost confidence on seen-before (never mutates)")
 	cmd.Flags().StringVar(&patternsBackend, "patterns-backend", "file", "pattern store: file|configmap")
-	cmd.Flags().StringVar(&patternsDir, "patterns-dir", "", "file backend directory (default ~/.config/kprompt/patterns)")
+	cmd.Flags().StringVar(&patternsDir, "patterns-dir", "", "file backend directory (default $XDG_CONFIG_HOME/kprompt/patterns)")
 	cmd.Flags().BoolVar(&autopilotProp, "autopilot-propose", false, "emit AutopilotProposal for allowlisted actions (propose-only by default)")
-	cmd.Flags().StringVar(&autopilotDir, "autopilot-audit-dir", "", "autopilot audit directory (default ~/.config/kprompt/autopilot)")
+	cmd.Flags().StringVar(&autopilotDir, "autopilot-audit-dir", "", "autopilot audit directory (default $XDG_CONFIG_HOME/kprompt/autopilot)")
 	cmd.Flags().StringVar(&autopilotPolicy, "autopilot-policy", "", "RemediationPolicy JSON file")
 	cmd.Flags().BoolVar(&autopilotApply, "autopilot-apply", false, "apply proposals when policy mode=policyAuto apply=true (off by default)")
 	cmd.Flags().BoolVar(&useProposals, "proposals", false, "durable AutopilotProposal store (also implied by --autopilot-propose)")
 	cmd.Flags().StringVar(&proposalsBackend, "proposals-backend", "file", "proposal store: file|configmap")
-	cmd.Flags().StringVar(&proposalsDir, "proposals-dir", "", "file backend directory (default ~/.config/kprompt/proposals)")
+	cmd.Flags().StringVar(&proposalsDir, "proposals-dir", "", "file backend directory (default $XDG_CONFIG_HOME/kprompt/proposals)")
 	cmd.Flags().StringVar(&incidentsBackend, "incidents-backend", "", "persist incidents across restarts: file|configmap")
-	cmd.Flags().StringVar(&incidentsDir, "incidents-dir", "", "file backend directory (default ~/.config/kprompt/incidents)")
+	cmd.Flags().StringVar(&incidentsDir, "incidents-dir", "", "file backend directory (default $XDG_CONFIG_HOME/kprompt/incidents)")
 	cmd.Flags().BoolVar(&slackAsk, "slack-ask", false, "Slack Events ask listener for status/why/what broke/false positive (read-only)")
 	cmd.Flags().StringVar(&slackAskAddr, "slack-ask-addr", ":8080", "listen address for --slack-ask Events API")
 	cmd.Flags().StringVar(&coordinatorURL, "coordinator-url", "", "POST CoordinatorHandoff when cross-ns suspicion (opt-in)")

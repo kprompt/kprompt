@@ -23,7 +23,7 @@ func TestRunCheckOnlyMissing(t *testing.T) {
 		t.Fatal("expected missing prereq error")
 	}
 	s := out.String()
-	if !strings.Contains(s, "Observe") {
+	if !strings.Contains(s, "AI Runtime") {
 		t.Fatalf("out=%s", s)
 	}
 	if !strings.Contains(s, "kind") || !strings.Contains(s, "not found") {
@@ -43,14 +43,14 @@ func TestRunGuide(t *testing.T) {
 		t.Fatal(err)
 	}
 	s := out.String()
-	if !strings.Contains(s, "make walkthrough") {
-		t.Fatalf("missing walkthrough:\n%s", s)
+	if !strings.Contains(s, "make magic-moment") {
+		t.Fatalf("missing magic moment:\n%s", s)
 	}
 	if !strings.Contains(s, "init --ollama") {
 		t.Fatalf("missing NL bridge:\n%s", s)
 	}
-	if !strings.Contains(s, "not the NL plan") {
-		t.Fatalf("missing honesty:\n%s", s)
+	if !strings.Contains(s, "deterministic/heuristic") || !strings.Contains(s, "y/N") {
+		t.Fatalf("missing honesty or approval gate:\n%s", s)
 	}
 }
 

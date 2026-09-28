@@ -10,10 +10,11 @@ func newDemoCmd() *cobra.Command {
 	var checkOnly bool
 	cmd := &cobra.Command{
 		Use:   "demo",
-		Short: "Observe walkthrough ($0, no LLM) — prerequisites + commands",
-		Long: `Print the $0 Observe agent walkthrough (kind + kprompt-examples).
+		Short: "Canonical AI Runtime walkthrough ($0, no LLM)",
+		Long: `Print the $0 AI Runtime walkthrough (kind + kprompt-examples).
 
-This is heuristic Observe Mode — not natural-language plan→approve.
+The walkthrough follows one failed rollout through Observe → proposal → explicit
+human approval → apply → verify → Learn. It uses heuristic analysis, not an LLM.
 Does not clone or mutate anything; prints exact commands after checking PATH tools.
 
 Prerequisites only:

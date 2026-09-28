@@ -16,6 +16,7 @@ import (
 
 	"github.com/kprompt/kprompt/internal/agent/ctxbuild"
 	"github.com/kprompt/kprompt/internal/incident"
+	"github.com/kprompt/kprompt/internal/xdg"
 )
 
 const (
@@ -537,16 +538,12 @@ func Decode(b []byte) (Snapshot, error) {
 	return snap, nil
 }
 
-// DefaultDir returns ~/.config/kprompt/patterns (or KPROMPT_PATTERNS_DIR).
+// DefaultDir returns $XDG_CONFIG_HOME/kprompt/patterns (or KPROMPT_PATTERNS_DIR).
 func DefaultDir() string {
 	if d := strings.TrimSpace(os.Getenv("KPROMPT_PATTERNS_DIR")); d != "" {
 		return d
 	}
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return filepath.Join(".", ".kprompt-patterns")
-	}
-	return filepath.Join(home, ".config", "kprompt", "patterns")
+	return xdg.KpromptDir("patterns")
 }
 
 // FileStore persists one JSON file per namespace.

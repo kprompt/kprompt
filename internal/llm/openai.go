@@ -11,22 +11,41 @@ import (
 	"time"
 )
 
+// Structured response_format modes for OpenAI-compatible backends.
+const (
+	// StructuredJSONObject is OpenAI's legacy json_object mode (default).
+	StructuredJSONObject = "json_object"
+	// StructuredJSONSchema is OpenAI structured outputs / LM Studio mode.
+	StructuredJSONSchema = "json_schema"
+	// StructuredText omits forced JSON mode (prompt-only); used as last resort.
+	StructuredText = "text"
+)
+
 // OpenAI is an OpenAI-compatible chat completions client.
 type OpenAI struct {
-	apiKey  string
-	baseURL string
-	model   string
-	client  *http.Client
+	apiKey           string
+	baseURL          string
+	model            string
+	structuredFormat string // json_object (default) | json_schema | text
+	client           *http.Client
 }
 
 func NewOpenAI(apiKey, baseURL, model string) *OpenAI {
 	baseURL = strings.TrimRight(baseURL, "/")
 	return &OpenAI{
-		apiKey:  apiKey,
-		baseURL: baseURL,
-		model:   model,
-		client:  &http.Client{Timeout: 120 * time.Second},
+		apiKey:           apiKey,
+		baseURL:          baseURL,
+		model:            model,
+		structuredFormat: StructuredJSONObject,
+		client:           &http.Client{Timeout: 120 * time.Second},
 	}
+}
+
+// WithStructuredFormat selects response_format for CompleteStructured.
+// LM Studio rejects json_object and requires json_schema or text.
+func (o *OpenAI) WithStructuredFormat(format string) *OpenAI {
+	o.structuredFormat = strings.TrimSpace(format)
+	return o
 }
 
 func (o *OpenAI) Name() string { return "openai" }
@@ -70,7 +89,9 @@ func (o *OpenAI) CompleteStructured(ctx context.Context, req CompletionRequest, 
 			{"role": "system", "content": sys},
 			{"role": "user", "content": req.User + "\n\nJSON schema:\n" + string(schema)},
 		},
-		"response_format": map[string]string{"type": "json_object"},
+	}
+	if rf := o.responseFormat(schema); rf != nil {
+		body["response_format"] = rf
 	}
 	raw, err := o.post(ctx, "/chat/completions", body)
 	if err != nil {
@@ -85,6 +106,29 @@ func (o *OpenAI) CompleteStructured(ctx context.Context, req CompletionRequest, 
 		return nil, fmt.Errorf("openai structured response is not valid JSON")
 	}
 	return json.RawMessage(text), nil
+}
+
+func (o *OpenAI) responseFormat(schema json.RawMessage) any {
+	switch o.structuredFormat {
+	case StructuredText, "none", "off":
+		return nil
+	case StructuredJSONSchema:
+		var parsed any
+		if err := json.Unmarshal(schema, &parsed); err != nil {
+			// Fall back to prompt-only if schema is not valid JSON.
+			return nil
+		}
+		return map[string]any{
+			"type": "json_schema",
+			"json_schema": map[string]any{
+				"name":   "kprompt_response",
+				"schema": parsed,
+				"strict": true,
+			},
+		}
+	default: // StructuredJSONObject
+		return map[string]string{"type": "json_object"}
+	}
 }
 
 func (o *OpenAI) post(ctx context.Context, path string, body any) ([]byte, error) {

@@ -69,7 +69,12 @@ func New(name, apiKey, baseURL, model string) (Provider, error) {
 		if bu == "" {
 			bu = "https://api.openai.com/v1"
 		}
-		return NewOpenAI(key, bu, mdl), nil
+		client := NewOpenAI(key, bu, mdl)
+		// LM Studio rejects response_format.type=json_object; requires json_schema or text.
+		if preset.Name == "lmstudio" {
+			client.WithStructuredFormat(StructuredJSONSchema)
+		}
+		return client, nil
 	case "anthropic":
 		return NewAnthropic(key, mdl), nil
 	case "gemini":

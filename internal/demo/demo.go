@@ -1,4 +1,4 @@
-// Package demo implements `kprompt demo` — Observe walkthrough entry (OB-004).
+// Package demo implements `kprompt demo` — canonical AI Runtime walkthrough entry.
 package demo
 
 import (
@@ -10,7 +10,7 @@ import (
 	"github.com/kprompt/kprompt/internal/ui"
 )
 
-// ExamplesRepo is the documented walkthrough repository.
+// ExamplesRepo is the documented magic-moment repository.
 const ExamplesRepo = "https://github.com/kprompt/kprompt-examples.git"
 
 // Check is one prerequisite row.
@@ -29,7 +29,7 @@ type Options struct {
 	LookPath func(file string) (string, error)
 }
 
-// Run prints the Observe demo guide and prerequisite status.
+// Run prints the canonical demo guide and prerequisite status.
 // MVP: guided checklist (does not clone/run make). Use printed commands to execute.
 func Run(opts Options) error {
 	if opts.Out == nil {
@@ -50,10 +50,10 @@ func Run(opts Options) error {
 	}
 
 	t := ui.ThemeForWriter(opts.Out)
-	fmt.Fprintln(opts.Out, t.Bold("kprompt demo")+" — Observe walkthrough ($0, no LLM key)")
+	fmt.Fprintln(opts.Out, t.Bold("kprompt demo")+" — AI Runtime magic moment ($0, no LLM key)")
 	fmt.Fprintln(opts.Out, "")
-	fmt.Fprintln(opts.Out, "This is the Observe agent demo (heuristic): kind cluster, broken workloads, propose-only.")
-	fmt.Fprintln(opts.Out, "It is not the NL plan→approve loop. For that: kprompt init --ollama then kprompt \"list pods\".")
+	fmt.Fprintln(opts.Out, "One failed rollout: Observe → PlanResult-shaped proposal → approve → apply → verify → Learn.")
+	fmt.Fprintln(opts.Out, "Analysis is deterministic/heuristic; mutation still needs a narrow policy and your y/N.")
 	fmt.Fprintln(opts.Out, "")
 
 	fmt.Fprintln(opts.Out, "Prerequisites:")
@@ -80,19 +80,19 @@ func Run(opts Options) error {
 		return nil
 	}
 
-	fmt.Fprintln(opts.Out, "Run the walkthrough:")
+	fmt.Fprintln(opts.Out, "Run the canonical walkthrough:")
 	fmt.Fprintln(opts.Out, "")
 	fmt.Fprintf(opts.Out, "  git clone %s\n", ExamplesRepo)
-	fmt.Fprintln(opts.Out, "  cd kprompt-examples && make walkthrough")
+	fmt.Fprintln(opts.Out, "  cd kprompt-examples && make magic-moment")
 	fmt.Fprintln(opts.Out, "")
-	fmt.Fprintln(opts.Out, "One failure at a time:")
-	fmt.Fprintln(opts.Out, "  make up && make break SCENARIO=01-crashloop && make agent")
+	fmt.Fprintln(opts.Out, "Advanced all-scenarios Observe demo:")
+	fmt.Fprintln(opts.Out, "  make walkthrough")
 	fmt.Fprintln(opts.Out, "")
 	if !allOK {
 		fmt.Fprintln(opts.Out, t.Warn("Install missing tools above, then re-run: kprompt demo --check"))
 		fmt.Fprintln(opts.Out, "")
 	}
-	fmt.Fprintln(opts.Out, "When you are done exploring Observe:")
+	fmt.Fprintln(opts.Out, "When you are done with the runtime loop:")
 	fmt.Fprintln(opts.Out, `  kprompt init --ollama`)
 	fmt.Fprintln(opts.Out, `  kprompt "how's my cluster"`)
 	fmt.Fprintln(opts.Out, `  kprompt "scale api to 3"   # plan first, then y/N`)

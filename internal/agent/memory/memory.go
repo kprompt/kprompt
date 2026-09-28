@@ -8,11 +8,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/kprompt/kprompt/internal/xdg"
 )
 
 const (
@@ -218,16 +219,12 @@ func shortHash(s string) string {
 	return fmt.Sprintf("%x", h&0xffff)
 }
 
-// DefaultDir returns ~/.config/kprompt/memory (or KPROMPT_MEMORY_DIR).
+// DefaultDir returns $XDG_CONFIG_HOME/kprompt/memory (or KPROMPT_MEMORY_DIR).
 func DefaultDir() string {
 	if d := strings.TrimSpace(os.Getenv("KPROMPT_MEMORY_DIR")); d != "" {
 		return d
 	}
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return filepath.Join(".", ".kprompt-memory")
-	}
-	return filepath.Join(home, ".config", "kprompt", "memory")
+	return xdg.KpromptDir("memory")
 }
 
 // Encode / Decode helpers for ConfigMap payloads.

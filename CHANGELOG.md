@@ -4,6 +4,23 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+## [v0.12.3](https://github.com/kprompt/kprompt/releases/tag/v0.12.3) — 2026-09-28
+
+Local provider + config-path fixes since v0.12.2.
+
+### Fixes
+
+- **LM Studio structured intent** — `CompleteStructured` uses `response_format.type=json_schema` for the `lmstudio` preset (LM Studio rejects `json_object`)
+- **XDG config home** — agent file backends (`memory`, `patterns`, `incidents`, `autopilot`, `proposals`, `coordinator`) honor `$XDG_CONFIG_HOME/kprompt/…` instead of hardcoding `~/.config`
+
+### Docs
+
+- **`kprompt demo`** — points at the canonical `make magic-moment` walkthrough (Observe → proposal → approve → apply → verify → Learn)
+
+### Notes
+
+Experimental — prefer non-production clusters. Autopilot remains propose-only by default. Claude Pro/Max subscription is not an Anthropic API key; use `anthropic` BYOK via `ANTHROPIC_API_KEY`. Amazon Bedrock preset (P-008) stays deferred (#59).
+
 ## [v0.12.2](https://github.com/kprompt/kprompt/releases/tag/v0.12.2) — 2026-08-29
 
 Mesh honesty follow-ups for investigate / impact since v0.12.1.

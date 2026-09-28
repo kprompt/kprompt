@@ -15,6 +15,7 @@ import (
 	"k8s.io/client-go/kubernetes"
 
 	"github.com/kprompt/kprompt/internal/incident"
+	"github.com/kprompt/kprompt/internal/xdg"
 )
 
 const (
@@ -156,13 +157,9 @@ func (s FileStore) path(ns string) string {
 	return filepath.Join(s.Dir, safe+".json")
 }
 
-// DefaultIncidentsDir is ~/.config/kprompt/incidents.
+// DefaultIncidentsDir is $XDG_CONFIG_HOME/kprompt/incidents.
 func DefaultIncidentsDir() string {
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return filepath.Join(".", ".config", "kprompt", "incidents")
-	}
-	return filepath.Join(home, ".config", "kprompt", "incidents")
+	return xdg.KpromptDir("incidents")
 }
 
 func (s FileStore) Load(namespace string) (Snapshot, error) {

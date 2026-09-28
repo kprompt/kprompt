@@ -83,9 +83,12 @@ kprompt is **open source (Apache-2.0)** and **free forever**. Natural-language p
 
 ---
 
-## Try it in 60 seconds
+## Try the full loop in 5 minutes
 
-Run the Observe agent demo on a local kind cluster — **`$0`, no provider key, no cloud**. The demo is heuristic and offline (zero LLM spend).
+Run one failed rollout through **Observe → proposal → approve → apply → verify →
+Learn** on a local kind cluster — **`$0`, no provider key, no cloud**. Analysis is
+heuristic and offline; the mutation still requires a narrow policy and your
+explicit approval.
 
 ```bash
 kprompt demo              # prints prerequisites + exact walkthrough commands
@@ -99,12 +102,12 @@ brew install kind kubectl
 curl -fsSL https://kprompt.ai/install | bash
 
 git clone https://github.com/kprompt/kprompt-examples.git
-cd kprompt-examples && make walkthrough
+cd kprompt-examples && make magic-moment
 ```
 
-Prefer one failure at a time? `make up && make break SCENARIO=01-crashloop && make agent`.
+For the advanced all-scenarios Observe demo, run `make walkthrough`.
 
-![Observe agent: watch → Incident → gated alert — propose only, never silent mutate](./.github/assets/kprompt-observe-demo.gif)
+![Observe agent: watch → Incident → gated proposal — never silent mutate](./.github/assets/kprompt-observe-demo.gif)
 
 ---
 
@@ -175,7 +178,7 @@ brew install kprompt/tap/kprompt
 ### Pinned fallback (jsDelivr)
 
 ```bash
-curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.12.2/install/install.sh | bash
+curl -fsSL https://cdn.jsdelivr.net/gh/kprompt/kprompt@v0.12.3/install/install.sh | bash
 ```
 
 ### From source
@@ -481,7 +484,7 @@ If the plan-before-apply contract is useful in your own workflow, a ⭐ helps ot
 
 [![Contributors](https://contrib.rocks/image?repo=kprompt/kprompt)](https://github.com/kprompt/kprompt/graphs/contributors)
 
-**Status:** `v0.12.2` (experimental) — investigate + impact walk Istio VirtualServices with honest `mesh` degrade; builds on v0.12.1 SEC-007 / Ingress / Prom / Flux inventory / kind e2e. Autopilot stays propose-only by default. See [CHANGELOG.md](./CHANGELOG.md).
+**Status:** `v0.12.3` (experimental) — LM Studio `json_schema` structured intent + `$XDG_CONFIG_HOME` for agent stores; builds on v0.12.2 VirtualService mesh honesty. Autopilot stays propose-only by default. See [CHANGELOG.md](./CHANGELOG.md).
 
 ---
 

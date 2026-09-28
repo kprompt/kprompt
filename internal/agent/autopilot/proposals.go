@@ -15,6 +15,8 @@ import (
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
+
+	"github.com/kprompt/kprompt/internal/xdg"
 )
 
 const (
@@ -156,16 +158,12 @@ func emptyProposalSnapshot(ns string) ProposalSnapshot {
 	}
 }
 
-// DefaultProposalsDir returns ~/.config/kprompt/proposals (or KPROMPT_PROPOSALS_DIR).
+// DefaultProposalsDir returns $XDG_CONFIG_HOME/kprompt/proposals (or KPROMPT_PROPOSALS_DIR).
 func DefaultProposalsDir() string {
 	if d := strings.TrimSpace(os.Getenv("KPROMPT_PROPOSALS_DIR")); d != "" {
 		return d
 	}
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return filepath.Join(".", ".kprompt-proposals")
-	}
-	return filepath.Join(home, ".config", "kprompt", "proposals")
+	return xdg.KpromptDir("proposals")
 }
 
 // FileProposalStore persists one JSON file per namespace.

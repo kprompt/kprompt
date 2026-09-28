@@ -20,6 +20,7 @@ import (
 	"github.com/kprompt/kprompt/internal/agent/patterns"
 	"github.com/kprompt/kprompt/internal/graph"
 	"github.com/kprompt/kprompt/internal/incident"
+	"github.com/kprompt/kprompt/internal/xdg"
 )
 
 const (
@@ -453,16 +454,12 @@ func inList(list []string, v string) bool {
 	return false
 }
 
-// DefaultAuditDir returns ~/.config/kprompt/autopilot.
+// DefaultAuditDir returns $XDG_CONFIG_HOME/kprompt/autopilot.
 func DefaultAuditDir() string {
 	if d := strings.TrimSpace(os.Getenv("KPROMPT_AUTOPILOT_AUDIT_DIR")); d != "" {
 		return d
 	}
-	home, err := os.UserHomeDir()
-	if err != nil || home == "" {
-		return filepath.Join(".", ".kprompt-autopilot")
-	}
-	return filepath.Join(home, ".config", "kprompt", "autopilot")
+	return xdg.KpromptDir("autopilot")
 }
 
 // IncidentConfidence picks a confidence hint from alert/context.
