@@ -65,7 +65,7 @@ func TestSupportedNamesIncludesNewProviders(t *testing.T) {
 	s := SupportedNames()
 	wantNames := []string{"openai", "anthropic", "gemini", "groq",
 		"mistral", "deepseek", "moonshot", "qwen", "ollama", "openrouter",
-		"together", "xai", "cerebras", "azure", "fireworks", "lmstudio",
+		"together", "xai", "cerebras", "azure", "bedrock", "fireworks", "lmstudio",
 		"hetzner"}
 	for _, want := range wantNames {
 		if !contains(s, want) {
