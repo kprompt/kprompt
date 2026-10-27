@@ -62,3 +62,10 @@ skipped. The MVP does **not** inspect CRD owners, annotations from GitOps
 controllers, or cross-namespace references — review candidates before deleting.
 A ConfigMap/Secret consumed only by a tool outside the scanned kinds may show
 as unused.
+
+## Coppergate dogfood note
+
+Coppergate ships product increments only on the **primary** `kprompt/kprompt` tree.
+Archive and secondary repos (homebrew-tap, examples, architecture) must not receive
+provider / enterprise task copies. Prefer Open Program IDs from the architecture
+roadmap with green CI before merge.
