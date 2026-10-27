@@ -42,6 +42,14 @@ var Presets = []Preset{
 		HelpURL:      "https://learn.microsoft.com/azure/ai-foundry/",
 	},
 	{
+		Name:         "bedrock",
+		Kind:         "openai",
+		BaseURL:      "", // region via KPROMPT_BEDROCK_REGION / AWS_REGION or base_url
+		DefaultModel: "openai.gpt-oss-120b-1:0",
+		EnvKeys:      []string{"KPROMPT_BEDROCK_API_KEY", "AWS_BEARER_TOKEN_BEDROCK"},
+		HelpURL:      "https://docs.aws.amazon.com/bedrock/latest/userguide/inference-chat-completions.html",
+	},
+	{
 		Name:         "anthropic",
 		Kind:         "anthropic",
 		DefaultModel: "claude-sonnet-4-6",
