@@ -31,6 +31,7 @@ Optional Team `kp_…` tokens (`kprompt login`) are for org policy/audit — not
 | LM Studio (local) | `lmstudio` | none required | `local-model` | **$0** — `http://127.0.0.1:1234/v1`; LM Studio must be running with a model loaded, and `--model` must match that model's name |
 | Generic OpenAI-compat | `openai-compatible` | `KPROMPT_OPENAI_API_KEY` | — | **Requires** `base_url` |
 | Azure OpenAI | `azure` | `KPROMPT_AZURE_API_KEY` / `AZURE_OPENAI_API_KEY` / `KPROMPT_OPENAI_API_KEY` | `gpt-4o` | OpenAI-compatible; **Requires** `base_url` (resource URL). `--model` is your **deployment name**, not an OpenAI model id |
+| Amazon Bedrock | `bedrock` | `KPROMPT_BEDROCK_API_KEY` / `AWS_BEARER_TOKEN_BEDROCK` | `openai.gpt-oss-120b-1:0` | OpenAI-compatible Chat Completions on `bedrock-runtime`; **requires** `KPROMPT_BEDROCK_REGION` / `AWS_REGION` or `base_url`. IAM/SigV4 deferred — see [enterprise/amazonbedrock.md](./enterprise/amazonbedrock.md) |
 
 ## Gemini free tier (honest)
 
@@ -128,6 +129,11 @@ export KPROMPT_AZURE_API_KEY=...
 export KPROMPT_OPENAI_BASE_URL=https://YOUR_RESOURCE.openai.azure.com/openai/v1
 kprompt --provider azure --model my-gpt4o-deploy "list services"
 
+# Amazon Bedrock (OpenAI-compat + Bedrock API key)
+export KPROMPT_BEDROCK_API_KEY=...
+export KPROMPT_BEDROCK_REGION=us-east-1
+kprompt --provider bedrock --model openai.gpt-oss-120b-1:0 "list services"
+
 # Fireworks
 export KPROMPT_FIREWORKS_API_KEY=...
 kprompt init --provider fireworks
@@ -161,5 +167,8 @@ model: llama3.2
 #
 # base_url is required for azure / openai-compatible, and optionally overrides the
 # endpoint of any other openai-compatible preset (e.g. https://api.groq.com/openai/v1)
+# provider: bedrock
+# model: openai.gpt-oss-120b-1:0
+# base_url: https://bedrock-runtime.us-east-1.amazonaws.com/openai/v1  # optional if AWS_REGION is set
 namespace: default
 ```
