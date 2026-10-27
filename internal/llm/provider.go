@@ -63,6 +63,13 @@ func New(name, apiKey, baseURL, model string) (Provider, error) {
 		if bu == "" {
 			bu = strings.TrimRight(os.Getenv("KPROMPT_OPENAI_BASE_URL"), "/")
 		}
+		if preset.Name == "bedrock" {
+			var err error
+			bu, err = ResolveBedrockBaseURL(baseURL)
+			if err != nil {
+				return nil, err
+			}
+		}
 		if bu == "" && (preset.Name == "openai-compatible" || preset.Name == "azure") {
 			return nil, fmt.Errorf("provider %s requires base_url (config or KPROMPT_OPENAI_BASE_URL)", preset.Name)
 		}
