@@ -159,7 +159,7 @@ func Format(w io.Writer, s Status) error {
 		fmt.Fprintf(w, "  %d. Fix kubeconfig   kubectl cluster-info  (or set KUBECONFIG)\n", n)
 		n++
 	}
-	fmt.Fprintf(w, "  %d. Observe demo     kprompt demo\n", n)
+	fmt.Fprintf(w, "  %d. Magic moment     kprompt demo\n", n)
 	fmt.Fprintln(w, "")
 	if s.ClusterOK {
 		fmt.Fprintln(w, `Or try without LLM:  kprompt "how's my cluster"`)

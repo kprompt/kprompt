@@ -56,7 +56,7 @@ Zero-key Observe demo (separate repo):
 
 ```bash
 git clone https://github.com/kprompt/kprompt-examples.git
-cd kprompt-examples && make walkthrough
+cd kprompt-examples && make magic-moment
 ```
 
 ## Branch naming

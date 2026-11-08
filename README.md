@@ -91,7 +91,7 @@ heuristic and offline; the mutation still requires a narrow policy and your
 explicit approval.
 
 ```bash
-kprompt demo              # prints prerequisites + exact walkthrough commands
+kprompt demo              # prints prerequisites + exact magic-moment commands
 kprompt demo --check      # verify required tools are on PATH
 ```
 
@@ -105,7 +105,7 @@ git clone https://github.com/kprompt/kprompt-examples.git
 cd kprompt-examples && make magic-moment
 ```
 
-For the advanced all-scenarios Observe demo, run `make walkthrough`.
+Primary try path is **magic-moment** (IC-001). For the advanced all-scenarios Observe demo, run `make walkthrough`.
 
 ![Experimental: magic moment — failed rollout → PlanResult proposal → approve → verify → Learn (heuristic, $0)](./.github/assets/kprompt-magic-moment.gif)
 
