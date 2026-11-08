@@ -4,18 +4,26 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+## [v0.12.5](https://github.com/kprompt/kprompt/releases/tag/v0.12.5) — 2026-11-08
+
+Habit path + release assurance after v0.12.4 magic-moment reliability.
+
 ### Improvements
 
 - **Release assurance board** — [docs/assurance.md](./docs/assurance.md) · `./scripts/assure.sh` · PlanResult hard-deny jq job · weekly full kind e2e cron · weekly learn-second-hit on magic-moment schedule
-- **Magic-moment CI** — `.github/workflows/magic-moment.yml`: nightly + `workflow_dispatch` runs `MAGIC_MOMENT_APPROVE=1 make magic-moment` on kind (build this repo + kprompt-examples); cold-coach job covers empty-HOME / ollama-prefs first-run briefs
-- **Demo safety cues (IC-010 / IC-011)** — [docs/agent-ops.md](./docs/agent-ops.md) 30s RBAC/isolation one-pager; `kprompt demo` + demo.md non-goals footer (no Secret values · no silent heal)
-- **Learn second-hit docs (IC-009)** — [docs/learn.md](./docs/learn.md) + [docs/demo.md](./docs/demo.md) point at `make learn-second-hit` (evidence-not-proof Q&A)
-- **Daily driver week (IC-015)** — [docs/daily-driver.md](./docs/daily-driver.md): 7 shipped day-2 prompts (health → watch → investigate → optimize → scale/rollback plans → session)
-- **MCP → PlanResult bridge story (IC-014)** — [docs/mcp.md](./docs/mcp.md) + README: IDE MCP for read/plan; apply stays CLI `--approve` (never over MCP); ide.md cross-link
-- **Laptop habit cues (IC-013)** — Quick start §5 + adopt fast-path surface `watch` / `remember` / `session` / `history` (ADR-0022); no longer buried only in the collapsed prompt catalogue
-- **First-run coach friction (IC-012)** — non-TTY bare `kprompt` names the real blocker (kube vs `init --ollama`); empty current-context no longer reads as “no kubeconfig”; ready coach tips `ollama serve` when dial `:11434` would fail; [docs/init.md](./docs/init.md) cold-machine traps
-- **CI PlanResult cookbook (IC-007)** — copy-paste GitHub Action example (`examples/github-actions/planresult-gate.yml`) + [docs/ci-cookbook.md](./docs/ci-cookbook.md); plan-only `jq` gates, no default `--approve`
-- **Slack/Discord approve vocabulary (IC-006)** — alerts label **Approve (CLI)** / **Approve (Slack ask)** with the same risk words as the CLI; optional Impact line from proposal `expectedImpact`; Slack `help` states equivalence to `Apply this plan? [y/N]` / `--approve`
+- **Magic-moment CI** — `.github/workflows/magic-moment.yml`: nightly + `workflow_dispatch` runs `MAGIC_MOMENT_APPROVE=1 make magic-moment` on kind; cold-coach + PlanResult jq jobs
+- **First-run coach friction (IC-012)** — non-TTY bare `kprompt` names the real blocker (kube vs `init --ollama`); empty current-context no longer reads as “no kubeconfig”; ready coach tips `ollama serve` when dial `:11434` would fail
+- **Laptop habit cues (IC-013)** — Quick start §5 surfaces `watch` / `remember` / `session` / `history` (ADR-0022)
+- **MCP → PlanResult bridge (IC-014)** — IDE MCP for read/plan; apply stays CLI `--approve`
+- **Daily driver week (IC-015)** — [docs/daily-driver.md](./docs/daily-driver.md)
+- **Learn second-hit (IC-009)** — `make learn-second-hit` + docs Q&A (evidence-not-proof)
+- **Demo safety cues (IC-010 / IC-011)** — agent-ops 30s RBAC one-pager; `kprompt demo` non-goals footer
+- **CI PlanResult cookbook (IC-007)** — `examples/github-actions/planresult-gate.yml` + [docs/ci-cookbook.md](./docs/ci-cookbook.md)
+- **Slack/Discord approve vocabulary (IC-006)** — Approve (CLI) / Approve (Slack ask) labels aligned with CLI risk words
+
+### Notes
+
+Experimental — prefer non-production clusters. Pre-release green board: [docs/assurance.md](./docs/assurance.md). Canonical `$0` demo: `kprompt demo` → `make magic-moment`.
 
 ## [v0.12.4](https://github.com/kprompt/kprompt/releases/tag/v0.12.4) — 2026-11-08
 
