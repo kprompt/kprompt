@@ -25,6 +25,18 @@ go test -tags=e2e ./test/e2e/ -run 'TestGenericReadMatrixOnKind|TestListDeployme
 
 No cluster secrets required (stub LLM). Fork PRs can run smoke like other PRs.
 
+## Magic-moment automation (product try path)
+
+`.github/workflows/magic-moment.yml` — **not** a required PR check:
+
+| Trigger | What |
+|---------|------|
+| Daily cron (06:15 UTC) | Build this repo → checkout `kprompt-examples` → `MAGIC_MOMENT_APPROVE=1 make magic-moment` |
+| `workflow_dispatch` | Same; optional `learn-second-hit`; tunable `demo_seconds` |
+| Same workflow | **cold-coach** job — empty `HOME` bare `kprompt` + ollama-prefs kube brief (IC-012) |
+
+Heuristic / `$0` — no LLM provider key. Artifacts upload `STATE_ROOT` on failure.
+
 Optional cleanup:
 
 ```bash

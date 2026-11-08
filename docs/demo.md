@@ -48,6 +48,10 @@ kprompt "how's my cluster"
 kprompt "scale api to 3"   # plan first, then y/N
 ```
 
+## CI
+
+Product repo workflow [magic-moment.yml](../.github/workflows/magic-moment.yml): nightly + manual dispatch runs non-interactive `make magic-moment` against a just-built binary (and a cold-coach smoke). See [e2e.md](./e2e.md#magic-moment-automation-product-try-path).
+
 ## Related
 
 - [init.md](./init.md) — LLM Day-0 setup

@@ -1,0 +1,147 @@
+# IC-001 try-path automation: kind → failed rollout → proposal → approve → verify → Learn.
+# Heuristic / $0 — no LLM key. Not a PR required check (kind + duration); run nightly + on demand.
+name: magic-moment
+
+on:
+  schedule:
+    # 06:15 UTC daily — off peak vs unit CI
+    - cron: "15 6 * * *"
+  workflow_dispatch:
+    inputs:
+      demo_seconds:
+        description: "Agent observe window (seconds)"
+        required: false
+        default: "28"
+      run_learn_second_hit:
+        description: "Also run make learn-second-hit (longer)"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: magic-moment-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cold-coach:
+    name: cold install coach
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Build
+        run: go build -o bin/kprompt ./cmd/kprompt
+      - name: Bare kprompt (empty HOME, no kube) names init
+        env:
+          HOME: ${{ runner.temp }}/kprompt-cold-home
+          KUBECONFIG: /var/empty/kprompt-no-kube
+          KPROMPT_HOME: ${{ runner.temp }}/kprompt-cold-home/.kprompt
+        run: |
+          set -euo pipefail
+          mkdir -p "$HOME" "$KPROMPT_HOME"
+          out="$(./bin/kprompt 2>&1 || true)"
+          echo "$out"
+          echo "$out" | grep -q 'init --ollama'
+          ./bin/kprompt version
+      - name: Bare kprompt (ollama prefs, no cluster) names kube
+        env:
+          HOME: ${{ runner.temp }}/kprompt-cold-home-ollama
+          KUBECONFIG: /var/empty/kprompt-no-kube
+          KPROMPT_HOME: ${{ runner.temp }}/kprompt-cold-home-ollama/.kprompt
+        run: |
+          set -euo pipefail
+          mkdir -p "$KPROMPT_HOME"
+          printf 'provider: ollama\nmodel: llama3.2\n' >"$KPROMPT_HOME/config.yaml"
+          out="$(./bin/kprompt 2>&1 || true)"
+          echo "$out"
+          # IC-012: must not blanket-push init when LLM prefs exist
+          if echo "$out" | grep -q 'init --ollama'; then
+            echo "FAIL: expected kube/demo brief, got init push" >&2
+            exit 1
+          fi
+          echo "$out" | grep -Eiq 'kubeconfig|kprompt demo|doctor'
+
+  magic-moment:
+    name: magic-moment on kind
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    if: ${{ github.actor != 'dependabot[bot]' }}
+    steps:
+      - name: Checkout kprompt
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+
+      - name: Build kprompt
+        run: go build -o "$GITHUB_WORKSPACE/bin/kprompt" ./cmd/kprompt
+
+      - name: Setup kubectl
+        uses: azure/setup-kubectl@829323503d1be3d00ca8346e5391ca0b07a9ab0d # v5.1.0
+        with:
+          version: "v1.33.1"
+
+      - name: Install kind
+        run: |
+          set -euo pipefail
+          KIND_VERSION=v0.29.0
+          curl -fsSL -o ./kind "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-linux-amd64"
+          echo "c72eda46430f065fb45c5f70e7c957cc9209402ef309294821978677c8fb3284  kind" | sha256sum -c -
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+          kind version
+          kubectl version --client
+
+      - name: Checkout kprompt-examples
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          repository: kprompt/kprompt-examples
+          path: kprompt-examples
+
+      - name: Run magic-moment (non-interactive approve)
+        working-directory: kprompt-examples
+        env:
+          KPROMPT: ${{ github.workspace }}/bin/kprompt
+          MAGIC_MOMENT_APPROVE: "1"
+          DEMO_SECONDS: ${{ inputs.demo_seconds || '28' }}
+          CLUSTER: kprompt-mm-ci
+          STATE_ROOT: ${{ github.workspace }}/mm-state
+        run: |
+          set -euo pipefail
+          mkdir -p "$STATE_ROOT"
+          make magic-moment
+
+      - name: Run learn-second-hit
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_learn_second_hit }}
+        working-directory: kprompt-examples
+        env:
+          KPROMPT: ${{ github.workspace }}/bin/kprompt
+          DEMO_SECONDS: ${{ inputs.demo_seconds || '28' }}
+          CLUSTER: kprompt-mm-ci
+          SKIP_UP: "1"
+          STATE_ROOT: ${{ github.workspace }}/mm-state-learn2
+        run: |
+          set -euo pipefail
+          mkdir -p "$STATE_ROOT"
+          make learn-second-hit
+
+      - name: Upload Learn / proposal artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: magic-moment-state
+          path: |
+            mm-state/
+            mm-state-learn2/
+          if-no-files-found: ignore
+
+      - name: Tear down kind
+        if: always()
+        run: kind delete cluster --name kprompt-mm-ci || true
