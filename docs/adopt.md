@@ -64,3 +64,4 @@ kprompt history
 - [mcp.md](./mcp.md) — editor interop (no apply)
 - [approval.md](./approval.md) — plan → safety → approve
 - [watch.md](./watch.md) · [remember.md](./remember.md) · [session.md](./session.md) · [history.md](./history.md) — laptop AI-native habit (ADR-0022)
+- [daily-driver.md](./daily-driver.md) — one-week day-2 prompt pack

@@ -38,5 +38,6 @@ RCA packs need `--workload` (or `for <name>` in the prompt). Placeholders:
 
 ## Related
 
+- Week of single prompts (habit): [daily-driver.md](./daily-driver.md)
 - Incident RCA: [docs/investigate.md](./investigate.md) · [docs/why.md](./why.md)
 - Audit / cleanup / drift / learn: [docs/audit.md](./audit.md) · [docs/cleanup.md](./cleanup.md) · [docs/drift.md](./drift.md) · [docs/learn.md](./learn.md)

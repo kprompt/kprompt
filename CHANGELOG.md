@@ -6,6 +6,7 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ### Improvements
 
+- **Daily driver week (IC-015)** — [docs/daily-driver.md](./docs/daily-driver.md): 7 shipped day-2 prompts (health → watch → investigate → optimize → scale/rollback plans → session)
 - **MCP → PlanResult bridge story (IC-014)** — [docs/mcp.md](./docs/mcp.md) + README: IDE MCP for read/plan; apply stays CLI `--approve` (never over MCP); ide.md cross-link
 - **Laptop habit cues (IC-013)** — Quick start §5 + adopt fast-path surface `watch` / `remember` / `session` / `history` (ADR-0022); no longer buried only in the collapsed prompt catalogue
 - **First-run coach friction (IC-012)** — non-TTY bare `kprompt` names the real blocker (kube vs `init --ollama`); empty current-context no longer reads as “no kubeconfig”; ready coach tips `ollama serve` when dial `:11434` would fail; [docs/init.md](./docs/init.md) cold-machine traps
