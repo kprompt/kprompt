@@ -52,6 +52,9 @@ func TestRunGuide(t *testing.T) {
 	if !strings.Contains(s, "deterministic/heuristic") || !strings.Contains(s, "y/N") {
 		t.Fatalf("missing honesty or approval gate:\n%s", s)
 	}
+	if !strings.Contains(s, "no Secret values") || !strings.Contains(s, "no silent heal") {
+		t.Fatalf("missing IC-011 non-goals footer:\n%s", s)
+	}
 }
 
 func TestRunCheckOnlyOK(t *testing.T) {

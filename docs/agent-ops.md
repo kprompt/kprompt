@@ -4,6 +4,20 @@ Operator-facing notes for cost, RBAC, and day-2 ops ([AG-047](https://github.com
 
 Companion: [agent.md](./agent.md) · [namespace-agent.md](./namespace-agent.md) · chart [`charts/kprompt-agent`](../charts/kprompt-agent).
 
+## Demo audience (30s) — IC-010
+
+Say this **before** the wow moment so Q&A does not invent god-mode:
+
+| Claim | Reality |
+|-------|---------|
+| Who can the agent see? | **One watch namespace** — Role/RoleBinding, not ClusterRole-by-default |
+| Can it mutate? | **Observe is propose-only by default.** Apply needs human `--approve` (+ narrow policy) |
+| Secrets? | **No Secret values.** Optional Secrets watch is metadata-only when enabled |
+| Cross-namespace? | **Coordinator handoff only** — Coordinator reply never mutates (`mutateAttempted: false`) |
+| Does Learn auto-heal prod? | **No.** Learn biases ranking / `ActionConfidence` (evidence-not-proof) |
+
+Full matrix + worker isolation: [RBAC matrix](#rbac-matrix) · [Worker isolation](#worker-isolation-ag-069). Magic moment: [demo.md](./demo.md).
+
 ## Install checklist
 
 1. Pick **one watch namespace** (or one agent Deployment per ns).

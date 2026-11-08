@@ -9,6 +9,8 @@ PlanResult-shaped proposal → explicit human approval → apply → verify → 
 Analysis is deterministic/heuristic rather than LLM-backed. Apply remains behind a
 narrow `policyAuto` allowlist and `[y/N]`.
 
+**Non-goals (IC-011):** no Secret values · no silent heal · apply stays behind `[y/N]` / `--approve`. Role-scoped Observe; Coordinator never mutates — [agent-ops.md](./agent-ops.md#demo-audience-30s--ic-010).
+
 ## Usage
 
 ```bash

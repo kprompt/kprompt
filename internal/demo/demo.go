@@ -54,6 +54,7 @@ func Run(opts Options) error {
 	fmt.Fprintln(opts.Out, "")
 	fmt.Fprintln(opts.Out, "One failed rollout: Observe → PlanResult-shaped proposal → approve → apply → verify → Learn.")
 	fmt.Fprintln(opts.Out, "Analysis is deterministic/heuristic; mutation still needs a narrow policy and your y/N.")
+	fmt.Fprintln(opts.Out, "Non-goals: no Secret values · no silent heal · apply stays behind [y/N] / --approve.")
 	fmt.Fprintln(opts.Out, "")
 
 	fmt.Fprintln(opts.Out, "Prerequisites:")
