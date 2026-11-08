@@ -17,6 +17,11 @@ run_jq() {
   "$ROOT/scripts/planresult-jq-gate.sh"
 }
 
+run_doctor_cold() {
+  echo "==> doctor cold JSON"
+  "$ROOT/scripts/doctor-cold-gate.sh"
+}
+
 run_e2e_smoke() {
   if ! command -v kind >/dev/null 2>&1 || ! command -v kubectl >/dev/null 2>&1; then
     echo "==> skip kind e2e smoke (kind/kubectl not on PATH)"
@@ -35,11 +40,12 @@ run_e2e_smoke() {
 case "$mode" in
   -h|--help|help)
     cat <<'EOF'
-Usage: ./scripts/assure.sh [all|unit|jq|e2e]
+Usage: ./scripts/assure.sh [all|unit|jq|doctor|e2e|cold-install]
 
-  all   (default) unit + jq + kind smoke if available
-  unit  go test ./...
-  jq           build + multi wipe-class PlanResult jq gates
+  all          (default) unit + jq + doctor-cold + kind smoke if available
+  unit         go test ./...
+  jq           build + SEC-001 expectDenied PlanResult jq gates
+  doctor       cold doctor --json (no kube / no LLM)
   e2e          kind e2e smoke only (requires kind/kubectl/docker)
   cold-install install published release + deny jq (needs network)
 
@@ -56,6 +62,9 @@ EOF
   jq|--jq)
     run_jq
     ;;
+  doctor|--doctor|doctor-cold|--doctor-cold)
+    run_doctor_cold
+    ;;
   e2e|--e2e)
     run_e2e_smoke
     ;;
@@ -65,6 +74,7 @@ EOF
   all|"")
     run_unit
     run_jq
+    run_doctor_cold
     run_e2e_smoke
     echo
     echo "Local assure OK. For magic-moment / full e2e / cold-install see docs/assurance.md (Actions)."

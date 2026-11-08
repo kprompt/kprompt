@@ -1,12 +1,12 @@
 # Product try-path + assurance jobs (not required PR checks).
-# Daily: cold-coach · PlanResult jq · cold-install · magic-moment
+# Daily: cold-coach · doctor-cold · PlanResult jq · cold-install · magic-moment
 # Weekly (Sunday): + learn-second-hit
 # Docs: docs/assurance.md
 name: magic-moment
 
 on:
   schedule:
-    # 06:15 UTC daily — magic-moment + coach + jq + cold-install
+    # 06:15 UTC daily — magic-moment + coach + doctor + jq + cold-install
     - cron: "15 6 * * *"
     # 07:30 UTC Sunday — same + learn-second-hit
     - cron: "30 7 * * 0"
@@ -47,6 +47,20 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Hard-deny PlanResult jq contract
         run: ./scripts/planresult-jq-gate.sh
+
+  doctor-cold:
+    name: doctor cold JSON
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Cold doctor JSON contract
+        run: ./scripts/doctor-cold-gate.sh
 
   cold-install:
     name: cold install (released binary)

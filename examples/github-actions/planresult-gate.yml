@@ -28,7 +28,7 @@ jobs:
       - name: Install kprompt
         env:
           # Pin for reproducibility; bump intentionally.
-          KPROMPT_VERSION: v0.12.4
+          KPROMPT_VERSION: v0.12.5
           KPROMPT_INSTALL_DIR: ${{ runner.temp }}/bin
         run: |
           set -euo pipefail

@@ -7,9 +7,10 @@ PR CI stays fast; **tag / PH / public demos** wait on the nightly + pre-release 
 PR (required)          Nightly / weekly           Pre-release (manual)
 ─────────────────      ─────────────────          ────────────────────
 go test ./...          cold-coach                 same as nightly/weekly
-kind e2e smoke         cold-install (release)     + confirm Actions green
-                       magic-moment               then: git tag / release
-                       PlanResult jq (multi)
+kind e2e smoke         doctor-cold JSON           + confirm Actions green
+                       cold-install (release)     then: git tag / release
+                       magic-moment
+                       PlanResult jq (SEC-001)
                        (weekly) full e2e
                        (weekly) learn-second-hit
 ```
@@ -22,10 +23,11 @@ kind e2e smoke         cold-install (release)     + confirm Actions green
 | Kind e2e smoke | `ci.yml` `e2e` | every PR / push (not Dependabot) | **Yes** |
 | Kind e2e **full** | `ci.yml` `e2e` | **weekly cron** + `workflow_dispatch` → `full` | No (release blocker) |
 | Cold coach | [magic-moment.yml](../.github/workflows/magic-moment.yml) | daily + dispatch | No (release blocker) |
+| Doctor cold JSON | same `doctor-cold` | daily + dispatch | No (release blocker) |
 | Cold install (released binary) | same `cold-install` | daily + dispatch | No (release blocker) |
 | Magic-moment | same | daily + dispatch | No (release blocker) |
 | Learn second-hit | same | **weekly cron** + dispatch flag | No (release blocker) |
-| PlanResult jq (multi wipe-class) | same `planresult-jq` job | daily + dispatch | No (release blocker) |
+| PlanResult jq (SEC-001 expectDenied) | same `planresult-jq` job | daily + dispatch | No (release blocker) |
 | Examples manifests | [kprompt-examples validate](https://github.com/kprompt/kprompt-examples/actions) | examples PR | examples merge |
 
 ## Local assure
@@ -33,9 +35,10 @@ kind e2e smoke         cold-install (release)     + confirm Actions green
 From this repo:
 
 ```bash
-./scripts/assure.sh           # unit + deny jq; kind smoke if kind/kubectl present
+./scripts/assure.sh           # unit + deny jq + doctor-cold; kind smoke if available
 ./scripts/assure.sh --unit    # go test ./... only
-./scripts/assure.sh --jq      # build + multi wipe-class PlanResult jq
+./scripts/assure.sh --jq      # build + SEC-001 expectDenied PlanResult jq
+./scripts/assure.sh --doctor  # cold doctor --json (no kube / no LLM)
 KPROMPT_VERSION=v0.12.5 ./scripts/cold-install-smoke.sh   # published release → version + deny jq
 ```
 
@@ -65,7 +68,7 @@ Before `git tag v*`:
    gh workflow run ci.yml -f run_full_e2e_tests=full
    ```
 
-3. [ ] Trigger magic-moment board (cold-coach + cold-install + jq + magic-moment; add Learn if desired):
+3. [ ] Trigger magic-moment board (cold-coach + doctor-cold + cold-install + jq + magic-moment; add Learn if desired):
 
    ```bash
    gh workflow run magic-moment.yml \
@@ -87,4 +90,4 @@ Before `git tag v*`:
 ## Related
 
 - [e2e.md](./e2e.md) · [demo.md](./demo.md) · [ci.md](./ci.md) · [ci-cookbook.md](./ci-cookbook.md)
-- Scripts: [assure.sh](../scripts/assure.sh) · [planresult-jq-gate.sh](../scripts/planresult-jq-gate.sh) · [cold-install-smoke.sh](../scripts/cold-install-smoke.sh)
+- Scripts: [assure.sh](../scripts/assure.sh) · [planresult-jq-gate.sh](../scripts/planresult-jq-gate.sh) · [doctor-cold-gate.sh](../scripts/doctor-cold-gate.sh) · [cold-install-smoke.sh](../scripts/cold-install-smoke.sh)

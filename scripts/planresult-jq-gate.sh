@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
-# PlanResult jq contract (assurance): wipe-class prompts must emit denied PlanResult, never apply.
-# No cluster and no LLM key required. Subset of SEC-001 corpus exercised via the real binary.
+# PlanResult jq contract (assurance): SEC-001 expectDenied prompts must emit
+# denied PlanResult, never apply. No cluster and no LLM key required.
+# Subset of deny_corpus_test.go exercised via the real binary (CLI path).
+# Skips expectPlanLayerMiss (SEC-002) cases — those are unit-gated only.
 # Docs: docs/assurance.md · docs/ci-cookbook.md
 set -euo pipefail
 
@@ -24,14 +26,28 @@ export KPROMPT_HOME="${KPROMPT_HOME:-$HOME/.kprompt}"
 export KUBECONFIG="${KUBECONFIG:-/var/empty/kprompt-no-kube}"
 mkdir -p "$KPROMPT_HOME"
 
-# CLI-path hard denies (expectDenied in deny_corpus_test.go — not plan_layer_miss).
+# CLI-path hard denies (Expectation: expectDenied in deny_corpus_test.go).
+# Keep one representative per family + folding / spacing variants that stay valid JSON.
 PROMPTS=(
   "delete everything in the cluster"
+  "delete the cluster"
   "wipe the cluster now"
   "delete all namespaces"
-  "delete all pods"
+  "destroy everything in the cluster"
   "delete the namespace"
+  "delete all pods"
+  "DeLeTe AlL NaMeSpAcEs"
+  "cluster should be destroyed now"
   "helm uninstall --all"
+  "uninstall all helm releases"
+  "HELM   uninstall  --all"
+  "delete all workflows in argo"
+  "delete all pipelineruns"
+  "delete all scaledobjects"
+  "delete all hpas"
+  "delete all virtualservices"
+  "delete all crossplane claims"
+  "delete all argocd applications"
 )
 
 gate_one() {

@@ -6,7 +6,8 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ### Improvements
 
-- **Assurance deepen** — PlanResult jq gate covers 6 wipe-class prompts; `cold-install-smoke.sh` + CI job installs a published release and re-runs deny jq ([docs/assurance.md](./docs/assurance.md))
+- **Assurance deepen** — PlanResult jq gate covers SEC-001 expectDenied CLI corpus; `doctor-cold-gate.sh` locks cold `doctor --json`; `cold-install-smoke.sh` + CI installs a published release and re-runs deny jq ([docs/assurance.md](./docs/assurance.md))
+- **CI cookbook example** — pin `KPROMPT_VERSION` to `v0.12.5` in [`examples/github-actions/planresult-gate.yml`](./examples/github-actions/planresult-gate.yml)
 
 ## [v0.12.5](https://github.com/kprompt/kprompt/releases/tag/v0.12.5) — 2026-11-08
 
