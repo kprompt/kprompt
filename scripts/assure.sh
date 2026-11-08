@@ -39,12 +39,13 @@ Usage: ./scripts/assure.sh [all|unit|jq|e2e]
 
   all   (default) unit + jq + kind smoke if available
   unit  go test ./...
-  jq    build + PlanResult hard-deny jq gates
-  e2e   kind e2e smoke only (requires kind/kubectl/docker)
+  jq           build + multi wipe-class PlanResult jq gates
+  e2e          kind e2e smoke only (requires kind/kubectl/docker)
+  cold-install install published release + deny jq (needs network)
 
 Pre-release (remote Actions):
   gh workflow run ci.yml -f run_full_e2e_tests=full
-  gh workflow run magic-moment.yml -f demo_seconds=28 -f run_learn_second_hit=true
+  gh workflow run magic-moment.yml -f demo_seconds=28 -f run_learn_second_hit=true -f install_version=v0.12.5
 
 Docs: docs/assurance.md
 EOF
@@ -58,12 +59,15 @@ EOF
   e2e|--e2e)
     run_e2e_smoke
     ;;
+  cold-install|--cold-install)
+    KPROMPT_VERSION="${KPROMPT_VERSION:-v0.12.5}" "$ROOT/scripts/cold-install-smoke.sh"
+    ;;
   all|"")
     run_unit
     run_jq
     run_e2e_smoke
     echo
-    echo "Local assure OK. For magic-moment / full e2e see docs/assurance.md (Actions)."
+    echo "Local assure OK. For magic-moment / full e2e / cold-install see docs/assurance.md (Actions)."
     ;;
   *)
     echo "unknown mode: $mode (try --help)" >&2

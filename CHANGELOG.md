@@ -4,6 +4,10 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+### Improvements
+
+- **Assurance deepen** — PlanResult jq gate covers 6 wipe-class prompts; `cold-install-smoke.sh` + CI job installs a published release and re-runs deny jq ([docs/assurance.md](./docs/assurance.md))
+
 ## [v0.12.5](https://github.com/kprompt/kprompt/releases/tag/v0.12.5) — 2026-11-08
 
 Habit path + release assurance after v0.12.4 magic-moment reliability.

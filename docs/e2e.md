@@ -34,9 +34,9 @@ Release green board (PR vs nightly vs pre-release): [assurance.md](./assurance.m
 
 | Trigger | What |
 |---------|------|
-| Daily cron (06:15 UTC) | **planresult-jq** · **cold-coach** · **magic-moment** |
+| Daily cron (06:15 UTC) | **planresult-jq** · **cold-coach** · **cold-install** · **magic-moment** |
 | Sunday cron (07:30 UTC) | Same + **learn-second-hit** |
-| `workflow_dispatch` | Same; optional `learn-second-hit`; tunable `demo_seconds` |
+| `workflow_dispatch` | Same; optional `learn-second-hit`; `install_version` for cold-install |
 
 Heuristic / `$0` — no LLM provider key. Artifacts upload `STATE_ROOT` on failure. Board: [assurance.md](./assurance.md).
 

@@ -1,12 +1,12 @@
 # Product try-path + assurance jobs (not required PR checks).
-# Daily: cold-coach · PlanResult jq · magic-moment
+# Daily: cold-coach · PlanResult jq · cold-install · magic-moment
 # Weekly (Sunday): + learn-second-hit
 # Docs: docs/assurance.md
 name: magic-moment
 
 on:
   schedule:
-    # 06:15 UTC daily — magic-moment + coach + jq
+    # 06:15 UTC daily — magic-moment + coach + jq + cold-install
     - cron: "15 6 * * *"
     # 07:30 UTC Sunday — same + learn-second-hit
     - cron: "30 7 * * 0"
@@ -21,6 +21,10 @@ on:
         type: boolean
         required: false
         default: false
+      install_version:
+        description: "Released tag for cold-install smoke (empty = latest)"
+        required: false
+        default: "v0.12.5"
 
 permissions:
   contents: read
@@ -43,6 +47,19 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y jq
       - name: Hard-deny PlanResult jq contract
         run: ./scripts/planresult-jq-gate.sh
+
+  cold-install:
+    name: cold install (released binary)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Install published release + deny jq
+        env:
+          KPROMPT_VERSION: ${{ inputs.install_version || 'v0.12.5' }}
+        run: ./scripts/cold-install-smoke.sh
 
   cold-coach:
     name: cold install coach
