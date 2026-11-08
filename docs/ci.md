@@ -2,6 +2,8 @@
 
 `kprompt` can emit a stable **PlanResult** document for gating in pipelines.
 
+Cross-surface field map (CLI TTY · JSON · AutopilotProposal · Slack): [planresult-parity.md](./planresult-parity.md).
+
 ```bash
 kprompt "scale api to 10" -n prod --output json
 ```

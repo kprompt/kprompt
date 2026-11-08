@@ -321,7 +321,7 @@ Remembers incident signatures (reason + workload kind + bucket like crashloop/oo
 
 **Outcome learning (AG-033 · RT-001 · RT-002):** alert recovered → `Confirmed` weight up; Slack `false positive` → `FalsePositives` weight down (dampens future boost). After Autopilot apply (`--autopilot-apply` or `agent autopilot apply-proposal` / `agent proposals apply`), post-apply verify maps to `apply_success` / `apply_failed` / `apply_partial` and writes the same pattern store (success ≈ confirm; fail dampens weight, not FP). Multi-candidate proposals rank by Learn history (`LastActionID` / weight). Incident fields `lastApplyOutcome` / `lastVerifyStatus` / `lastActionId` are stamped when the correlate builder is active. Full table: [learn.md](./learn.md).
 
-**Durable proposals (RT-007 · RT-017 · RT-018 · RT-019):** `--autopilot-propose` persists proposals before notify. Slack/Discord/webhook alerts include `proposalId` and an apply hint (`agent proposals apply -n <ns> --id <id> --approve`). Slack ask `approve` is the laptop-optional path (RT-008). Inspect via `kprompt agent proposals list|show`.
+**Durable proposals (RT-007 · RT-017 · RT-018 · RT-019):** `--autopilot-propose` persists proposals before notify. Slack/Discord/webhook alerts include `proposalId` and an apply hint (`agent proposals apply -n <ns> --id <id> --approve`). Slack ask `approve` is the laptop-optional path (RT-008). Inspect via `kprompt agent proposals list|show`. Field parity vs CLI/JSON: [planresult-parity.md](./planresult-parity.md).
 
 **Post-apply verify (RT-006):** `ApplyProposal` sets `applied=true` only after T-070 verify returns `ok` (or `skipped` when no verify plan). `pending` leaves `applied=false`; `failed` clears applied and returns error.
 
