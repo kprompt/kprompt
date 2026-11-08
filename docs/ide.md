@@ -20,10 +20,14 @@ kprompt "…" -o json  →  Open PlanResult  →  review diffs  →  Approve via
                                                       └─ terminal: kprompt '…' --approve
 ```
 
+Same bridge as MCP: the editor shows a PlanResult; apply stays a local CLI
+`--approve` you run yourself. See [mcp.md](./mcp.md) (Bridge story).
+
 ## Non-goals (MVP)
 
 - Chat / Copilot-style REPL inside the editor
 - Calling `api.kprompt.ai` or applying without the CLI
 - JetBrains (later)
+- Any apply path that bypasses the CLI (including over MCP)
 
 See [ide/vscode/README.md](../ide/vscode/README.md).

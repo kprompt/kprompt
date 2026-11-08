@@ -43,6 +43,28 @@ leave your machine.
 assistant can show you, but applying it stays a human action you run yourself
 (`kprompt "…" --approve`). The MCP server exposes no approval path.
 
+## Bridge story: IDE plan → CLI apply
+
+One contract, two surfaces — same typed `PlanResult`:
+
+```text
+Cursor / Claude Desktop
+  └─ MCP tool  kprompt.plan / kprompt.investigate / …
+       └─ PlanResult JSON (risk · actions · blast radius)
+            └─ you review in the IDE
+                 └─ apply out-of-band in a terminal you control:
+                      kprompt "scale api to 3" -n payments --approve
+                      # or: kprompt history rerun N --approve
+```
+
+| Do in the IDE (MCP) | Do in the CLI |
+|---------------------|---------------|
+| `kprompt.read` / investigate / why / timeline / impact | Same prompts without MCP |
+| `kprompt.plan` → review PlanResult | `kprompt "…" --approve` after you trust the shape |
+| `kprompt.doctor` / `kprompt.tools` | `kprompt doctor` · `kprompt tools` |
+
+**Never:** ask the assistant to “just apply it” over MCP — there is no apply tool and no `--approve` flag on the wire ([ADR-0024](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0024-mcp-interop.md)). The VS Code PlanResult extension follows the same handoff: [ide.md](./ide.md).
+
 ## Editor configuration
 
 ### Cursor (`~/.cursor/mcp.json` or project `.cursor/mcp.json`)

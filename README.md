@@ -385,6 +385,17 @@ kprompt dash                                   # local read-only cluster UI (nee
 
 ---
 
+## MCP (IDE read / plan)
+
+Editors that speak MCP can call `kprompt mcp serve` for **read and plan only**. The assistant gets the same typed `PlanResult`; **apply stays in your terminal** (`kprompt "…" --approve`). There is no apply tool and no `--approve` over MCP — [docs/mcp.md](./docs/mcp.md) (bridge story) · [ADR-0024](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0024-mcp-interop.md).
+
+```bash
+# ~/.cursor/mcp.json
+# { "mcpServers": { "kprompt": { "command": "kprompt", "args": ["mcp", "serve"] } } }
+```
+
+---
+
 ## CI & PlanResult JSON
 
 Use `--output json` for a versioned `PlanResult` suitable for `jq` gates — no cluster apply required.
