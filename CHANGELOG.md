@@ -4,6 +4,18 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+## [v0.12.4](https://github.com/kprompt/kprompt/releases/tag/v0.12.4) — 2026-11-08
+
+Magic-moment reliability for Autopilot propose on failed rollouts.
+
+### Fixes
+
+- **Autopilot detect** — prefer `rollbackFailedRollout` when ImagePull/CrashLoop coincides with revision / change-cause / ReplicaSet signals (before `ProgressDeadlineExceeded`), so restart is not chosen for a bad image tag (IC-001)
+
+### Notes
+
+Experimental — prefer non-production clusters. Autopilot remains propose-only by default. Canonical $0 demo: `kprompt demo` → `make magic-moment` in [kprompt-examples](https://github.com/kprompt/kprompt-examples).
+
 ## [v0.12.3](https://github.com/kprompt/kprompt/releases/tag/v0.12.3) — 2026-09-28
 
 Local provider + config-path fixes since v0.12.2.

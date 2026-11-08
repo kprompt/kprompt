@@ -46,6 +46,17 @@ func detectCandidates(agentCtx ctxbuild.AgentContext) []candidate {
 
 	failedRollout := strings.Contains(blob, "progressdeadline") ||
 		(strings.Contains(blob, "rollout") && (strings.Contains(blob, "failed") || strings.Contains(blob, "timed out") || strings.Contains(blob, "timeout")))
+	// Classic bad-deploy shape before ProgressDeadline fires: ImagePull/CrashLoop on a
+	// new revision while change-cause / ReplicaSet language is present → prefer rollback
+	// over restart (restart cannot heal a bad image tag).
+	workloadBad := strings.Contains(blob, "crashloop") || strings.Contains(blob, "oom") ||
+		strings.Contains(blob, "imagepull") || strings.Contains(blob, "errimagepull") ||
+		strings.Contains(blob, "image pull") || strings.Contains(blob, "backoff")
+	revisionSignal := strings.Contains(blob, "revision") || strings.Contains(blob, "change-cause") ||
+		strings.Contains(blob, "change cause") || strings.Contains(blob, "replicaset")
+	if !failedRollout && workloadBad && revisionSignal {
+		failedRollout = true
+	}
 	if failedRollout {
 		out = append(out, candidate{
 			Action: ActionRollbackFailedRollout,
@@ -55,8 +66,7 @@ func detectCandidates(agentCtx ctxbuild.AgentContext) []candidate {
 		})
 	}
 
-	restartish := strings.Contains(blob, "crashloop") || strings.Contains(blob, "oom") ||
-		strings.Contains(blob, "imagepull") || strings.Contains(blob, "backoff")
+	restartish := workloadBad
 	if restartish {
 		out = append(out, candidate{
 			Action: ActionRestartDeployment,

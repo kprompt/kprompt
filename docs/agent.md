@@ -347,8 +347,8 @@ kprompt agent autopilot apply-proposal --file proposal.json --approve --policy .
 
 | Action ID | Trigger (heuristic) |
 |-----------|---------------------|
-| `rollbackFailedRollout` | ProgressDeadline / failed rollout |
-| `restartDeployment` | CrashLoop / OOM / ImagePull |
+| `rollbackFailedRollout` | ProgressDeadline / failed rollout; also ImagePull/CrashLoop when revision / change-cause / ReplicaSet signals are present (prefer over restart) |
+| `restartDeployment` | CrashLoop / OOM / ImagePull (when not a multi-revision bad deploy) |
 | `evictPod` | Node pressure / eviction signals |
 | `scaleDeployment` | Explicit scale language in RCA |
 

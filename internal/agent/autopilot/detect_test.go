@@ -28,6 +28,27 @@ func TestDetectCandidatesOverlap(t *testing.T) {
 	}
 }
 
+func TestDetectCandidatesPrefersRollbackOnRevisionImagePull(t *testing.T) {
+	// IC-001 magic-moment shape: broken rollout image before ProgressDeadlineExceeded.
+	ctx := ctxbuild.AgentContext{
+		Namespace: "payments",
+		Incident: incident.Incident{
+			Summary:         "Image pull failure",
+			RootCause:       "Image name/tag invalid; recent change-cause: kprompt-examples: revision 2 (broken image)",
+			PrimaryResource: &incident.ResourceRef{Kind: "Deployment", Name: "checkout"},
+		},
+		Deployment: &ctxbuild.DeploymentSnapshot{Name: "checkout", DesiredReplicas: 2, ReadyReplicas: 2},
+		Target:     &incident.ResourceRef{Kind: "Deployment", Name: "checkout"},
+	}
+	cands := detectCandidates(ctx)
+	if len(cands) < 1 {
+		t.Fatalf("expected candidates, got none")
+	}
+	if cands[0].Action != ActionRollbackFailedRollout {
+		t.Fatalf("want rollbackFailedRollout first for bad revision image pull, got %+v", cands)
+	}
+}
+
 func TestRankCandidatesPrefersLastAction(t *testing.T) {
 	cands := []candidate{
 		{Action: ActionRollbackFailedRollout, Base: 40},
