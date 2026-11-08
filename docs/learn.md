@@ -21,7 +21,26 @@ kprompt’s AI Runtime Learn path closes Observe → Plan → Approve → Execut
 - `kprompt agent proposals list|show|apply` — durable store (RT-007)
 - Incident fields: `lastApplyOutcome`, `lastVerifyStatus`, `lastActionId`
 
+## Second-hit demo (IC-009)
+
+Same fingerprint twice in kind — first apply writes Learn; second propose should show a **visible** `learnNote` / `actionConfidence` nudge (and higher pattern `weight` / `confirmed`).
+
+```bash
+# in kprompt-examples
+make learn-second-hit
+# artifacts under $STATE_ROOT: hit1-proposal.json · hit2-proposal.json · patterns/
+```
+
+What to say in a demo Q&A:
+
+| Question | Answer |
+|----------|--------|
+| Does it auto-fix prod? | **No.** Propose → human `--approve` → verify → Learn. |
+| What did Learn change? | Ranking / `ActionConfidence` bias for the next similar alert — **evidence, not proof**. |
+| Can weight skip Safety? | **No.** MinConfidence still uses raw alert confidence; wipe-class / policy gates unchanged. |
+
 ## Non-goals
 
 - Silent fleet heal
 - Treating Learn weight as approval to skip Safety / RemediationPolicy
+- Claiming second-hit confidence as “proven correct”

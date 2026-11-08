@@ -32,6 +32,12 @@ For the advanced multi-scenario Observe/health demo:
 make walkthrough
 ```
 
+**Second-hit Learn (IC-009)** — same failed rollout twice; show `learnNote` / `actionConfidence` bias (evidence-not-proof, no silent heal):
+
+```bash
+make learn-second-hit
+```
+
 ## After the demo
 
 ```bash
@@ -44,4 +50,5 @@ kprompt "scale api to 3"   # plan first, then y/N
 
 - [init.md](./init.md) — LLM Day-0 setup
 - [agent.md](./agent.md) — Observe agent reference
+- [learn.md](./learn.md) — Learn loop + second-hit Q&A
 - Bare `kprompt` coach points here when you want the $0 demo path
