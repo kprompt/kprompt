@@ -17,4 +17,4 @@ rollbacks / other kinds and lists highlights. No LLM essay in MVP.
 - “Today” uses the local timezone.
 - Empty digest if you have not run prompts today (or history is disabled).
 
-See also: [history.md](./history.md) · [remember.md](./remember.md).
+See also: [history.md](./history.md) · [remember.md](./remember.md) · [watch.md](./watch.md) · README [Quick start §5](../README.md#quick-start) (habit cues).

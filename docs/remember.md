@@ -26,4 +26,4 @@ profiles). Live cluster reads still win — memory is a hint, not proof.
 > patterns, Coordinator outcome ring) is spelled out in
 > [cluster-memory.md](./cluster-memory.md).
 
-See also: [history.md](./history.md) · [learn.md](./learn.md) · [session.md](./session.md) · [cluster-memory.md](./cluster-memory.md).
+See also: [history.md](./history.md) · [learn.md](./learn.md) · [session.md](./session.md) · [watch.md](./watch.md) · [cluster-memory.md](./cluster-memory.md) · README [Quick start §5](../README.md#quick-start).

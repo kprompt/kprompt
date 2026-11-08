@@ -254,6 +254,17 @@ kprompt "add HPA for redis"
 
 Run `kprompt doctor` anytime to verify kubeconfig, provider setup, integrations, and optional Team enrollment. See [docs/init.md](./docs/init.md) and [docs/providers.md](./docs/providers.md).
 
+**5. Day-2 habit (laptop AI-native)** — local only, no daemon ([ADR-0022](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0022-laptop-ai-native.md)):
+
+```bash
+kprompt watch -n payments --once   # suggest investigate/why — never applies
+kprompt remember "payment ns = Team A"   # sticky facts for the next plan
+kprompt session                    # today's digest from local history
+kprompt history                    # recent prompts/plans (~/.kprompt/history.jsonl)
+```
+
+Guides: [watch](./docs/watch.md) · [remember](./docs/remember.md) · [session](./docs/session.md) · [history](./docs/history.md). Always-on cluster watching stays [`kprompt agent`](./docs/agent.md) / Helm — laptop `watch` is a foreground scan.
+
 ---
 
 ## Usage
@@ -305,13 +316,12 @@ kprompt "cleanup unused resources" -n payments
 kprompt "why is my api slow?" -n production
 kprompt "show service dependency graph"
 kprompt "why is api slow then scale api to 4"  # multi-tool chain, one approval
-kprompt watch -n payments --once
-kprompt remember "payment ns = Team A"
-kprompt session
 kprompt login
 ```
 
 </details>
+
+Laptop habit commands (`watch` / `remember` / `session` / `history`) live in [Quick start §5](#quick-start) so they are not buried here.
 
 Generic get/list works for discoverable built-ins and CRDs (Node, ConfigMap, Secret, …) — see [docs/kubernetes-reads.md](./docs/kubernetes-reads.md).
 
@@ -347,6 +357,8 @@ Deploy in-cluster via Helm: [`charts/kprompt-agent`](./charts/kprompt-agent) · 
 
 ## History & sessions
 
+Quick start already surfaces the day-2 habit trio (`watch` · `remember` · `session`). This section is the `history` detail surface:
+
 ```bash
 kprompt history                          # last 20 prompts/plans (~/.kprompt/history.jsonl)
 kprompt history --namespace payments     # filter by namespace
@@ -355,6 +367,7 @@ kprompt history rerun                     # replay newest prompt
 kprompt history rerun 3 --approve
 kprompt history show 1                    # inspect one entry
 kprompt history clear                     # clear with confirmation (--approve to skip)
+kprompt session                          # day digest from the same JSONL (no second LLM)
 ```
 
 History stores prompt, kind, summary, and action refs — **never manifests or API keys**. Filters are case-insensitive exact matches and can be combined.

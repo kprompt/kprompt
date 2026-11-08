@@ -37,6 +37,12 @@ kprompt "optimize my cluster"
 
 # 6. Mutation: plan on TTY; --approve only after you trust the shape
 kprompt "scale <workload> to 3" -n <ns>
+
+# 7. Day-2 habit (laptop AI-native — ADR-0022; local only)
+kprompt watch -n <ns> --once
+kprompt remember "<ns> = Team A"
+kprompt session
+kprompt history
 ```
 
 ## Rules of thumb
@@ -47,6 +53,7 @@ kprompt "scale <workload> to 3" -n <ns>
 | Read prompts first (explain / why / optimize / graph) | First session on production with `--approve` |
 | [`kprompt mcp serve`](./mcp.md) for IDE investigate / plan | Expecting MCP to apply mutations |
 | [`kprompt setup`](./setup.md) only for true gaps (dry-run → approve) | Installing a second Prometheus “so the demo is green” |
+| Laptop `watch` / `remember` / `session` as daily habit | Treating laptop `watch` as a replacement for in-cluster `agent` |
 
 ## Related
 
@@ -56,3 +63,4 @@ kprompt "scale <workload> to 3" -n <ns>
 - [setup.md](./setup.md) — approve-gated bootstrap when something is truly missing
 - [mcp.md](./mcp.md) — editor interop (no apply)
 - [approval.md](./approval.md) — plan → safety → approve
+- [watch.md](./watch.md) · [remember.md](./remember.md) · [session.md](./session.md) · [history.md](./history.md) — laptop AI-native habit (ADR-0022)

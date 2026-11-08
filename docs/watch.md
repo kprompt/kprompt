@@ -26,4 +26,4 @@ Reads Pods + recent Warning Events and prints **suggestions** such as
 - No fake Prom latency alerts without a configured querier in this MVP.
 - Suggestions are hints — you still run investigate/why under the normal approval loop.
 
-See also: [agent.md](./agent.md) · [investigate.md](./investigate.md).
+See also: [agent.md](./agent.md) · [investigate.md](./investigate.md) · [remember.md](./remember.md) · [session.md](./session.md) · README [Quick start §5](../README.md#quick-start).
