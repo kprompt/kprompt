@@ -7,11 +7,14 @@ Does **not** create clusters, install Helm/Prometheus, or enroll Team (`kprompt 
 ## Quick path
 
 ```bash
-# $0 local LLM
+# 1) Point kubeconfig at a live cluster (or run: kprompt demo)
+kubectl cluster-info
+
+# 2) $0 local LLM — keep ollama running before the first NL plan
 ollama serve && ollama pull llama3.2
 kprompt init --ollama
 
-# BYOK
+# BYOK (instead of Ollama)
 kprompt init --provider openai
 export KPROMPT_OPENAI_API_KEY=sk-...
 ```
@@ -19,10 +22,13 @@ export KPROMPT_OPENAI_API_KEY=sk-...
 Then:
 
 ```bash
+kprompt                 # readiness coach (TTY) / brief next step (pipes)
 kprompt doctor
 kprompt "list pods"
 kprompt "how's my cluster"   # no LLM key
 ```
+
+**Cold-machine traps (IC-012):** a bare non-TTY `kprompt` used to always say `init --ollama` even when the real blocker was kube — fixed to name the actual next step. `init --ollama` only writes prefs; it does not start Ollama or create a cluster. If plans dial `:11434` and fail, run `ollama serve`. If coach says `current-context unset`, run `kubectl config get-contexts` / `kubectl config use-context …`.
 
 ## Flags
 

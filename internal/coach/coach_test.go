@@ -158,3 +158,73 @@ func TestFormatBrief(t *testing.T) {
 		t.Fatalf("%s", buf.String())
 	}
 }
+
+func TestFormatBriefKubeOnly(t *testing.T) {
+	var buf bytes.Buffer
+	st := Status{
+		LLMOK:     true,
+		LLMDetail: "ollama · llama3.2",
+		KubeOK:    false,
+		ClusterOK: false,
+	}
+	if err := FormatBrief(&buf, st); err != nil {
+		t.Fatal(err)
+	}
+	out := buf.String()
+	if strings.Contains(out, "init --ollama") {
+		t.Fatalf("kube-only blocker must not push init:\n%s", out)
+	}
+	if !strings.Contains(out, "kubeconfig") {
+		t.Fatalf("want kubeconfig hint:\n%s", out)
+	}
+	if !strings.Contains(out, "kprompt demo") {
+		t.Fatalf("want demo fallback:\n%s", out)
+	}
+}
+
+func TestGatherEmptyCurrentContext(t *testing.T) {
+	dir := t.TempDir()
+	t.Setenv("HOME", dir)
+	t.Setenv("KPROMPT_HOME", dir+"/.kprompt")
+
+	if _, err := config.SetField("provider", "ollama"); err != nil {
+		t.Fatal(err)
+	}
+
+	st, err := Gather(context.Background(), "test", Options{
+		CurrentContext: func() (string, error) { return "", nil },
+		Detect: func(context.Context, tools.DetectOptions) (*tools.Registry, error) {
+			return tools.NewRegistry([]tools.Result{
+				{ID: tools.IDKubernetes, Name: "Kubernetes", Status: tools.StatusUnavailable, Hint: "Kubernetes is not reachable."},
+			}), nil
+		},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if st.KubeOK {
+		t.Fatalf("empty current-context must not be KubeOK: %+v", st)
+	}
+	if !strings.Contains(st.KubeDetail, "current-context unset") {
+		t.Fatalf("want unset hint, got %q", st.KubeDetail)
+	}
+}
+
+func TestFormatReadyOllamaTip(t *testing.T) {
+	var buf bytes.Buffer
+	st := Status{
+		Version:       "1.0.0",
+		KubeOK:        true,
+		KubeDetail:    "ctx",
+		LLMOK:         true,
+		LLMDetail:     "ollama · llama3.2",
+		ClusterOK:     true,
+		ClusterDetail: "reachable",
+	}
+	if err := Format(&buf, st); err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(buf.String(), "ollama serve") {
+		t.Fatalf("want ollama tip:\n%s", buf.String())
+	}
+}

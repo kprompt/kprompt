@@ -56,11 +56,11 @@ func Gather(ctx context.Context, version string, opts Options) (Status, error) {
 	if name, err := curCtx(); err == nil && strings.TrimSpace(name) != "" {
 		s.KubeOK = true
 		s.KubeDetail = name
+	} else if err != nil {
+		s.KubeDetail = shortErr(err)
 	} else {
-		s.KubeDetail = "no kubeconfig"
-		if err != nil {
-			s.KubeDetail = shortErr(err)
-		}
+		// Config may exist with an empty current-context (common after kind delete / fresh install).
+		s.KubeDetail = "current-context unset — kubectl config get-contexts"
 	}
 
 	s.LLMOK, s.LLMDetail = llmStatus(file)
@@ -142,6 +142,10 @@ func Format(w io.Writer, s Status) error {
 		fmt.Fprintln(w, "Try:")
 		fmt.Fprintln(w, `  kprompt "list pods"`)
 		fmt.Fprintln(w, `  kprompt "how's my cluster"`)
+		if strings.Contains(strings.ToLower(s.LLMDetail), "ollama") {
+			fmt.Fprintln(w, "")
+			fmt.Fprintln(w, "If dial :11434 fails: ollama serve && ollama pull llama3.2")
+		}
 		fmt.Fprintln(w, "")
 		fmt.Fprintln(w, "More: kprompt doctor · kprompt --help")
 		return nil
@@ -168,14 +172,25 @@ func Format(w io.Writer, s Status) error {
 	return nil
 }
 
-// FormatBrief is a one-screen non-TTY hint.
+// FormatBrief is a one-screen non-TTY hint. Prefer the real blocker over a blanket init.
 func FormatBrief(w io.Writer, s Status) error {
 	if s.Ready() {
 		fmt.Fprintln(w, `kprompt: ready — try: kprompt "list pods"`)
 		return nil
 	}
-	fmt.Fprintln(w, "kprompt: not ready — run: kprompt init --ollama")
-	fmt.Fprintln(w, "  or: kprompt doctor")
+	switch {
+	case !s.LLMOK && (!s.ClusterOK || !s.KubeOK):
+		fmt.Fprintln(w, "kprompt: not ready — run: kprompt init --ollama")
+		fmt.Fprintln(w, "  then: kubectl cluster-info  (or: kprompt demo · kprompt doctor)")
+	case !s.LLMOK:
+		fmt.Fprintln(w, "kprompt: not ready — run: kprompt init --ollama")
+		fmt.Fprintln(w, "  or: kprompt init --provider openai · kprompt doctor")
+	case !s.ClusterOK || !s.KubeOK:
+		fmt.Fprintln(w, "kprompt: not ready — fix kubeconfig (kubectl cluster-info)")
+		fmt.Fprintln(w, "  or: kprompt demo · kprompt doctor")
+	default:
+		fmt.Fprintln(w, "kprompt: not ready — run: kprompt doctor")
+	}
 	return nil
 }
 
