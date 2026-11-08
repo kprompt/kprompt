@@ -49,7 +49,16 @@ Mutating multi-context runs still use per-context approval (or `--approve-each-c
 
 Interactive confirms use `Apply …? [y/N]`. CI / non-TTY mutates use **`--approve`** (primary flag). Multi-context mutates need `--approve-each-context`. Full table: [approval.md](./approval.md).
 
-## Gate on risk (example)
+## Cookbook — copy-paste GitHub Action (IC-007)
+
+**Example only** (plan-only gates; no `--approve` by default):
+
+- Guide: [ci-cookbook.md](./ci-cookbook.md)
+- Workflow: [`examples/github-actions/planresult-gate.yml`](../examples/github-actions/planresult-gate.yml)
+
+Copy the YAML into `.github/workflows/`, set secret `KPROMPT_KUBECONFIG_B64`, edit prompt/namespace, open a PR.
+
+## Gate on risk (shell example)
 
 ```bash
 #!/usr/bin/env bash
@@ -57,7 +66,7 @@ set -euo pipefail
 json="$(kprompt "scale api to 10" -n prod -o json)"
 echo "$json" | jq -e '.risk.denied == false' >/dev/null
 echo "$json" | jq -e '.plan.intent == "scale"' >/dev/null
-# Optional: require human or bot to apply later
+# Optional: require human or bot to apply later (not part of the default cookbook)
 kprompt "scale api to 10" -n prod --approve --wait
 ```
 

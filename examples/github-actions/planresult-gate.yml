@@ -1,0 +1,115 @@
+# IC-007 — Example only (not production policy).
+#
+# Copy into your repo as .github/workflows/kprompt-planresult-gate.yml
+# and edit the prompt / namespace / gates for your cluster.
+#
+# Honesty:
+# - kprompt is experimental — review every plan; prefer non-prod first.
+# - This workflow is PLAN-ONLY (no --approve). Nothing mutates the cluster.
+# - You must supply a kubeconfig (OIDC, cloud auth, or a short-lived kubeconfig secret).
+# - jq gates are examples — tighten them for your risk model.
+#
+# Docs: https://kprompt.ai/docs/ci · https://github.com/kprompt/kprompt/blob/main/docs/ci-cookbook.md
+
+name: kprompt PlanResult gate
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  plan-gate:
+    name: Plan only — gate on PlanResult JSON
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install kprompt
+        env:
+          # Pin for reproducibility; bump intentionally.
+          KPROMPT_VERSION: v0.12.4
+          KPROMPT_INSTALL_DIR: ${{ runner.temp }}/bin
+        run: |
+          set -euo pipefail
+          mkdir -p "$KPROMPT_INSTALL_DIR"
+          curl -fsSL https://kprompt.ai/install | bash
+          echo "$KPROMPT_INSTALL_DIR" >> "$GITHUB_PATH"
+          kprompt version
+
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
+      - name: Write kubeconfig
+        env:
+          # Base64-encoded kubeconfig for a staging / sandbox cluster.
+          KUBECONFIG_B64: ${{ secrets.KPROMPT_KUBECONFIG_B64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${KUBECONFIG_B64:-}" ]]; then
+            echo "Missing secret KPROMPT_KUBECONFIG_B64 (base64 kubeconfig)." >&2
+            echo "Example is plan-only against YOUR cluster — see docs/ci-cookbook.md" >&2
+            exit 1
+          fi
+          mkdir -p "$HOME/.kube"
+          echo "$KUBECONFIG_B64" | base64 -d > "$HOME/.kube/config"
+          chmod 600 "$HOME/.kube/config"
+          echo "KUBECONFIG=$HOME/.kube/config" >> "$GITHUB_ENV"
+
+      - name: Emit PlanResult (no apply)
+        id: plan
+        env:
+          # Read/mutate intent you want to gate — keep plan-only (no --approve).
+          KPROMPT_PROMPT: 'scale api to 3'
+          KPROMPT_NAMESPACE: payments
+        run: |
+          set -euo pipefail
+          # Human confirmations go to stderr in JSON mode; capture stdout only.
+          kprompt "$KPROMPT_PROMPT" -n "$KPROMPT_NAMESPACE" -o json > planresult.json
+          echo "Wrote planresult.json"
+          jq '{kind, schemaVersion, intent: .plan.intent, risk, applied, blast: .blastRadius.namespaces}' planresult.json
+
+      - name: Gate on PlanResult
+        run: |
+          set -euo pipefail
+          json=planresult.json
+
+          # Hard deny (wipe / unsafe) must never pass.
+          jq -e '.risk.denied == false' "$json" >/dev/null
+
+          # Example: only allow a scale plan through this gate.
+          jq -e '.plan.intent == "scale"' "$json" >/dev/null
+
+          # Example: refuse deletes in this workflow.
+          jq -e '[.plan.actions[].op] | index("delete") | not' "$json" >/dev/null
+
+          # Example: blast radius stays in one namespace (when blastRadius is present).
+          jq -e '((.blastRadius.namespaces // [.plan.namespace]) | length) <= 1' "$json" >/dev/null
+
+          # Plan-only: applied must stay false.
+          jq -e '.applied == false' "$json" >/dev/null
+
+          echo "PlanResult gates passed (plan-only)."
+
+      - name: Upload PlanResult artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: planresult
+          path: planresult.json
+
+  # Optional second stage — NOT enabled by default.
+  # Uncomment and attach a GitHub Environment with required reviewers if you
+  # truly want CI to apply after human approval. Prefer GitOps PR mode instead.
+  #
+  # apply:
+  #   needs: plan-gate
+  #   if: github.ref == 'refs/heads/main'
+  #   environment: staging-approve
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - name: Install kprompt + kubeconfig
+  #       …same as above…
+  #     - name: Apply with --approve --wait
+  #       run: |
+  #         kprompt "scale api to 3" -n payments --approve --wait -o json | tee apply.json
+  #         jq -e '.applied == true and (.verify.status == "ok" or .verify == null)' apply.json

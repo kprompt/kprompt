@@ -6,6 +6,7 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ### Improvements
 
+- **CI PlanResult cookbook (IC-007)** — copy-paste GitHub Action example (`examples/github-actions/planresult-gate.yml`) + [docs/ci-cookbook.md](./docs/ci-cookbook.md); plan-only `jq` gates, no default `--approve`
 - **Slack/Discord approve vocabulary (IC-006)** — alerts label **Approve (CLI)** / **Approve (Slack ask)** with the same risk words as the CLI; optional Impact line from proposal `expectedImpact`; Slack `help` states equivalence to `Apply this plan? [y/N]` / `--approve`
 
 ## [v0.12.4](https://github.com/kprompt/kprompt/releases/tag/v0.12.4) — 2026-11-08

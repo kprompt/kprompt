@@ -50,6 +50,7 @@ Slack/Discord alerts may also show a short **Impact** line from the proposal (`e
 ## Related
 
 - [ci.md](./ci.md) — JSON schema + jq gates  
+- [ci-cookbook.md](./ci-cookbook.md) — copy-paste GitHub Action (IC-007, example only)  
 - [approval.md](./approval.md) — full approve vocabulary  
 - [agent.md](./agent.md) — Observe + proposals + Slack ask  
 - [demo.md](./demo.md) — magic-moment path  

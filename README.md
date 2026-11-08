@@ -380,6 +380,8 @@ Use `--output json` for a versioned `PlanResult` suitable for `jq` gates — no 
 kprompt "scale api to 3" -n payments --output json | jq '.risk'
 ```
 
+**Cookbook (example only):** copy-paste GitHub Action that installs kprompt, emits a plan-only `PlanResult`, and fails on `jq` gates — [docs/ci-cookbook.md](./docs/ci-cookbook.md) · [`examples/github-actions/planresult-gate.yml`](./examples/github-actions/planresult-gate.yml).
+
 Multi-context reads and optimizes emit a `MultiContextResult`. Cluster/kubeconfig failures print short, actionable hints (missing config, bad context, RBAC deny, unreachable API).
 
 See [docs/ci.md](./docs/ci.md) · [docs/multi-cluster.md](./docs/multi-cluster.md) · [PlanResult JSON deep dive](https://kprompt.ai/blog/planresult-json-deep-dive).
