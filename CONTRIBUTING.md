@@ -46,6 +46,14 @@ go build -o bin/kprompt ./cmd/kprompt
 ./bin/kprompt doctor
 ```
 
+Local assurance board (unit + hard-deny PlanResult jq; kind smoke if available):
+
+```bash
+./scripts/assure.sh
+```
+
+See [docs/assurance.md](./docs/assurance.md) for nightly / pre-release gates.
+
 Optional kind E2E:
 
 ```bash

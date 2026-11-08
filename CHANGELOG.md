@@ -6,6 +6,7 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ### Improvements
 
+- **Release assurance board** — [docs/assurance.md](./docs/assurance.md) · `./scripts/assure.sh` · PlanResult hard-deny jq job · weekly full kind e2e cron · weekly learn-second-hit on magic-moment schedule
 - **Magic-moment CI** — `.github/workflows/magic-moment.yml`: nightly + `workflow_dispatch` runs `MAGIC_MOMENT_APPROVE=1 make magic-moment` on kind (build this repo + kprompt-examples); cold-coach job covers empty-HOME / ollama-prefs first-run briefs
 - **Demo safety cues (IC-010 / IC-011)** — [docs/agent-ops.md](./docs/agent-ops.md) 30s RBAC/isolation one-pager; `kprompt demo` + demo.md non-goals footer (no Secret values · no silent heal)
 - **Learn second-hit docs (IC-009)** — [docs/learn.md](./docs/learn.md) + [docs/demo.md](./docs/demo.md) point at `make learn-second-hit` (evidence-not-proof Q&A)

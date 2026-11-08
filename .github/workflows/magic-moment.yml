@@ -1,11 +1,15 @@
-# IC-001 try-path automation: kind → failed rollout → proposal → approve → verify → Learn.
-# Heuristic / $0 — no LLM key. Not a PR required check (kind + duration); run nightly + on demand.
+# Product try-path + assurance jobs (not required PR checks).
+# Daily: cold-coach · PlanResult jq · magic-moment
+# Weekly (Sunday): + learn-second-hit
+# Docs: docs/assurance.md
 name: magic-moment
 
 on:
   schedule:
-    # 06:15 UTC daily — off peak vs unit CI
+    # 06:15 UTC daily — magic-moment + coach + jq
     - cron: "15 6 * * *"
+    # 07:30 UTC Sunday — same + learn-second-hit
+    - cron: "30 7 * * 0"
   workflow_dispatch:
     inputs:
       demo_seconds:
@@ -26,6 +30,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  planresult-jq:
+    name: PlanResult jq (hard-deny)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+      - name: Hard-deny PlanResult jq contract
+        run: ./scripts/planresult-jq-gate.sh
+
   cold-coach:
     name: cold install coach
     runs-on: ubuntu-latest
@@ -119,7 +137,8 @@ jobs:
           make magic-moment
 
       - name: Run learn-second-hit
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_learn_second_hit }}
+        # Weekly Sunday cron, or explicit workflow_dispatch flag
+        if: ${{ (github.event_name == 'schedule' && github.event.schedule == '30 7 * * 0') || (github.event_name == 'workflow_dispatch' && inputs.run_learn_second_hit) }}
         working-directory: kprompt-examples
         env:
           KPROMPT: ${{ github.workspace }}/bin/kprompt

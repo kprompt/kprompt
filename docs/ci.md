@@ -85,7 +85,7 @@ echo "$json" | jq -e '.verify.status == "ok"'
 
 ## Kind e2e in Actions
 
-Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) job **`e2e`**: installs kind (checksum-verified) and kubectl (SHA-pinned action), then runs a smoke subset on every PR/push to `main`. Full suite: **Actions → ci → Run workflow → `full`**. Details: [e2e.md](./e2e.md).
+Workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) job **`e2e`**: installs kind (checksum-verified) and kubectl (SHA-pinned action), then runs a smoke subset on every PR/push to `main`. Full suite: weekly Sunday cron + **Actions → ci → Run workflow → `full`**. Nightly magic-moment / cold-coach / PlanResult jq: [magic-moment.yml](../.github/workflows/magic-moment.yml). Green board: [assurance.md](./assurance.md). Details: [e2e.md](./e2e.md).
 
 ## Team org ingest (this repo’s Actions)
 

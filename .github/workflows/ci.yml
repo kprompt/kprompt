@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # Weekly full kind e2e (assurance) — smoke still runs on every PR/push
+  schedule:
+    - cron: "0 7 * * 0"
   workflow_dispatch:
     inputs:
       run_full_e2e_tests:
@@ -67,13 +70,14 @@ jobs:
           kind version
           kubectl version --client
       - name: E2E smoke
-        if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_full_e2e_tests == 'smoke' }}
+        if: ${{ github.event_name != 'schedule' && (github.event_name != 'workflow_dispatch' || inputs.run_full_e2e_tests == 'smoke') }}
         run: >
           go test -tags=e2e ./test/e2e/
           -run 'TestGenericReadMatrixOnKind|TestDeployRedisOnKind|TestAgentWatchPodsEvents'
           -count=1 -v -timeout 10m
       - name: E2E full
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.run_full_e2e_tests == 'full' }}
+        # Weekly Sunday cron, or workflow_dispatch → full (docs/assurance.md)
+        if: ${{ github.event_name == 'schedule' || (github.event_name == 'workflow_dispatch' && inputs.run_full_e2e_tests == 'full') }}
         run: go test -tags=e2e ./test/e2e/ -count=1 -v -timeout 15m
 
   # Team SCM demo (A-065 / A-069): stub PlanResult upload when org token is set.

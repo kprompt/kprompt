@@ -20,10 +20,13 @@ go test -tags=e2e ./test/e2e/ -run 'TestGenericReadMatrixOnKind|TestListDeployme
 | Trigger | Suite |
 |---------|--------|
 | `push` / `pull_request` | **Smoke** — `TestGenericReadMatrixOnKind`, `TestDeployRedisOnKind`, `TestAgentWatchPodsEvents` (10m) |
+| `schedule` (Sunday 07:00 UTC) | **Full** `./test/e2e/` (15m) — release assurance |
 | `workflow_dispatch` → `full` | Full `./test/e2e/` (15m) |
 | Dependabot PRs | Job skipped |
 
 No cluster secrets required (stub LLM). Fork PRs can run smoke like other PRs.
+
+Release green board (PR vs nightly vs pre-release): [assurance.md](./assurance.md) · `./scripts/assure.sh`.
 
 ## Magic-moment automation (product try path)
 
@@ -31,11 +34,11 @@ No cluster secrets required (stub LLM). Fork PRs can run smoke like other PRs.
 
 | Trigger | What |
 |---------|------|
-| Daily cron (06:15 UTC) | Build this repo → checkout `kprompt-examples` → `MAGIC_MOMENT_APPROVE=1 make magic-moment` |
+| Daily cron (06:15 UTC) | **planresult-jq** · **cold-coach** · **magic-moment** |
+| Sunday cron (07:30 UTC) | Same + **learn-second-hit** |
 | `workflow_dispatch` | Same; optional `learn-second-hit`; tunable `demo_seconds` |
-| Same workflow | **cold-coach** job — empty `HOME` bare `kprompt` + ollama-prefs kube brief (IC-012) |
 
-Heuristic / `$0` — no LLM provider key. Artifacts upload `STATE_ROOT` on failure.
+Heuristic / `$0` — no LLM provider key. Artifacts upload `STATE_ROOT` on failure. Board: [assurance.md](./assurance.md).
 
 Optional cleanup:
 
