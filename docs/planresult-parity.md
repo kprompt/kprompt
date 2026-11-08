@@ -26,16 +26,20 @@ Canonical planning matrix: [PLANRESULT-MATRIX.md](https://github.com/kprompt/kpr
 | Applied | Session | `applied` | `applied` + `decision` | Pre-apply alert |
 | Verify / Learn | `--wait` / verify UX | `verify` optional | `verifyStatus` / `outcome` / `learnNote` | Not in alert |
 
-## Approve vocabulary
+## Approve vocabulary (next to CLI `y/N`)
 
-| Context | How |
-|---------|-----|
-| Interactive CLI | `Apply this plan? [y/N]` → `y` |
-| CI / non-TTY | `--approve` ([approval.md](./approval.md)) |
-| Stored proposal | `kprompt agent proposals apply -n <ns> --id <id> --approve` |
-| Slack ask | `approve <proposal-id>` |
+| Context | How | Same as |
+|---------|-----|---------|
+| Interactive CLI | `Apply this plan? [y/N]` → `y` | — |
+| CI / non-TTY | `--approve` ([approval.md](./approval.md)) | TTY `y` |
+| Stored proposal | `kprompt agent proposals apply -n <ns> --id <id> --approve` | TTY `y` / `--approve` |
+| Slack ask | `approve <proposal-id>` (alias: `apply <id>`) | `--approve` on that proposal |
+| Slack/Discord alert | Shows CLI hint + (Slack) ask phrase | Points at the rows above |
+| Discord | Notify only — use CLI hint | — |
 
-Risk labels: `low` · `medium` · `high` · `denied`.
+Risk labels (all surfaces): `low` · `medium` · `high` · `denied`.
+
+Slack/Discord alerts may also show a short **Impact** line from the proposal (`expectedImpact`). That is not a substitute for TTY blast-radius review.
 
 ## Honesty
 

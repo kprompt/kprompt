@@ -53,10 +53,14 @@ func AttachProposalToAlert(alert *incident.AgentAlert, prop *Proposal) {
 	alert.ProposalID = prop.ID
 	alert.ProposalAction = prop.ActionID
 	alert.ProposalRisk = prop.Risk
+	if impact := strings.TrimSpace(prop.ExpectedImpact); impact != "" {
+		alert.ProposalImpact = impact
+	}
 	ns := strings.TrimSpace(prop.Namespace)
 	if ns == "" {
 		ns = alert.Namespace
 	}
+	// Same approve vocabulary as CLI --approve / TTY "Apply this plan? [y/N]".
 	alert.ProposalHint = fmt.Sprintf(
 		"kprompt agent proposals apply -n %s --id %s --approve",
 		ns, prop.ID,

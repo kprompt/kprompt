@@ -176,9 +176,13 @@ func FormatAlert(a incident.AgentAlert) string {
 	}
 	if a.ProposalID != "" {
 		fmt.Fprintf(&b, "**Proposal:** `%s` · action `%s` · risk `%s`\n", a.ProposalID, a.ProposalAction, a.ProposalRisk)
-		if a.ProposalHint != "" {
-			fmt.Fprintf(&b, "**Apply:** `%s`\n", a.ProposalHint)
+		if a.ProposalImpact != "" {
+			fmt.Fprintf(&b, "**Impact:** %s\n", a.ProposalImpact)
 		}
+		if a.ProposalHint != "" {
+			fmt.Fprintf(&b, "**Approve (CLI):** `%s`\n", a.ProposalHint)
+		}
+		fmt.Fprintf(&b, "_Discord notify-only — approve via CLI (same as `[y/N]` / `--approve`), or Slack ask if enabled_\n")
 	}
 	if len(a.Affected) > 0 {
 		parts := make([]string, 0, len(a.Affected))

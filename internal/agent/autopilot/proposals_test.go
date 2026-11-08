@@ -62,10 +62,14 @@ func TestAttachProposalToAlert(t *testing.T) {
 	prop := &Proposal{
 		ID: "ap-9", Namespace: "payments", ActionID: ActionRollbackFailedRollout,
 		Decision: DecisionProposed, Risk: "medium",
+		ExpectedImpact: "Traffic returns to the last successful ReplicaSet",
 	}
 	AttachProposalToAlert(&alert, prop)
 	if alert.ProposalID != "ap-9" || alert.ProposalAction == "" || alert.ProposalHint == "" {
 		t.Fatalf("%+v", alert)
+	}
+	if alert.ProposalImpact == "" || alert.ProposalRisk != "medium" {
+		t.Fatalf("impact/risk not stamped: %+v", alert)
 	}
 	if !strings.Contains(alert.ProposalHint, "--approve") {
 		t.Fatalf("hint=%q", alert.ProposalHint)

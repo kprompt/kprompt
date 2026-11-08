@@ -238,7 +238,17 @@ Secrets are never watched implicitly and only metadata (type + key count) is emi
 
 **Durable incidents (AG-032):** `--incidents-backend file|configmap` persists open incidents / Slack thread ts across restarts (`~/.config/kprompt/incidents` or ConfigMap `kprompt-incident-state`).
 
-**Slack ask (AG-019 · RT-008):** `--slack-ask` listens on `--slack-ask-addr` (default `:8080`) for Slack Events (`status` / `why` / `what broke` / `false positive` / `approve <proposal-id>`). Read-only except **approve**, which loads a durable proposal from `--proposals` and applies under RemediationPolicy `policyAuto` + `apply=true` (same Safety/allowlist/verify path as CLI). With `--patterns`, `false positive` dampens future “seen before” boosts (AG-033). Requires bot token mode + Events API URL (or port-forward).
+**Slack ask (AG-019 · RT-008 · IC-006):** `--slack-ask` listens on `--slack-ask-addr` (default `:8080`) for Slack Events. Read-only except **approve**, which loads a durable proposal from `--proposals` and applies under RemediationPolicy `policyAuto` + `apply=true` (same Safety/allowlist/verify path as CLI `Apply this plan? [y/N]` / `--approve`). With `--patterns`, `false positive` dampens future “seen before” boosts (AG-033). Requires bot token mode + Events API URL (or port-forward).
+
+| Slack ask phrase | CLI equivalent |
+|------------------|----------------|
+| `approve <proposal-id>` | `agent proposals apply -n <ns> --id <id> --approve` |
+| `apply <proposal-id>` | same (alias) |
+| `status` / `why` / `what broke` | read-only Observe Q&A |
+| `false positive` / `fp` | Learn FP (needs `--patterns`) |
+| `help` | lists phrases + risk words (`low`/`medium`/`high`/`denied`) |
+
+Discord alerts are notify-only — use the **Approve (CLI)** hint. Full vocabulary: [approval.md](./approval.md) · field map: [planresult-parity.md](./planresult-parity.md).
 
 **Coordinator handoff (AG-036 · AG-037 · AG-048…AG-053 · AG-059 · AG-060):** Ns agents POST with `--coordinator-url`. Run the thin fan-in with `kprompt agent coordinator --addr :9090` (or Helm [`charts/kprompt-coordinator`](../charts/kprompt-coordinator)). Optional `--probe-kube` enables a read-only Pods/Events probe of `suspectNamespace`. Returns `CoordinatorReply` with merged InvestigationReport; with `--slack` (bot token) the reply is posted into the incident thread, and `--webhook` gets a JSON follow-up. **Shared Knowledge:** `GET /v1/knowledge` (and `kprompt agent coordinator knowledge`) summarizes handoff edges; Helm defaults to ConfigMap persistence (`--knowledge-backend configmap`, AG-060) — still not a full continuous blast-radius product graph ([coordinator-knowledge.md](./coordinator-knowledge.md)). **Mutate stays off** ([ADR-0017](https://github.com/kprompt/kprompt-architecture/blob/main/decisions/ADR-0017-coordinator.md)).
 

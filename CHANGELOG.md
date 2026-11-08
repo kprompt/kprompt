@@ -4,6 +4,10 @@ All notable changes to kprompt are documented here. Versions follow [GitHub Rele
 
 ## Unreleased
 
+### Improvements
+
+- **Slack/Discord approve vocabulary (IC-006)** — alerts label **Approve (CLI)** / **Approve (Slack ask)** with the same risk words as the CLI; optional Impact line from proposal `expectedImpact`; Slack `help` states equivalence to `Apply this plan? [y/N]` / `--approve`
+
 ## [v0.12.4](https://github.com/kprompt/kprompt/releases/tag/v0.12.4) — 2026-11-08
 
 Magic-moment reliability for Autopilot propose on failed rollouts.

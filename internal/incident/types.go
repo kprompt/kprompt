@@ -128,8 +128,10 @@ type AgentAlert struct {
 	// RT-017 · RT-018: optional AutopilotProposal bridge (propose path; never silent apply).
 	ProposalID     string `json:"proposalId,omitempty"`
 	ProposalAction string `json:"proposalAction,omitempty"`
-	ProposalRisk   string `json:"proposalRisk,omitempty"`
-	ProposalHint   string `json:"proposalHint,omitempty"` // CLI apply instructions
+	ProposalRisk   string `json:"proposalRisk,omitempty"` // low|medium|high|denied — same words as CLI
+	ProposalHint   string `json:"proposalHint,omitempty"` // CLI: agent proposals apply … --approve
+	// IC-006: compact impact line from AutopilotProposal.expectedImpact (not full blastRadius).
+	ProposalImpact string `json:"proposalImpact,omitempty"`
 }
 
 // Investigation is the CLI-facing intelligence document for investigate / why / timeline / impact.

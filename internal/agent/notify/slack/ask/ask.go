@@ -78,7 +78,9 @@ func (h *Handler) Answer(ctx context.Context, text string) string {
 	}
 	switch ParseIntent(text) {
 	case IntentHelp:
-		return "Ask me: `status`, `why`, `what broke`, `false positive`, or `approve <proposal-id>`. Approve applies a stored AutopilotProposal under RemediationPolicy — never silent apply."
+		return "Ask me: `status`, `why`, `what broke`, `false positive`, or `approve <proposal-id>`.\n" +
+			"Approve = same gate as CLI `Apply this plan? [y/N]` / `--approve` (RemediationPolicy policyAuto + allowlist) — never silent apply.\n" +
+			"Risk words match CLI: `low` · `medium` · `high` · `denied`."
 	case IntentStatus:
 		return h.answerStatus(ctx)
 	case IntentWhatBroke:
@@ -90,7 +92,8 @@ func (h *Handler) Answer(ctx context.Context, text string) string {
 	case IntentApprove:
 		return h.answerApprove(ctx, text)
 	default:
-		return "I only answer `status`, `why`, `what broke`, `false positive`, and `approve <proposal-id>` (read-only except approve). Try `help`."
+		return "I only answer `status`, `why`, `what broke`, `false positive`, and `approve <proposal-id>` (read-only except approve). Try `help`.\n" +
+			"`approve <id>` ≡ CLI `--approve` after you review the proposal."
 	}
 }
 

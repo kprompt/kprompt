@@ -28,8 +28,12 @@ func TestFormatAlert(t *testing.T) {
 	a.ProposalAction = "restartDeployment"
 	a.ProposalRisk = "medium"
 	a.ProposalHint = "kprompt agent proposals apply -n payments --id ap-1 --approve"
+	a.ProposalImpact = "Traffic returns to the last successful ReplicaSet"
 	text := FormatAlert(a)
-	for _, want := range []string{"payments", "CrashLoopBackOff", "94%", "Redis DNS", "payment-api", "inc-1", "ap-1", "proposals apply"} {
+	for _, want := range []string{
+		"payments", "CrashLoopBackOff", "94%", "Redis DNS", "payment-api", "inc-1", "ap-1",
+		"proposals apply", "Approve (CLI)", "Approve (Slack ask)", "approve ap-1", "Impact:", "medium",
+	} {
 		if !strings.Contains(text, want) {
 			t.Fatalf("missing %q in:\n%s", want, text)
 		}
