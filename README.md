@@ -107,7 +107,7 @@ cd kprompt-examples && make magic-moment
 
 For the advanced all-scenarios Observe demo, run `make walkthrough`.
 
-![Observe agent: watch → Incident → gated proposal — never silent mutate](./.github/assets/kprompt-observe-demo.gif)
+![Experimental: magic moment — failed rollout → PlanResult proposal → approve → verify → Learn (heuristic, $0)](./.github/assets/kprompt-magic-moment.gif)
 
 ---
 
